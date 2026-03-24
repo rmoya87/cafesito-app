@@ -232,4 +232,122 @@ En **Exploración** (Informes o Exploración), usar como **segmento**:
 
 ---
 
+## 13. Direct Share — Logging backend y dashboard base
+
+Además de GA4/GTM, se recomienda persistir `share_*` en Supabase para auditoría y métricas internas.
+
+### 13.1 Script SQL (backend)
+
+- Script: `docs/supabase/direct_share_event_logging.sql`
+- Crea:
+  - tabla `public.share_event_logs`
+  - índices por `created_at`, `event_name`, `platform`, `user_id`
+  - RPC `public.log_share_event(...)`
+- Eventos soportados:
+  - `share_opened`
+  - `share_target_shown`
+  - `share_target_clicked`
+  - `share_completed`
+  - `share_failed`
+
+### 13.2 KPIs mínimos (dashboard)
+
+- **Aperturas de share**: total de `share_opened`.
+- **Tasa de éxito**: `share_completed / share_opened`.
+- **Tasa de fallo**: `share_failed / share_opened`.
+- **CTR destinos directos**: `share_target_clicked / share_target_shown`.
+- **Rendimiento por plataforma**: comparación `android` vs `web`.
+- **Top pantallas origen**: `origin_screen` con más `share_opened`.
+
+### 13.3 Queries base (Supabase SQL Editor)
+
+```sql
+-- 1) Embudo diario (últimos 30 días)
+select
+  date_trunc('day', created_at) as day,
+  count(*) filter (where event_name = 'share_opened') as opened,
+  count(*) filter (where event_name = 'share_target_shown') as target_shown,
+  count(*) filter (where event_name = 'share_target_clicked') as target_clicked,
+  count(*) filter (where event_name = 'share_completed') as completed,
+  count(*) filter (where event_name = 'share_failed') as failed
+from public.share_event_logs
+where created_at >= now() - interval '30 days'
+group by 1
+order by 1;
+```
+
+```sql
+-- 2) Conversión por plataforma (últimos 30 días)
+with base as (
+  select
+    platform,
+    count(*) filter (where event_name = 'share_opened') as opened,
+    count(*) filter (where event_name = 'share_completed') as completed,
+    count(*) filter (where event_name = 'share_failed') as failed
+  from public.share_event_logs
+  where created_at >= now() - interval '30 days'
+  group by platform
+)
+select
+  platform,
+  opened,
+  completed,
+  failed,
+  round((completed::numeric / nullif(opened, 0)) * 100, 2) as success_rate_pct,
+  round((failed::numeric / nullif(opened, 0)) * 100, 2) as fail_rate_pct
+from base
+order by platform;
+```
+
+```sql
+-- 3) Top origen de share (últimos 30 días)
+select
+  coalesce(origin_screen, 'unknown') as origin_screen,
+  count(*) filter (where event_name = 'share_opened') as opened,
+  count(*) filter (where event_name = 'share_completed') as completed
+from public.share_event_logs
+where created_at >= now() - interval '30 days'
+group by 1
+order by opened desc
+limit 20;
+```
+
+```sql
+-- 4) CTR de destinos directos (últimos 30 días)
+with c as (
+  select
+    count(*) filter (where event_name = 'share_target_shown') as shown,
+    count(*) filter (where event_name = 'share_target_clicked') as clicked
+  from public.share_event_logs
+  where created_at >= now() - interval '30 days'
+)
+select
+  shown,
+  clicked,
+  round((clicked::numeric / nullif(shown, 0)) * 100, 2) as ctr_pct
+from c;
+```
+
+```sql
+-- 5) Verificación rápida Android/Web (últimas 24h)
+select
+  platform,
+  event_name,
+  count(*) as total
+from public.share_event_logs
+where created_at >= now() - interval '24 hours'
+group by platform, event_name
+order by platform, event_name;
+```
+
+### 13.4 Checklist de activación
+
+- [ ] Ejecutar `docs/supabase/direct_share_event_logging.sql` en Supabase.
+- [x] Confirmar llamadas a `log_share_event(...)` en Android/WebApp o Edge Function.
+- [x] Verificar llegada de eventos en `public.share_event_logs`.
+- [ ] Construir panel inicial con las queries de §13.3.
+- [ ] Revisar retención y privacidad de datos (`metadata`) trimestralmente.
+
+---
+
 **Mantener este documento** como única fuente de verdad: al cambiar pantallas, rutas o eventos, actualizar aquí y, cuando corresponda, en [docs/gtm/](gtm/).

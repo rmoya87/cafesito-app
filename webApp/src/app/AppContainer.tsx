@@ -15,6 +15,8 @@ import {
   fetchUserListById,
   fetchUserListItems,
   fetchCoffeeIdsInEditableUserLists,
+  fetchDirectShareTargets,
+  logShareEvent,
   fetchSharedWithMeLists,
   fetchUserLists,
   insertFinishedCoffee,
@@ -132,6 +134,27 @@ import type {
 } from "../types";
 
 export function AppContainer() {
+  const logShareEventBackend = useCallback(
+    (
+      eventName: "share_opened" | "share_target_shown" | "share_target_clicked" | "share_completed" | "share_failed",
+      targetType: string,
+      targetId?: string,
+      metadata?: Record<string, unknown>
+    ) => {
+      void logShareEvent({
+        event_name: eventName,
+        origin_screen: "list_options",
+        content_type: "list",
+        target_type: targetType,
+        target_id: targetId,
+        metadata
+      }).catch(() => {
+        // Logging backend es best-effort: no romper UX de share.
+      });
+    },
+    []
+  );
+
   const initialRoute = parseRoute(window.location.pathname);
   const isNotFoundRoute = !isKnownRoute(window.location.pathname);
   const { mode, viewportWidth } = useResponsiveMode();
@@ -2411,16 +2434,59 @@ export function AppContainer() {
                 }
               }}
               onCopyLink={() => {
+                sendEvent("share_opened", { origin_screen: "list_options", content_type: "list", target_type: "clipboard" });
+                logShareEventBackend("share_opened", "clipboard", profileListId ?? undefined, { list_id: profileListId, share_method: "clipboard" });
                 void copyToClipboard(shareUrl).then((ok) => {
-                  if (ok) setShowCopyChip(true);
+                  if (ok) {
+                    setShowCopyChip(true);
+                    sendEvent("share_completed", { origin_screen: "list_options", content_type: "list", target_type: "clipboard" });
+                    logShareEventBackend("share_completed", "clipboard", profileListId ?? undefined, { list_id: profileListId, share_method: "clipboard" });
+                  } else {
+                    sendEvent("share_failed", { origin_screen: "list_options", content_type: "list", target_type: "clipboard" });
+                    logShareEventBackend("share_failed", "clipboard", profileListId ?? undefined, { list_id: profileListId, share_method: "clipboard" });
+                  }
                 });
               }}
               onQuickShare={() => {
-                void shareOrCopyLink({
-                  title: "Lista de Cafesito",
-                  text: "Te comparto esta lista",
-                  url: shareUrl
-                });
+                sendEvent("share_opened", { origin_screen: "list_options", content_type: "list", target_type: "native_or_fallback" });
+                logShareEventBackend("share_opened", "native_or_fallback", profileListId ?? undefined, { list_id: profileListId, share_method: "native_or_fallback" });
+                void (async () => {
+                  const userId = activeUser?.id ?? 0;
+                  if (userId > 0) {
+                    const rankedTargets = await fetchDirectShareTargets(userId, 5);
+                    sendEvent("share_target_shown", {
+                      origin_screen: "list_options",
+                      content_type: "list",
+                      target_type: "direct",
+                      target_id: `ranked_${rankedTargets.length}`
+                    });
+                    logShareEventBackend("share_target_shown", "direct", `ranked_${rankedTargets.length}`, {
+                      list_id: profileListId,
+                      share_method: "native_or_fallback",
+                      ranked_targets_count: rankedTargets.length
+                    });
+                  }
+                  const result = await shareOrCopyLink({
+                    title: "Lista de Cafesito",
+                    text: "Te comparto esta lista",
+                    url: shareUrl
+                  });
+                  if (result.ok) {
+                    sendEvent("share_completed", {
+                      origin_screen: "list_options",
+                      content_type: "list",
+                      target_type: result.method
+                    });
+                    logShareEventBackend("share_completed", result.method, profileListId ?? undefined, { list_id: profileListId, share_method: result.method });
+                  } else {
+                    sendEvent("share_failed", {
+                      origin_screen: "list_options",
+                      content_type: "list",
+                      target_type: result.method
+                    });
+                    logShareEventBackend("share_failed", result.method, profileListId ?? undefined, { list_id: profileListId, share_method: result.method });
+                  }
+                })();
               }}
               onRemoveMember={async (userId) => {
                 try {

@@ -154,6 +154,16 @@ class BrewLabTimerService : Service() {
             Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
                 putExtra(EXTRA_OPEN_BREWLAB, true)
+                putExtra(EXTRA_ENTRY_SOURCE, ENTRY_SOURCE_NOTIFICATION_ACTION)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val openBrewLabAction = PendingIntent.getActivity(
+            this, 1,
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+                putExtra(EXTRA_OPEN_BREWLAB, true)
+                putExtra(EXTRA_ENTRY_SOURCE, ENTRY_SOURCE_NOTIFICATION_ACTION)
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -183,9 +193,13 @@ class BrewLabTimerService : Service() {
             .setContentText(content)
             .setSmallIcon(R.drawable.ic_cafesito_tile)
             .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setSilent(true)
             .setContentIntent(openApp)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .addAction(android.R.drawable.ic_media_pause, if (isPaused) getString(R.string.brew_timer_resume) else getString(R.string.brew_timer_pause), pauseResumeAction)
             .addAction(android.R.drawable.ic_delete, getString(R.string.brew_timer_cancel), cancelAction)
+            .addAction(android.R.drawable.ic_menu_view, getString(R.string.brew_timer_open_brewlab), openBrewLabAction)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .build()
@@ -197,6 +211,7 @@ class BrewLabTimerService : Service() {
             Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
                 putExtra(EXTRA_OPEN_BREWLAB_CONSUMO, true)
+                putExtra(EXTRA_ENTRY_SOURCE, ENTRY_SOURCE_NOTIFICATION_ACTION)
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -213,6 +228,7 @@ class BrewLabTimerService : Service() {
             .setContentText(getString(R.string.brew_timer_register_text))
             .setSmallIcon(R.drawable.ic_cafesito_tile)
             .setContentIntent(openConsumo)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setAutoCancel(true)
             .addAction(android.R.drawable.ic_menu_edit, getString(R.string.brew_timer_register_yes), openConsumo)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, getString(R.string.brew_timer_register_later), dismissLater)
@@ -278,6 +294,10 @@ class BrewLabTimerService : Service() {
         const val EXTRA_OPEN_DIARY_FROM_BREW = "open_diary_from_brew"
         /** Al tocar la notificación «¿Registrar elaboración?» abrir Brew Lab en pantalla Consumo (resultado). */
         const val EXTRA_OPEN_BREWLAB_CONSUMO = "open_brewlab_consumo"
+        const val EXTRA_ENTRY_SOURCE = "entry_source"
+        const val ENTRY_SOURCE_NOTIFICATION_ACTION = "notification_action"
+        const val ENTRY_SOURCE_WIDGET = "widget"
+        const val ENTRY_SOURCE_QUICK_TILE = "quick_tile"
 
         private const val NOTIFICATION_ID = 9001
         /** ID de la notificación «¿Registrar elaboración?»; usado para añadir acción «Más tarde» que la cierra. */

@@ -647,6 +647,35 @@ export function invalidateUserListsCache(userId?: number): void {
   else userListsCache.clear();
 }
 
+export type DirectShareTarget = {
+  id: string;
+  type: "list" | "contact";
+  label: string;
+  deep_link: string;
+  rank_score: number;
+};
+
+export async function logShareEvent(params: {
+  event_name: "share_opened" | "share_target_shown" | "share_target_clicked" | "share_completed" | "share_failed";
+  origin_screen?: string;
+  content_type?: string;
+  target_type?: string;
+  target_id?: string;
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.rpc("log_share_event", {
+    p_event_name: params.event_name,
+    p_platform: "web",
+    p_origin_screen: params.origin_screen ?? null,
+    p_content_type: params.content_type ?? null,
+    p_target_type: params.target_type ?? null,
+    p_target_id: params.target_id ?? null,
+    p_metadata: params.metadata ?? {}
+  });
+  if (error) throw error;
+}
+
 async function fetchUserListsRaw(userId: number): Promise<UserListRow[]> {
   const supabase = getSupabaseClient();
   let data: unknown;
@@ -728,6 +757,29 @@ export async function fetchUserLists(userId: number): Promise<UserListRow[]> {
   } catch {
     return [];
   }
+}
+
+/**
+ * Endpoint de ranking real para Direct Share.
+ * RPC esperada en backend: get_direct_share_targets(p_user_id, p_limit).
+ * Si no existe la RPC o falla, devuelve [] (fallback lo resuelve la capa de UI).
+ */
+export async function fetchDirectShareTargets(userId: number, limit = 5): Promise<DirectShareTarget[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc("get_direct_share_targets", {
+    p_user_id: userId,
+    p_limit: limit
+  });
+  if (error || !Array.isArray(data)) return [];
+  return (data as Array<Record<string, unknown>>)
+    .map((row): DirectShareTarget => ({
+      id: String(row.id ?? ""),
+      type: (String(row.type ?? "").toLowerCase() === "contact" ? "contact" : "list") as "list" | "contact",
+      label: String(row.label ?? "").trim(),
+      deep_link: String(row.deep_link ?? "").trim(),
+      rank_score: Number(row.rank_score ?? 0)
+    }))
+    .filter((row) => row.id.length > 0 && row.label.length > 0 && row.deep_link.length > 0);
 }
 
 /** Obtiene las listas compartidas con el usuario (con caché TTL 5 min). En error se reintenta contra Supabase. */

@@ -14,7 +14,7 @@ Este documento recoge **propuestas pendientes y nuevas ideas** para Android, Web
 
 ## 2. Checklist unificada de estado
 
-**Leyenda:** ✅ Implementado | ❌ Pendiente
+**Leyenda:** ✅ Implementado | 🟡 En progreso | ❌ Pendiente
 
 | # | Desarrollo | Temática | Estado | Notas / Dónde ver |
 |---|------------|----------|--------|-------------------|
@@ -26,9 +26,9 @@ Este documento recoge **propuestas pendientes y nuevas ideas** para Android, Web
 | 6 | Predictive app actions | Integraciones Android | ✅ | Doc implementadas §6 |
 | 7 | Canales de notificaciones | Integraciones Android | ✅ | Doc implementadas §7 |
 | 8 | Edge-to-edge y Predictive back | Integraciones Android | ✅ | Doc implementadas §8 |
-| 9 | Direct Share (Android + WebApp, sin ChooserTargetService) | Integraciones Android/Web | ❌ | Android: Sharing Shortcuts; WebApp: Web Share + destinos rápidos internos |
+| 9 | Direct Share (Android + WebApp, sin ChooserTargetService) | Integraciones Android/Web | ✅ | Implementado en Android/WebApp con ranking RPC y persistencia `share_*`; ver checklist y `docs/ANALITICAS.md` §13 |
 | 10 | Health Connect (cafeína) | Integraciones Android | ❌ | Según prioridad producto |
-| 11 | Pantalla de bloqueo / Lock screen | Integraciones Android | ❌ | Widget/acción "Elaborar" (OEM) |
+| 11 | Pantalla de bloqueo / Lock screen | Integraciones Android | 🟡 | Fase 2 completada; Fase 3 en progreso |
 | 12 | Soporte tablets y plegables | Integraciones Android | ❌ | WindowSizeClass, dos paneles |
 | 13 | Reanudar timer tras reinicio | Elaboración y diario | ❌ | WorkManager/alarma, "¿Continuar elaboración?" |
 | 14 | Sincronización en segundo plano (WorkManager) | UX y rendimiento | ❌ | Reforzar SyncManager, offline-first |
@@ -57,7 +57,7 @@ Funcionalidades nativas del ecosistema Android. Detalle de implementados en `AND
   - **Objetivo funcional:** en "Compartir", ofrecer destinos directos de Cafesito (listas y contactos frecuentes) para reducir pasos.
   - **Android (implementación recomendada):** usar **Sharing Shortcuts** (`ShortcutManager` / `ShortcutInfoCompat`) en lugar de `ChooserTargetService` (legacy). Publicar shortcuts dinámicos por usuario (top listas/contactos), abrir destino con deep link interno y fallback al share normal si el destino ya no existe.
   - **WebApp (equivalente funcional):** usar `navigator.share(...)` cuando esté disponible y, en paralelo, mostrar un panel propio de **destinos rápidos** (copiar enlace, compartir en lista interna, contactos frecuentes, WhatsApp/Telegram/X por URL). Si Web Share API no está disponible, fallback a copia de enlace + panel de destinos.
-  - **Estado actual:** no implementado en Android ni WebApp.
+  - **Estado actual:** implementado en Android y WebApp (sin `ChooserTargetService`) con fallback y telemetría backend.
 
   **Checklist de ejecución (estado real):**
   - [x] Definido enfoque sin `ChooserTargetService` (Android + WebApp).
@@ -67,8 +67,11 @@ Funcionalidades nativas del ecosistema Android. Detalle de implementados en `AND
   - [x] Creada capa inicial Android (`DirectShareRepository`) con sugerencias base desde listas del usuario.
   - [x] Publicación inicial de Sharing Shortcuts dinámicos en Android al compartir listas (`DirectShareShortcutPublisher` + `ListOptionsViewModel.shareList()`).
   - [x] Añadido panel/acciones visibles de destino rápido en WebApp (botones "Copiar enlace" + "Compartir").
-  - [ ] Exponer endpoint backend de ranking real (listas + contactos) y conectar Android/WebApp.
-  - [ ] Instrumentar eventos de analítica `share_*` en ambas plataformas.
+  - [x] Expuesto contrato backend inicial para ranking real (`docs/supabase/direct_share_targets_rpc.sql`) y conexión base en Android/WebApp vía RPC `get_direct_share_targets`.
+  - [x] Instrumentados eventos base de analítica `share_*` en Android (ListOptionsViewModel) y WebApp (AppContainer).
+  - [x] Conectada persistencia backend de eventos `share_*` vía RPC `log_share_event` (Android: `SupabaseDataSource.logShareEvent`; WebApp: `supabaseApi.logShareEvent`).
+  - [x] Ajuste fino de `target_id`/`metadata` en eventos `share_*` (Android + WebApp).
+  - [x] Verificación operativa en entorno real de inserciones en `share_event_logs` (seguir checklist de `docs/ANALITICAS.md` §13.4).
 
   **Desglose por sprint (ejecutable):**
 
@@ -131,6 +134,63 @@ Funcionalidades nativas del ecosistema Android. Detalle de implementados en `AND
       - Checklist de accesibilidad aprobado en Android y WebApp.
       - Rollout controlado activo con feature flag.
       - Métricas estables y sin regresión crítica de share.
+
+- **Pantalla de bloqueo / Lock screen (Widget/acción "Elaborar", OEM):**
+  - **Objetivo funcional:** reducir fricción para iniciar una elaboración desde contexto de bloqueo, manteniendo seguridad y comportamiento consistente entre fabricantes.
+  - **Principios de producto:**
+    - No depender de una sola vía (la pantalla de bloqueo varía por OEM/launcher).
+    - Priorizar rutas robustas y ya soportadas por Android estándar.
+    - Mantener fallback automático (Quick Settings Tile y notificación).
+  - **Alcance funcional esperado (final):**
+    - Entrada rápida a Brew Lab desde acción visible en lock/home (según soporte del dispositivo).
+    - Si hay timer en curso, restaurar estado al abrir.
+    - Si la sesión no es válida, pasar por autenticación y volver al flujo de elaborar.
+  - **Estado actual:** Fase 2 completada (widget + fallback por tile/notificación) y Fase 3 en progreso.
+  - **Avance Fase 3 aplicado:** gate por fabricante/versión + rollout porcentual determinístico por dispositivo para entrada desde widget (`LockEntryFeatureFlags` + `BuildConfig.LOCK_WIDGET_ROLLOUT_PERCENT`), con degradación analítica a `quick_tile` cuando no aplica.
+
+  **Solución final por fases:**
+
+  - **Fase 0 — Definición y guardrails (corta)**
+    - **Funcional:** definir matriz de entrada rápida: notificación -> widget (si soportado) -> Quick Settings Tile.
+    - **Técnico:** contrato único de navegación (`OPEN_BREWLAB` / `OPEN_BREWLAB_CONSUMO`), política de seguridad sin bypass, matriz QA mínima por OEM (Pixel/Xiaomi).
+    - **Salida de fase:** especificación cerrada de estados y fallback por dispositivo.
+
+  - **Fase 1 — MVP robusto (recomendada)**
+    - **Funcional:** abrir Brew Lab desde acción de notificación en lockscreen con mínimo toque.
+    - **Técnico:** `PendingIntent` estable, flags correctos (`NEW_TASK`, `CLEAR_TOP`), reutilización de navegación existente en `MainActivity` + `AppNavigation`.
+    - **Analítica:** `lock_entry_opened`, `lock_entry_completed`, `lock_entry_failed` con `entry_type=notification_action`.
+    - **Salida de fase:** cold/warm start correcto y sin regresiones en timer.
+
+  - **Fase 2 — Widget "Elaborar" (lock/home según soporte)**
+    - **Funcional:** widget de acceso rápido "Elaborar" con comportamiento uniforme cuando el launcher lo permita.
+    - **Técnico:** AppWidget/Glance mínimo (CTA único), receiver dedicado, fallback automático a tile/notificación en OEM sin soporte lock widgets.
+    - **Accesibilidad:** etiqueta clara, área táctil >= 48dp, contraste AA.
+    - **Salida de fase:** validado en Pixel/Xiaomi; degradación controlada en OEM restrictivos.
+
+  - **Fase 3 — Hardening OEM y rollout**
+    - **Funcional:** estabilidad en fabricantes con restricciones agresivas.
+    - **Técnico:** feature flag por fabricante/versión, QA con doze/app kill/reboot, manejo explícito de errores de intent.
+    - **Analítica y producto:** comparación de conversión por `entry_type` (`notification_action`, `widget`, `quick_tile`) hasta guardado en diario.
+    - **Salida de fase:** rollout progresivo activo y métricas estables.
+
+  **Matriz QA mínima OEM (Fase 2):**
+  - **Pixel (Android 14/15):**
+    - [ ] Widget "Elaborar" visible en home.
+    - [ ] Si hay soporte lock widgets en launcher/versión, entrada desde lockscreen validada.
+    - [ ] Fallback por tile abre Brew Lab con `entry_type=quick_tile`.
+  - **Xiaomi (HyperOS/MIUI):**
+    - [ ] Widget "Elaborar" visible en home.
+    - [ ] Validar restricciones OEM (autoinicio/ahorro energía) sin romper entrada rápida.
+    - [ ] Fallback por tile/notificación mantiene navegación y analítica.
+
+  **Criterio de cierre Fase 2:**
+  - Marcar `Fase 2 implementada` cuando Pixel y Xiaomi estén en verde en la matriz QA anterior.
+
+  **Checklist de ejecución (estado real):**
+  - [x] Fase 0 cerrada (contrato de navegación y matriz OEM).
+  - [x] Fase 1 implementada (notificación lock-entry + métricas base).
+  - [x] Fase 2 implementada (widget y fallback por OEM).
+  - [ ] Fase 3 completada (hardening + rollout + comparativa de métricas).
 
 - **Bubbles:** Notificación del timer expandible en burbuja flotante; tap abre Brew Lab. Requiere notificación con burbuja y `BubbleMetadata`. Estado: no implementado.
 

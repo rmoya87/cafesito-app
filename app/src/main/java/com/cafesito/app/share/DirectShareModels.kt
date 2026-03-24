@@ -9,7 +9,8 @@ data class DirectShareTarget(
     val type: DirectShareTargetType,
     val label: String,
     val deepLink: String,
-    val rankScore: Double
+    val rankScore: Double,
+    val avatarUrl: String? = null
 )
 
 enum class DirectShareTargetType {

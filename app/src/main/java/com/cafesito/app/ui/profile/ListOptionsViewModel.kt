@@ -2,9 +2,11 @@ package com.cafesito.app.ui.profile
 
 import android.content.Context
 import android.content.Intent
+import androidx.core.os.bundleOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cafesito.app.analytics.AnalyticsHelper
 import com.cafesito.app.data.ListInvitationRow
 import com.cafesito.app.data.ListMemberRow
 import com.cafesito.app.data.SupabaseDataSource
@@ -25,6 +27,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import javax.inject.Inject
 
 @HiltViewModel
@@ -34,8 +38,31 @@ class ListOptionsViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val directShareRepository: DirectShareRepository,
     private val directShareShortcutPublisher: DirectShareShortcutPublisher,
+    private val analyticsHelper: AnalyticsHelper,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
+
+    private suspend fun trackShareEventBackend(
+        eventName: String,
+        targetType: String,
+        targetId: String? = null,
+        shareMethod: String? = null
+    ) {
+        val metadata = buildJsonObject {
+            put("list_id", listId)
+            put("source", "list_options")
+            if (!shareMethod.isNullOrBlank()) put("share_method", shareMethod)
+        }
+        supabaseDataSource.logShareEvent(
+            eventName = eventName,
+            platform = "android",
+            originScreen = "list_options",
+            contentType = "list",
+            targetType = targetType,
+            targetId = targetId ?: listId,
+            metadata = metadata
+        )
+    }
 
     private val routeUserId: Int = savedStateHandle["userId"] ?: 0
     val listId: String = savedStateHandle["listId"] ?: ""
@@ -203,20 +230,49 @@ class ListOptionsViewModel @Inject constructor(
     fun shareList() {
         val url = getShareUrl()
         viewModelScope.launch(Dispatchers.IO) {
+            analyticsHelper.trackEvent(
+                "share_opened",
+                bundleOf("origin_screen" to "list_options", "content_type" to "list", "target_type" to "system_share")
+            )
+            trackShareEventBackend("share_opened", "system_share", shareMethod = "android_chooser")
             val targets = runCatching { directShareRepository.getSuggestedTargets(limit = 4) }
                 .getOrDefault(emptyList())
             if (targets.isNotEmpty()) {
                 directShareShortcutPublisher.publishSuggestedTargets(context, targets)
+                analyticsHelper.trackEvent(
+                    "share_target_shown",
+                    bundleOf(
+                        "origin_screen" to "list_options",
+                        "content_type" to "list",
+                        "target_type" to "direct",
+                        "target_id" to "dynamic_shortcuts_${targets.size}"
+                    )
+                )
+                trackShareEventBackend("share_target_shown", "direct", "dynamic_shortcuts_${targets.size}", "android_shortcuts")
             }
             withContext(Dispatchers.Main) {
-            val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, url)
-            }
-            val chooserIntent = Intent.createChooser(sendIntent, "Compartir lista").apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            context.startActivity(chooserIntent)
+                runCatching {
+                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, url)
+                    }
+                    val chooserIntent = Intent.createChooser(sendIntent, "Compartir lista").apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(chooserIntent)
+                }.onSuccess {
+                    analyticsHelper.trackEvent(
+                        "share_completed",
+                        bundleOf("origin_screen" to "list_options", "content_type" to "list", "target_type" to "system_share")
+                    )
+                    viewModelScope.launch(Dispatchers.IO) { trackShareEventBackend("share_completed", "system_share", shareMethod = "android_chooser") }
+                }.onFailure {
+                    analyticsHelper.trackEvent(
+                        "share_failed",
+                        bundleOf("origin_screen" to "list_options", "content_type" to "list", "target_type" to "system_share")
+                    )
+                    viewModelScope.launch(Dispatchers.IO) { trackShareEventBackend("share_failed", "system_share", shareMethod = "android_chooser") }
+                }
             }
         }
     }

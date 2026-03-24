@@ -29,6 +29,7 @@ import com.cafesito.app.startup.AppSessionCoordinator
 import com.cafesito.app.startup.AppUiInitializer
 import com.cafesito.app.startup.PredictiveShortcutsHelper
 import com.cafesito.app.startup.ShortcutActionResolver
+import com.cafesito.app.share.DirectShareShortcutPublisher
 import com.cafesito.app.ui.access.SessionState
 import com.cafesito.app.ui.access.SessionViewModel
 import com.cafesito.app.ui.theme.CafesitoTheme
@@ -54,6 +55,7 @@ class MainActivity : ComponentActivity() {
     private val notificationNavigation = mutableStateOf<NotificationNavigation?>(null)
     private val shortcutNavigation = mutableStateOf<String?>(null)
     private var deepLinkListId by mutableStateOf<String?>(null)
+    private var deepLinkProfileId by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,6 +64,7 @@ class MainActivity : ComponentActivity() {
         notificationNavigation.value = NotificationNavigation.fromIntent(intent)
         shortcutNavigation.value = ShortcutActionResolver.resolve(intent)
         deepLinkListId = parseListIdFromIntent(intent)
+        deepLinkProfileId = parseProfileIdFromIntent(intent)
 
         setContent {
             val context = LocalContext.current
@@ -94,6 +97,8 @@ class MainActivity : ComponentActivity() {
                         onShortcutConsumed = { shortcutNavigation.value = null },
                         deepLinkListId = deepLinkListId,
                         onDeepLinkListConsumed = { deepLinkListId = null },
+                        deepLinkProfileUserId = deepLinkProfileId,
+                        onDeepLinkProfileConsumed = { deepLinkProfileId = null },
                         analyticsHelper = analyticsHelper
                     )
                 }
@@ -107,6 +112,7 @@ class MainActivity : ComponentActivity() {
         notificationNavigation.value = NotificationNavigation.fromIntent(intent)
         shortcutNavigation.value = ShortcutActionResolver.resolve(intent)
         deepLinkListId = parseListIdFromIntent(intent)
+        deepLinkProfileId = parseProfileIdFromIntent(intent)
     }
 
     /** Extrae listId de un intent con data https://cafesitoapp.com/profile/list/{listId} o /lists/join/{listId}. */
@@ -124,6 +130,28 @@ class MainActivity : ComponentActivity() {
         val listIdx = segments.indexOf("list")
         if (listIdx >= 0 && listIdx < segments.lastIndex) return segments[listIdx + 1].takeIf { it.isNotBlank() }
         return null
+    }
+
+    /** Extrae identificador de perfil de https://cafesitoapp.com/profile/{userId|username}. */
+    private fun parseProfileIdFromIntent(intent: Intent?): String? {
+        val extraProfileId = intent?.getStringExtra(DirectShareShortcutPublisher.EXTRA_DIRECT_SHARE_TARGET_ID)
+            ?.takeIf { it.isNotBlank() }
+        val extraTargetType = intent?.getStringExtra(DirectShareShortcutPublisher.EXTRA_DIRECT_SHARE_TARGET_TYPE)
+            ?.trim()
+            ?.lowercase()
+        if (extraTargetType == "contact" && !extraProfileId.isNullOrBlank()) {
+            return extraProfileId
+        }
+
+        val uri: Uri = intent?.data ?: return null
+        val host = uri.host ?: return null
+        if (host != "cafesitoapp.com" && !host.endsWith(".cafesitoapp.com")) return null
+        val segments = uri.path.orEmpty().trim('/').split("/")
+        // /profile/{userId|username}
+        if (segments.getOrNull(0) != "profile") return null
+        // Ignorar /profile/list/{listId} que se resuelve por parseListIdFromIntent
+        if (segments.getOrNull(1) == "list") return null
+        return segments.getOrNull(1)?.takeIf { it.isNotBlank() }
     }
 
     override fun onStart() {

@@ -3,6 +3,7 @@ package com.cafesito.app.data
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import io.github.jan.supabase.postgrest.query.Order
@@ -803,6 +804,63 @@ class SupabaseDataSource @Inject constructor(
         val name: String,
         @kotlinx.serialization.SerialName("user_id") val userId: Long
     )
+
+    @kotlinx.serialization.Serializable
+    data class DirectShareTargetRow(
+        val id: String,
+        val type: String,
+        val label: String,
+        @kotlinx.serialization.SerialName("deep_link") val deepLink: String,
+        @kotlinx.serialization.SerialName("rank_score") val rankScore: Double = 0.0
+    )
+
+    /**
+     * Endpoint de ranking real para Direct Share.
+     * RPC esperada en backend: get_direct_share_targets(p_user_id, p_limit).
+     */
+    suspend fun getDirectShareTargets(userId: Int, limit: Int = 4): List<DirectShareTargetRow> = try {
+        client.postgrest.rpc(
+            "get_direct_share_targets",
+            buildJsonObject {
+                put("p_user_id", userId)
+                put("p_limit", limit)
+            }
+        ).decodeList<DirectShareTargetRow>()
+    } catch (e: Exception) {
+        Log.w("SupabaseDataSource", "getDirectShareTargets: ${e.message}")
+        emptyList()
+    }
+
+    /**
+     * Persistencia backend de eventos share_* (además de GA4/GTM).
+     * RPC esperada en backend: log_share_event(...)
+     */
+    suspend fun logShareEvent(
+        eventName: String,
+        platform: String,
+        originScreen: String?,
+        contentType: String?,
+        targetType: String?,
+        targetId: String? = null,
+        metadata: JsonObject = buildJsonObject { }
+    ) {
+        try {
+            client.postgrest.rpc(
+                "log_share_event",
+                buildJsonObject {
+                    put("p_event_name", eventName)
+                    put("p_platform", platform)
+                    put("p_origin_screen", originScreen ?: "")
+                    put("p_content_type", contentType ?: "")
+                    put("p_target_type", targetType ?: "")
+                    put("p_target_id", targetId ?: "")
+                    put("p_metadata", metadata)
+                }
+            )
+        } catch (e: Exception) {
+            Log.w("SupabaseDataSource", "logShareEvent: ${e.message}")
+        }
+    }
 
     /** Une al usuario actual a la lista por enlace (lista pública o por invitación). */
     suspend fun joinListByLink(listId: String) {

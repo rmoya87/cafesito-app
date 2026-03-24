@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="60dp"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/widget_elaborar"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen|keyguard"
+    android:description="@string/widget_elaborar_description"
+    android:previewImage="@mipmap/ic_launcher"
+    android:targetCellWidth="2"
+    android:targetCellHeight="1" />

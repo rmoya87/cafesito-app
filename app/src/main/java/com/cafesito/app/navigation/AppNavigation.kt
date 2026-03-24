@@ -86,6 +86,8 @@ fun AppNavigation(
     onShortcutConsumed: () -> Unit,
     deepLinkListId: String?,
     onDeepLinkListConsumed: () -> Unit,
+    deepLinkProfileUserId: String?,
+    onDeepLinkProfileConsumed: () -> Unit,
     analyticsHelper: AnalyticsHelper
 ) {
     val context = LocalContext.current
@@ -130,19 +132,70 @@ fun AppNavigation(
 
     LaunchedEffect(notificationNavigation) {
         val nav = notificationNavigation ?: return@LaunchedEffect
+        val lockEntrySource = nav.source?.takeIf {
+            it == BrewLabTimerService.ENTRY_SOURCE_NOTIFICATION_ACTION ||
+                it == BrewLabTimerService.ENTRY_SOURCE_WIDGET ||
+                it == BrewLabTimerService.ENTRY_SOURCE_QUICK_TILE
+        }
         when (nav.type) {
             "NOTIFICATIONS" -> navController.navigate("notifications")
             "FOLLOW" -> nav.targetId?.let { navController.navigate("profile/$it") }
             "MENTION", "COMMENT" -> navController.navigate("home")
-            "OPEN_BREWLAB" -> navController.navigate("brewlab?openConsumo=false") {
-                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                launchSingleTop = true
-                restoreState = true
+            "OPEN_BREWLAB" -> {
+                if (lockEntrySource != null) {
+                    analyticsHelper.trackEvent(
+                        "lock_entry_opened",
+                        bundleOf("entry_type" to lockEntrySource, "target_type" to "brewlab")
+                    )
+                }
+                val navigateResult = runCatching {
+                    navController.navigate("brewlab?openConsumo=false") {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+                if (lockEntrySource != null) {
+                    if (navigateResult.isSuccess) {
+                        analyticsHelper.trackEvent(
+                            "lock_entry_completed",
+                            bundleOf("entry_type" to lockEntrySource, "target_type" to "brewlab")
+                        )
+                    } else {
+                        analyticsHelper.trackEvent(
+                            "lock_entry_failed",
+                            bundleOf("entry_type" to lockEntrySource, "target_type" to "brewlab")
+                        )
+                    }
+                }
             }
-            "OPEN_BREWLAB_CONSUMO" -> navController.navigate("brewlab?openConsumo=true") {
-                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                launchSingleTop = true
-                restoreState = true
+            "OPEN_BREWLAB_CONSUMO" -> {
+                if (lockEntrySource != null) {
+                    analyticsHelper.trackEvent(
+                        "lock_entry_opened",
+                        bundleOf("entry_type" to lockEntrySource, "target_type" to "brewlab_consumo")
+                    )
+                }
+                val navigateResult = runCatching {
+                    navController.navigate("brewlab?openConsumo=true") {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+                if (lockEntrySource != null) {
+                    if (navigateResult.isSuccess) {
+                        analyticsHelper.trackEvent(
+                            "lock_entry_completed",
+                            bundleOf("entry_type" to lockEntrySource, "target_type" to "brewlab_consumo")
+                        )
+                    } else {
+                        analyticsHelper.trackEvent(
+                            "lock_entry_failed",
+                            bundleOf("entry_type" to lockEntrySource, "target_type" to "brewlab_consumo")
+                        )
+                    }
+                }
             }
             "OPEN_DIARY_FROM_BREW" -> {
                 navController.navigate("diary") {
@@ -190,6 +243,19 @@ fun AppNavigation(
             }
         }
         onDeepLinkListConsumed()
+    }
+
+    // Deep link perfil: /profile/{userId}
+    LaunchedEffect(deepLinkProfileUserId, sessionState) {
+        val userIdentifier = deepLinkProfileUserId?.trim().orEmpty()
+        if (userIdentifier.isBlank()) return@LaunchedEffect
+        if (sessionState !is SessionState.Authenticated) return@LaunchedEffect
+        delay(400) // Dejar que LoginScreen navegue a home antes de abrir perfil
+        val userId = userIdentifier.toIntOrNull()
+            ?: userRepository.getUserByUsername(userIdentifier)?.id
+            ?: return@LaunchedEffect
+        navController.navigate("profile/$userId") { launchSingleTop = true }
+        onDeepLinkProfileConsumed()
     }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -927,7 +993,8 @@ SearchScreen(
 data class NotificationNavigation(
     val type: String,
     val targetId: String?,
-    val commentId: Int? = null
+    val commentId: Int? = null,
+    val source: String? = null
 ) {
     companion object {
         fun fromIntent(intent: Intent?): NotificationNavigation? {
@@ -937,6 +1004,7 @@ data class NotificationNavigation(
             val timelineCommentId = intent?.getIntExtra(TimelineNotificationSystem.EXTRA_COMMENT_ID, -1)?.takeIf { it >= 0 }
             val targetId = intent?.getStringExtra("nav_id") ?: timelinePostId
             val commentId = intent?.getIntExtra("nav_comment_id", -1)?.takeIf { it >= 0 } ?: timelineCommentId
+            val source = intent?.getStringExtra(BrewLabTimerService.EXTRA_ENTRY_SOURCE)
 
             val type = when {
                 !navType.isNullOrBlank() -> navType.uppercase()
@@ -949,7 +1017,7 @@ data class NotificationNavigation(
                 timelineType != null -> "NOTIFICATIONS"
                 else -> null
             }
-            return type?.let { NotificationNavigation(it, targetId, commentId) }
+            return type?.let { NotificationNavigation(it, targetId, commentId, source) }
         }
     }
 }

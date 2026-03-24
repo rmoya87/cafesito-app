@@ -1523,6 +1523,7 @@ html:not(.theme-light) .list-options-members-invite-btn {
 .list-options-members-copy-link {
   display: flex;
   align-items: center;
+  min-height: 44px;
   gap: 8px;
   width: calc(100% + 32px);
   margin-left: -16px;

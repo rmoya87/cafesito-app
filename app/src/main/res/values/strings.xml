@@ -15,6 +15,7 @@
     <string name="brew_timer_pause">Pausar</string>
     <string name="brew_timer_resume">Reanudar</string>
     <string name="brew_timer_cancel">Cancelar</string>
+    <string name="brew_timer_open_brewlab">Elaborar</string>
     <string name="brew_timer_register_title">¿Registrar elaboración?</string>
     <string name="brew_timer_register_text">Abre Cafesito y guarda en tu diario. Continuar.</string>
     <string name="brew_timer_register_yes">Sí, registrar</string>
@@ -24,6 +25,9 @@
     <string name="tile_label_brewing">Ver elaboración</string>
     <string name="tile_content_description_default">Abrir Cafesito</string>
     <string name="tile_content_description_brewing">Ver elaboración en curso</string>
+    <string name="widget_elaborar_title">Brew Lab</string>
+    <string name="widget_elaborar_cta">Elaborar</string>
+    <string name="widget_elaborar_description">Acceso rápido a Brew Lab</string>
 
     <!-- Unirse a lista por enlace -->
     <string name="join_list_title">Te han invitado a una lista</string>
