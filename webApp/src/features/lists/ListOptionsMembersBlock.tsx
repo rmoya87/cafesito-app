@@ -27,6 +27,7 @@ export function ListOptionsMembersBlock({
   shareUrl,
   invitingId,
   onInvite,
+  onQuickShare,
   onCopyLink,
   onRemoveMember,
   copyChipVisible,
@@ -46,6 +47,7 @@ export function ListOptionsMembersBlock({
   invitingId: number | null;
   invitations?: ListInvitationRow[];
   onInvite: (userId: number) => Promise<void>;
+  onQuickShare?: () => void;
   onCopyLink: () => void;
   onRemoveMember: (userId: number) => Promise<void>;
   copyChipVisible: boolean;
@@ -191,17 +193,30 @@ export function ListOptionsMembersBlock({
             )}
           </div>
         )}
-        <button
-          type="button"
-          className="list-options-members-copy-link"
-          onClick={() => {
-            onCopyLink();
-          }}
-          aria-label="Copiar enlace de invitación"
-        >
-          <UiIcon name="link" className="list-options-members-copy-icon" aria-hidden="true" />
-          <span>Copiar enlace</span>
-        </button>
+        <div className="list-options-members-share-actions">
+          <button
+            type="button"
+            className="list-options-members-copy-link"
+            onClick={() => {
+              onCopyLink();
+            }}
+            aria-label="Copiar enlace de invitación"
+          >
+            <UiIcon name="link" className="list-options-members-copy-icon" aria-hidden="true" />
+            <span>Copiar enlace</span>
+          </button>
+          <button
+            type="button"
+            className="list-options-members-copy-link"
+            onClick={() => {
+              onQuickShare?.();
+            }}
+            aria-label="Compartir enlace de invitación"
+          >
+            <UiIcon name="share" className="list-options-members-copy-icon" aria-hidden="true" />
+            <span>Compartir</span>
+          </button>
+        </div>
         {!hideMemberList && isPage ? (
           <div className="search-users-container">
             <ul className="search-users-list">

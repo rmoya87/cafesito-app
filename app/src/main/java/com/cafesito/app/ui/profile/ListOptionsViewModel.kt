@@ -11,6 +11,8 @@ import com.cafesito.app.data.SupabaseDataSource
 import com.cafesito.app.data.UserEntity
 import com.cafesito.app.data.UserListRow
 import com.cafesito.app.data.UserRepository
+import com.cafesito.app.share.DirectShareRepository
+import com.cafesito.app.share.DirectShareShortcutPublisher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +32,8 @@ class ListOptionsViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val supabaseDataSource: SupabaseDataSource,
     private val userRepository: UserRepository,
+    private val directShareRepository: DirectShareRepository,
+    private val directShareShortcutPublisher: DirectShareShortcutPublisher,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -198,7 +202,13 @@ class ListOptionsViewModel @Inject constructor(
     /** Abre la hoja nativa de Android para compartir el enlace de la lista. */
     fun shareList() {
         val url = getShareUrl()
-        viewModelScope.launch(Dispatchers.Main) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val targets = runCatching { directShareRepository.getSuggestedTargets(limit = 4) }
+                .getOrDefault(emptyList())
+            if (targets.isNotEmpty()) {
+                directShareShortcutPublisher.publishSuggestedTargets(context, targets)
+            }
+            withContext(Dispatchers.Main) {
             val sendIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
                 putExtra(Intent.EXTRA_TEXT, url)
@@ -207,6 +217,7 @@ class ListOptionsViewModel @Inject constructor(
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(chooserIntent)
+            }
         }
     }
 

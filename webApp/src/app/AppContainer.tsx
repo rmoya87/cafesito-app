@@ -41,6 +41,7 @@ import { canAccessTabAsGuest, resolveGuardedTab } from "../core/guards";
 import { getBrewMethodProfile, getBrewStepTitle, getBrewTimeProfile } from "../core/brew";
 import { formatMonthYear, formatWeekRange, getMondayOfWeek, type DiaryPeriod } from "../core/diaryAnalytics";
 import { normalizeLookupText } from "../core/text";
+import { copyToClipboard, shareOrCopyLink } from "../core/shareService";
 
 import { useGlobalUiEvents } from "../hooks/useGlobalUiEvents";
 import { useResponsiveMode } from "../hooks/useResponsiveMode";
@@ -2410,15 +2411,16 @@ export function AppContainer() {
                 }
               }}
               onCopyLink={() => {
-                navigator.clipboard.writeText(shareUrl).catch(() => {
-                  const input = document.createElement("input");
-                  input.value = shareUrl;
-                  document.body.appendChild(input);
-                  input.select();
-                  document.execCommand("copy");
-                  document.body.removeChild(input);
+                void copyToClipboard(shareUrl).then((ok) => {
+                  if (ok) setShowCopyChip(true);
                 });
-                setShowCopyChip(true);
+              }}
+              onQuickShare={() => {
+                void shareOrCopyLink({
+                  title: "Lista de Cafesito",
+                  text: "Te comparto esta lista",
+                  url: shareUrl
+                });
               }}
               onRemoveMember={async (userId) => {
                 try {

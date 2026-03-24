@@ -59,6 +59,79 @@ Funcionalidades nativas del ecosistema Android. Detalle de implementados en `AND
   - **WebApp (equivalente funcional):** usar `navigator.share(...)` cuando esté disponible y, en paralelo, mostrar un panel propio de **destinos rápidos** (copiar enlace, compartir en lista interna, contactos frecuentes, WhatsApp/Telegram/X por URL). Si Web Share API no está disponible, fallback a copia de enlace + panel de destinos.
   - **Estado actual:** no implementado en Android ni WebApp.
 
+  **Checklist de ejecución (estado real):**
+  - [x] Definido enfoque sin `ChooserTargetService` (Android + WebApp).
+  - [x] Añadido servicio base de share en WebApp (`webApp/src/core/shareService.ts`) con estrategia `navigator.share` + fallback a portapapeles.
+  - [x] Migrado el flujo de copiar enlace en WebApp para usar el servicio base (`AppContainer`).
+  - [x] Creado contrato base de destinos de share en Android (`DirectShareTarget`, `DirectShareTargetType`).
+  - [x] Creada capa inicial Android (`DirectShareRepository`) con sugerencias base desde listas del usuario.
+  - [x] Publicación inicial de Sharing Shortcuts dinámicos en Android al compartir listas (`DirectShareShortcutPublisher` + `ListOptionsViewModel.shareList()`).
+  - [x] Añadido panel/acciones visibles de destino rápido en WebApp (botones "Copiar enlace" + "Compartir").
+  - [ ] Exponer endpoint backend de ranking real (listas + contactos) y conectar Android/WebApp.
+  - [ ] Instrumentar eventos de analítica `share_*` en ambas plataformas.
+
+  **Desglose por sprint (ejecutable):**
+
+  - **Sprint 1 — Base técnica y contrato**
+    - **Backend:**
+      - Definir endpoint para destinos sugeridos de share (listas + contactos frecuentes) por usuario autenticado.
+      - Definir payload común para destino de share (`id`, `type`, `label`, `icon`, `deeplink`, `rankScore`).
+      - Añadir endpoint para registrar interacción de share directo (click y resultado).
+    - **Android:**
+      - Crear capa `DirectShareRepository` y modelo local para destinos sugeridos.
+      - Implementar publicación de shortcuts dinámicos con `ShortcutInfoCompat` (top N).
+      - Resolver deep link interno al destino seleccionado con fallback a flujo de compartir normal.
+    - **WebApp:**
+      - Crear servicio de share (`shareService`) con estrategia dual: `navigator.share` + panel propio.
+      - Implementar panel de destinos rápidos con datos mock/estáticos para validar UI/flujo.
+      - Implementar fallback universal: copiar enlace + feedback visible.
+    - **Analítica:**
+      - Definir eventos y naming: `share_opened`, `share_target_shown`, `share_target_clicked`, `share_completed`, `share_failed`.
+      - Añadir parámetros estándar: `origin_screen`, `content_type`, `target_type`, `target_id`.
+    - **Criterios de aceptación Sprint 1:**
+      - Android publica shortcuts sin crashear en login/logout.
+      - WebApp abre panel y ejecuta fallback en navegadores sin Web Share API.
+      - Eventos base llegan en entorno de pruebas con estructura acordada.
+
+  - **Sprint 2 — Integración real y ranking**
+    - **Backend:**
+      - Implementar ranking por recencia/frecuencia para listas/contactos.
+      - Excluir destinos no válidos (lista eliminada, contacto bloqueado/no accesible).
+      - Añadir invalidación/caché corta para respuestas de destinos.
+    - **Android:**
+      - Conectar shortcuts a datos reales del backend.
+      - Actualizar shortcuts al cambiar contexto (crear/eliminar lista, cambios de uso, login/logout).
+      - Manejar errores de destino inválido con fallback y mensaje no intrusivo.
+    - **WebApp:**
+      - Conectar panel de destinos rápidos a backend.
+      - Añadir acciones rápidas por canal externo (WhatsApp/Telegram/X) mediante URL share.
+      - Reutilizar mismo ranking visual que Android (orden por score).
+    - **Analítica:**
+      - Instrumentar embudo completo por plataforma.
+      - Dashboard inicial: CTR de destinos directos vs share genérico.
+    - **Criterios de aceptación Sprint 2:**
+      - Top destinos coincide con ranking backend en Android y WebApp.
+      - Si un destino desaparece, no rompe flujo (fallback correcto).
+      - Se observa mejora de clic a destino directo frente a baseline.
+
+  - **Sprint 3 — Pulido, accesibilidad y rollout**
+    - **Backend:**
+      - Ajustar feature flag por plataforma y porcentaje de rollout.
+      - Añadir límites y protección anti-abuso en logging de eventos.
+    - **Android:**
+      - Mejorar iconografía/labels de shortcuts y revisión de accesibilidad (TalkBack, labels).
+      - Optimizar frecuencia de refresco de shortcuts para no impactar batería/rendimiento.
+    - **WebApp:**
+      - Mejorar accesibilidad del panel (`aria-label`, foco, teclado, cierre con Escape).
+      - Ajustar responsive móvil/escritorio y tiempos de interacción.
+    - **Analítica:**
+      - A/B test simple (panel directo ON/OFF) y reporte de impacto.
+      - Métricas de calidad: ratio de error share, abandono de panel, tiempo a completar share.
+    - **Criterios de aceptación Sprint 3:**
+      - Checklist de accesibilidad aprobado en Android y WebApp.
+      - Rollout controlado activo con feature flag.
+      - Métricas estables y sin regresión crítica de share.
+
 - **Bubbles:** Notificación del timer expandible en burbuja flotante; tap abre Brew Lab. Requiere notificación con burbuja y `BubbleMetadata`. Estado: no implementado.
 
 - **Health Connect:** Opción "Conectar con Health Connect" en Ajustes; al guardar elaboración en el diario, escribir registro de cafeína (estimada) con consentimiento. Permisos y flujos en documentación anterior. Estado: no hay integración.

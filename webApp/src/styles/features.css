@@ -1539,6 +1539,18 @@ html:not(.theme-light) .list-options-members-invite-btn {
   text-align: left;
   box-sizing: border-box;
 }
+.list-options-members-share-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.list-options-members-share-actions .list-options-members-copy-link {
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+.list-options-members-share-actions .list-options-members-copy-link:first-child {
+  border-right: 1px solid var(--border-default);
+}
 /* Copiar enlace: texto/icono blanco en modo noche (card negro), negro en modo día (card blanco) */
 html.theme-dark .list-options-members-copy-link,
 html.theme-dark .list-options-members-copy-link .list-options-members-copy-icon {

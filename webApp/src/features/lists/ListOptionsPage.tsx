@@ -24,6 +24,7 @@ export function ListOptionsPage({
   shareUrl,
   onInvite,
   invitingId,
+  onQuickShare,
   onCopyLink,
   onRemoveMember,
   showCopyChip,
@@ -48,6 +49,7 @@ export function ListOptionsPage({
   shareUrl: string;
   onInvite: (userId: number) => Promise<void>;
   invitingId: number | null;
+  onQuickShare?: () => void;
   onCopyLink: () => void;
   onRemoveMember: (userId: number) => Promise<void>;
   showCopyChip: boolean;
@@ -138,6 +140,7 @@ export function ListOptionsPage({
               shareUrl={shareUrl}
               invitingId={invitingId}
               onInvite={onInvite}
+              onQuickShare={onQuickShare}
               onCopyLink={onCopyLink}
               onRemoveMember={onRemoveMember}
               copyChipVisible={showCopyChip}
@@ -160,6 +163,7 @@ export function ListOptionsPage({
               shareUrl={shareUrl}
               invitingId={invitingId}
               onInvite={onInvite}
+              onQuickShare={onQuickShare}
               onCopyLink={onCopyLink}
               onRemoveMember={async () => {}}
               copyChipVisible={showCopyChip}
@@ -183,6 +187,7 @@ export function ListOptionsPage({
               shareUrl={shareUrl}
               invitingId={invitingId}
               onInvite={onInvite}
+              onQuickShare={onQuickShare}
               onCopyLink={onCopyLink}
               onRemoveMember={async () => {}}
               copyChipVisible={showCopyChip}
