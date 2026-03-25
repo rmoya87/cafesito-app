@@ -13,7 +13,13 @@ ErrorDocument 404 /index.html
   # No reescribir peticiones a assets ni a ficheros estáticos (evita 500)
   RewriteRule ^assets/ - [L]
   RewriteRule ^registerSW\.js$ - [L]
-  RewriteRule \.(js|css|png|svg|ico|webmanifest|woff2?)$ - [L]
+  # SEO: robots + todos los sitemaps (índice sitemap.xml / sitemap.xml.gz, parciales sitemap-*.xml,
+  # image-sitemap*.xml, sitemap-coffee-*.xml, etc.) — mismo criterio que dist/ tras update-sitemap-from-supabase.mjs
+  RewriteRule ^robots\.txt$ - [L]
+  RewriteRule ^sitemap\.xml(\.gz)?$ - [L]
+  RewriteRule ^sitemap-.*\.xml(\.gz)?$ - [L]
+  RewriteRule ^image-sitemap.*\.xml(\.gz)?$ - [L]
+  RewriteRule \.(js|css|png|svg|ico|webmanifest|woff2?|xml|gz)$ - [L]
 
   # --- Canonical: sin "/" final (SEO) ---
   # Nota: servimos rutas prerender como fichero index.html para evitar el auto-redirect de Apache a "/".
@@ -45,6 +51,8 @@ ErrorDocument 404 /index.html
   AddType application/manifest+json .webmanifest
   AddType image/png .png
   AddType image/svg+xml .svg
+  AddType application/xml .xml
+  AddType application/gzip .gz
 </IfModule>
 
 # Que el navegador no cachee index.html ni el service worker: cada deploy se ve al instante

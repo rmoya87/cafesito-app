@@ -504,6 +504,14 @@ jobs:
           VITE_GTM_CONTAINER_ID: ${{ vars.VITE_GTM_CONTAINER_ID || secrets.VITE_GTM_CONTAINER_ID || 'GTM-WLXN93VK' }}
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID || vars.VITE_GOOGLE_CLIENT_ID || '' }}
 
+      # Sitemap + robots en dist/ (npm run build no los genera; antes solo el job nocturno y mal ubicados → 404 en /sitemap.xml.gz)
+      - name: Sitemap y robots.txt en dist
+        run: node scripts/update-sitemap-from-supabase.mjs
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://cafesitoapp.com' }}
+
       - name: Save nightly queue payload
         if: github.event_name == 'schedule' && needs.changes.outputs.queue_response != ''
         run: |
@@ -520,8 +528,8 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
           VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://cafesitoapp.com' }}
 
-      - name: Update sitemap/robots from Supabase (nightly only)
-        if: github.event_name == 'schedule'
+      - name: Sitemap tras prerender delta (nightly)
+        if: github.event_name == 'schedule' && needs.changes.outputs.queue_response != ''
         run: node scripts/update-sitemap-from-supabase.mjs
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
@@ -598,31 +606,8 @@ jobs:
               "rm -rf '/cafesito-web/app/${REL_PATH}'"
           done < "${DELETE_FILE}"
 
-      - name: Publish sitemap and robots at domain root (/cafesito-web/)
-        if: github.event_name == 'schedule'
-        uses: wlixcc/SFTP-Deploy-Action@v1.2.6
-        with:
-          server: ${{ secrets.IONOS_SSH_HOST }}
-          username: ${{ secrets.IONOS_SSH_USER }}
-          port: ${{ secrets.IONOS_SSH_PORT || '22' }}
-          password: ${{ secrets.IONOS_SSH_PASSWORD }}
-          local_path: ./webApp/dist/sitemap*
-          remote_path: /cafesito-web/
-          sftp_only: true
-          delete_remote_files: false
-
-      - name: Publish robots.txt at domain root (/cafesito-web/)
-        if: github.event_name == 'schedule'
-        uses: wlixcc/SFTP-Deploy-Action@v1.2.6
-        with:
-          server: ${{ secrets.IONOS_SSH_HOST }}
-          username: ${{ secrets.IONOS_SSH_USER }}
-          port: ${{ secrets.IONOS_SSH_PORT || '22' }}
-          password: ${{ secrets.IONOS_SSH_PASSWORD }}
-          local_path: ./webApp/dist/robots.txt
-          remote_path: /cafesito-web/
-          sftp_only: true
-          delete_remote_files: false
+      # sitemap*.xml(.gz) y robots.txt van en el mismo deploy que dist/* → /cafesito-web/app/ (document root del dominio).
+      # Antes solo se subían en schedule a /cafesito-web/ (padre), fuera de la app → 404 en https://cafesitoapp.com/sitemap.xml.gz
 
       - name: Mark Supabase queue changes as consumed (nightly only, after successful deploy)
         if: github.event_name == 'schedule' && needs.changes.outputs.queue_response != ''
