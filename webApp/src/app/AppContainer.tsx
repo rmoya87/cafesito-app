@@ -2222,42 +2222,93 @@ export function AppContainer() {
     useRightRailDetail
   });
   const isDesktopComposer = mode === "desktop";
-  const homeContent =
-    guardedActiveTab === "home" ? (
-      <LazyHomeView
-        mode={mode}
-        cards={homeCards}
-        recommendations={homeRecommendationsRpc ?? homeRecommendations}
-        suggestions={homeSuggestions}
-        suggestionIndices={homeSuggestionIndices}
+  const notificationsPage =
+    guardedActiveTab === "home" && showNotificationsPanel ? (
+      <NotificationsSheet
+        open={showNotificationsPanel}
+        notifications={visibleHomeNotifications}
+        usersById={usersById}
+        notificationsLastSeenAt={notificationsLastSeenAt}
         followingIds={followingIds}
-        followerCounts={followerCounts}
-        loading={globalStatus === "Cargando datos..."}
-        errorMessage={globalStatus.startsWith("Error") ? globalStatus : null}
-        refreshing={homeRefreshing}
-        activeUserId={activeUser?.id ?? null}
+        dismissingNotificationIds={dismissingNotificationIds}
+        onClose={closeNotificationsPanel}
+        onDismiss={(id) => {
+          dismissNotification(id, async (dismissedId) => {
+            try {
+              const { deleteNotification: apiDelete } = await import("../data/supabaseApi");
+              await apiDelete(Number(dismissedId));
+              setNotifications((prev) => prev.filter((n) => String(n.id) !== dismissedId));
+            } catch (err) {
+              console.error("Failed to delete notification:", err);
+            }
+          });
+        }}
         onToggleFollow={handleToggleFollow}
-        onRefresh={handleRefreshHome}
-        onMentionClick={handleMentionNavigation}
-        resolveMentionUser={resolveMentionUser}
+        onOpenCommentThread={() => closeNotificationsPanel()}
         onOpenUserProfile={(userId) => {
           navigateToTab("profile", { profileUserId: userId });
+          closeNotificationsPanel();
         }}
-        onOpenCoffee={(coffeeId) => {
-          openCoffeeDetail(coffeeId, "home");
+        onAcceptListInvite={async (invitationId) => {
+          try {
+            const { acceptListInvitation } = await import("../data/supabaseApi");
+            await acceptListInvitation(invitationId);
+            setNotifications((prev) => prev.filter((n) => n.related_id !== invitationId));
+            closeNotificationsPanel();
+            reloadInitialData();
+          } catch (err) {
+            console.error("Accept list invite failed:", err);
+          }
         }}
-        onOpenSearch={() => navigateToTab("search", { searchMode: "coffees" })}
-        activeUserDisplay={activeUser ? { fullName: activeUser.full_name ?? "", username: activeUser.username ?? "", avatarUrl: activeUser.avatar_url ?? null } : null}
-        sidePanel={activeSidePanelTarget === "home" ? detailPanel : null}
-        onOpenBrewToMethod={handleOpenBrewToMethod}
-        orderedBrewMethods={orderedBrewMethods}
-        pantryItems={brewPantryItems}
-        onPantryCoffeeClick={(coffeeId) => openCoffeeDetail(coffeeId, "home")}
-        onAddToPantry={openAddPantrySheetFromHome}
-        onUpdatePantryStock={handleUpdatePantryStock}
-        onRemovePantryItem={handleRemovePantryItem}
-        onMarkPantryCoffeeFinished={handleMarkPantryCoffeeFinished}
+        onDeclineListInvite={async (invitationId) => {
+          try {
+            const { declineListInvitation } = await import("../data/supabaseApi");
+            await declineListInvitation(invitationId);
+            setNotifications((prev) => prev.filter((n) => n.related_id !== invitationId));
+          } catch (err) {
+            console.error("Decline list invite failed:", err);
+          }
+        }}
       />
+    ) : null;
+  const homeContent =
+    guardedActiveTab === "home" ? (
+      notificationsPage ?? (
+        <LazyHomeView
+          mode={mode}
+          cards={homeCards}
+          recommendations={homeRecommendationsRpc ?? homeRecommendations}
+          suggestions={homeSuggestions}
+          suggestionIndices={homeSuggestionIndices}
+          followingIds={followingIds}
+          followerCounts={followerCounts}
+          loading={globalStatus === "Cargando datos..."}
+          errorMessage={globalStatus.startsWith("Error") ? globalStatus : null}
+          refreshing={homeRefreshing}
+          activeUserId={activeUser?.id ?? null}
+          onToggleFollow={handleToggleFollow}
+          onRefresh={handleRefreshHome}
+          onMentionClick={handleMentionNavigation}
+          resolveMentionUser={resolveMentionUser}
+          onOpenUserProfile={(userId) => {
+            navigateToTab("profile", { profileUserId: userId });
+          }}
+          onOpenCoffee={(coffeeId) => {
+            openCoffeeDetail(coffeeId, "home");
+          }}
+          onOpenSearch={() => navigateToTab("search", { searchMode: "coffees" })}
+          activeUserDisplay={activeUser ? { fullName: activeUser.full_name ?? "", username: activeUser.username ?? "", avatarUrl: activeUser.avatar_url ?? null } : null}
+          sidePanel={activeSidePanelTarget === "home" ? detailPanel : null}
+          onOpenBrewToMethod={handleOpenBrewToMethod}
+          orderedBrewMethods={orderedBrewMethods}
+          pantryItems={brewPantryItems}
+          onPantryCoffeeClick={(coffeeId) => openCoffeeDetail(coffeeId, "home")}
+          onAddToPantry={openAddPantrySheetFromHome}
+          onUpdatePantryStock={handleUpdatePantryStock}
+          onRemovePantryItem={handleRemovePantryItem}
+          onMarkPantryCoffeeFinished={handleMarkPantryCoffeeFinished}
+        />
+      )
     ) : null;
   const searchContent =
     guardedActiveTab === "search" ? (
@@ -2817,54 +2868,6 @@ export function AppContainer() {
       }}
     />
   );
-  const notificationsOverlay = (
-    <NotificationsSheet
-      open={showNotificationsPanel}
-      notifications={visibleHomeNotifications}
-      usersById={usersById}
-      notificationsLastSeenAt={notificationsLastSeenAt}
-      followingIds={followingIds}
-      dismissingNotificationIds={dismissingNotificationIds}
-      onClose={closeNotificationsPanel}
-      onDismiss={(id) => {
-        dismissNotification(id, async (dismissedId) => {
-          try {
-            const { deleteNotification: apiDelete } = await import("../data/supabaseApi");
-            await apiDelete(Number(dismissedId));
-            setNotifications((prev) => prev.filter((n) => String(n.id) !== dismissedId));
-          } catch (err) {
-            console.error("Failed to delete notification:", err);
-          }
-        });
-      }}
-      onToggleFollow={handleToggleFollow}
-      onOpenCommentThread={() => closeNotificationsPanel()}
-      onOpenUserProfile={(userId) => {
-        navigateToTab("profile", { profileUserId: userId });
-        closeNotificationsPanel();
-      }}
-      onAcceptListInvite={async (invitationId) => {
-        try {
-          const { acceptListInvitation } = await import("../data/supabaseApi");
-          await acceptListInvitation(invitationId);
-          setNotifications((prev) => prev.filter((n) => n.related_id !== invitationId));
-          closeNotificationsPanel();
-          reloadInitialData();
-        } catch (err) {
-          console.error("Accept list invite failed:", err);
-        }
-      }}
-      onDeclineListInvite={async (invitationId) => {
-        try {
-          const { declineListInvitation } = await import("../data/supabaseApi");
-          await declineListInvitation(invitationId);
-          setNotifications((prev) => prev.filter((n) => n.related_id !== invitationId));
-        } catch (err) {
-          console.error("Decline list invite failed:", err);
-        }
-      }}
-    />
-  );
   const diarySheetsOverlay = (
     <DiarySheets
       isActive={guardedActiveTab === "diary" || guardedActiveTab === "brewlab" || showDiaryAddPantrySheet || showDiaryCoffeeSheet}
@@ -3000,7 +3003,7 @@ export function AppContainer() {
       <CookieConsentBanner isAuthenticated={Boolean(sessionEmail)} />
       {mode === "desktop" && !isSearchUsersPage ? navRail : null}
       <main className={`main-shell${guardedActiveTab === "home" ? " is-home" : ""}`}>
-        {guardedActiveTab !== "coffee" ? (
+        {guardedActiveTab !== "coffee" && !(guardedActiveTab === "home" && showNotificationsPanel) ? (
         <TopBar
           activeTab={guardedActiveTab}
           diarySubView={diarySubView}
@@ -3334,7 +3337,7 @@ export function AppContainer() {
         barcodeScanner={barcodeScannerOverlay}
         commentSheet={null}
         createPostSheet={null}
-        notificationsSheet={notificationsOverlay}
+        notificationsSheet={null}
         diarySheets={diarySheetsOverlay}
       />
       {appTabTourStep && activeUser ? (

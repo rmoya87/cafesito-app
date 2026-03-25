@@ -89,7 +89,8 @@ html.theme-dark .diary-period-chip {
 }
 
 /* Notificaciones y sheets */
-html.theme-dark .notifications-overlay {
+html.theme-dark .notifications-overlay,
+html.theme-dark .notifications-page {
   background: var(--screen-dark-background);
 }
 
@@ -1245,7 +1246,8 @@ html.theme-light .notifications-header {
   background: var(--screen-light-background);
 }
 
-html.theme-light .notifications-overlay {
+html.theme-light .notifications-overlay,
+html.theme-light .notifications-page {
   background: var(--screen-light-background);
 }
 

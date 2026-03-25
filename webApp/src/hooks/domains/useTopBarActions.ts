@@ -52,8 +52,11 @@ export function useTopBarActions({
       },
       onSearchBack: () => {
         if (searchMode === "users") {
-          resetSearchUi();
-          navigateToTab("home");
+          if (window.history.length > 1) {
+            window.history.back();
+            return;
+          }
+          navigateToTab("home", { replace: true });
           return;
         }
         resetSearchUi();

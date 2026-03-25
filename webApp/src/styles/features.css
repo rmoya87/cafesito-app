@@ -50,6 +50,7 @@ input {
 @supports (-webkit-touch-callout: none) {
   @media (max-width: 899px) {
     .notifications-overlay,
+    .notifications-page,
     .notifications-panel {
       min-height: 100svh;
       height: 100svh;
@@ -341,7 +342,8 @@ html.theme-light .layout.is-coffee .coffee-detail.is-full-page .coffee-detail-se
   }
 
   /* Desktop notificaciones: mismo patrón que buscador usuarios (columna 860px centrada, contenido con gutter) */
-  .notifications-overlay {
+  .notifications-overlay,
+  .notifications-page {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -350,7 +352,8 @@ html.theme-light .layout.is-coffee .coffee-detail.is-full-page .coffee-detail-se
     width: 100%;
   }
 
-  .notifications-overlay .notifications-panel {
+  .notifications-overlay .notifications-panel,
+  .notifications-page .notifications-panel {
     width: 100%;
     max-width: 860px;
     min-width: 0;
@@ -363,7 +366,9 @@ html.theme-light .layout.is-coffee .coffee-detail.is-full-page .coffee-detail-se
   }
 
   .notifications-overlay .notifications-panel .notifications-list,
-  .notifications-overlay .notifications-panel .sheet-list.notifications-list {
+  .notifications-overlay .notifications-panel .sheet-list.notifications-list,
+  .notifications-page .notifications-panel .notifications-list,
+  .notifications-page .notifications-panel .sheet-list.notifications-list {
     width: 100%;
     min-width: 0;
     flex: 1;
@@ -375,7 +380,8 @@ html.theme-light .layout.is-coffee .coffee-detail.is-full-page .coffee-detail-se
     box-sizing: border-box;
   }
 
-  .notifications-overlay .notifications-header {
+  .notifications-overlay .notifications-header,
+  .notifications-page .notifications-header {
     padding-left: var(--app-shell-gutter);
     padding-right: var(--app-shell-gutter);
     flex-shrink: 0;
@@ -5149,13 +5155,13 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
   overflow: auto;
 }
 
-.search-filter-item {
+.search-filter-list .filter-chip.search-filter-item {
   width: 100%;
   min-height: 48px;
-  border: 1px solid transparent;
-  background: var(--pure-black);
-  color: inherit;
-  border-radius: 12px;
+  border: 1px solid var(--border-light);
+  background: var(--surface);
+  color: var(--text-main);
+  border-radius: 10px;
   padding: 12px 8px;
   display: grid;
   grid-template-columns: 22px 1fr;
@@ -5164,9 +5170,9 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
   text-align: left;
 }
 
-.search-filter-item:hover {
-  background: var(--pure-black);
-  border-color: rgba(255, 255, 255, 0.18);
+.search-filter-list .filter-chip.search-filter-item:hover {
+  background: var(--surface);
+  border-color: var(--caramel-accent);
 }
 
 .search-filter-item input[type="checkbox"] {
@@ -5192,8 +5198,8 @@ html.theme-light .coffee-detail-opinion-rating-chip .coffee-detail-opinion-chip-
   background-position: center;
 }
 
-.search-filter-item.is-selected {
-  background: var(--pure-black);
+.search-filter-list .filter-chip.search-filter-item.is-selected {
+  background: var(--surface);
   border: 1px solid var(--caramel-accent);
 }
 
@@ -15760,7 +15766,8 @@ html.theme-dark .app-range.app-range--time {
   text-transform: none;
 }
 
-.notifications-overlay {
+.notifications-overlay,
+.notifications-page {
   padding: 0;
   background: var(--screen-dark-background);
   backdrop-filter: none;
@@ -17611,7 +17618,8 @@ html.theme-dark .app-range.app-range--time {
     padding: 0;
   }
 
-  .notifications-overlay {
+  .notifications-overlay,
+  .notifications-page {
     padding: 0;
   }
 
@@ -18071,7 +18079,8 @@ html.theme-dark .app-range.app-range--time {
     color: var(--espresso-deep);
   }
 
-  .notifications-overlay {
+  .notifications-overlay,
+  .notifications-page {
     background: var(--screen-light-background);
   }
 
@@ -19173,16 +19182,17 @@ html.theme-dark .app-range.app-range--time {
     border: 1px solid var(--caramel-accent);
   }
 
-  .search-filter-item {
+  .search-filter-list .filter-chip.search-filter-item {
     background: var(--pure-white);
+    border-color: var(--border-light);
   }
 
-  .search-filter-item:hover {
+  .search-filter-list .filter-chip.search-filter-item:hover {
     background: var(--pure-white);
     border-color: rgba(111, 78, 55, 0.3);
   }
 
-  .search-filter-item.is-selected {
+  .search-filter-list .filter-chip.search-filter-item.is-selected {
     background: var(--pure-white);
     border-color: var(--caramel-accent);
   }
@@ -20036,12 +20046,14 @@ html.theme-dark .app-range.app-range--time {
   }
 }
 /* PWA: cabecera notificaciones misma altura que buscador usuarios (sin padding extra en overlay) */
-.pwa-standalone .notifications-overlay {
+.pwa-standalone .notifications-overlay,
+.pwa-standalone .notifications-page {
   padding-top: 0;
   align-items: flex-start;
   box-sizing: border-box;
 }
-.pwa-standalone .notifications-overlay .notifications-header {
+.pwa-standalone .notifications-overlay .notifications-header,
+.pwa-standalone .notifications-page .notifications-header {
   min-height: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
   padding: calc(var(--space-2) + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) var(--space-2);
   padding-left: var(--app-shell-gutter);
@@ -20082,7 +20094,8 @@ html.theme-dark .app-range.app-range--time {
   .pwa-standalone .topbar-historial {
     padding: calc(7px + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) var(--space-2);
   }
-  .pwa-standalone .notifications-overlay .notifications-header {
+  .pwa-standalone .notifications-overlay .notifications-header,
+  .pwa-standalone .notifications-page .notifications-header {
     min-height: calc(56px + env(safe-area-inset-top, 44px));
     padding: calc(7px + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) var(--space-2);
   }

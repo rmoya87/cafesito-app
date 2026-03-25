@@ -99,13 +99,13 @@ export function useAppUiEffects({
   ]);
 
   useEffect(() => {
-    const hasModal = Boolean(showCreatePost || showNotificationsPanel || showCreatePostCoffeeSheet);
+    const hasModal = Boolean(showCreatePost || showCreatePostCoffeeSheet);
     const prev = document.body.style.overflow;
     if (hasModal) document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [showCreatePost, showCreatePostCoffeeSheet, showNotificationsPanel]);
+  }, [showCreatePost, showCreatePostCoffeeSheet]);
 
   useEffect(() => {
     if (activeTab !== "search" || searchMode !== "users") return;

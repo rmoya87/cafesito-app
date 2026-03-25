@@ -3,7 +3,7 @@ import type { TimelineNotificationItem } from "./NotificationRow";
 import { NotificationRow } from "./NotificationRow";
 import type { UserRow } from "../../types";
 import { UiIcon } from "../../ui/iconography";
-import { IconButton, SheetCard, SheetOverlay, Topbar } from "../../ui/components";
+import { IconButton, Topbar } from "../../ui/components";
 
 export function NotificationsSheet({
   open,
@@ -71,19 +71,8 @@ export function NotificationsSheet({
   }, [notifications]);
 
   return (
-    <SheetOverlay
-      className="notifications-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Notificaciones"
-      onDismiss={onClose}
-      onClick={() => {
-        const isDesktop = typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
-        if (isDesktop) return;
-        onClose();
-      }}
-    >
-      <SheetCard className="notifications-panel" onClick={(event) => event.stopPropagation()}>
+    <section className="notifications-page" aria-label="Notificaciones">
+      <div className="notifications-panel">
         <Topbar centered className="topbar-timeline notifications-header">
           <div className="topbar-slot">
             <IconButton
@@ -145,7 +134,7 @@ export function NotificationsSheet({
             <li className="sheet-item notifications-empty">No tienes notificaciones</li>
           )}
         </ul>
-      </SheetCard>
-    </SheetOverlay>
+      </div>
+    </section>
   );
 }
