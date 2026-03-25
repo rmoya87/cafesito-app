@@ -169,6 +169,20 @@ export function LoginGate({
         <SheetOverlay className="login-sheet-overlay" onDismiss={() => { sendEvent("modal_close", { modal_id: "login_sheet" }); setShowMobileSheet(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "login_sheet" }); setShowMobileSheet(false); }}>
           <SheetCard className="login-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle />
+            <div className="login-sheet-head">
+              <button
+                type="button"
+                className="login-sheet-close"
+                aria-label="Cerrar"
+                onClick={() => {
+                  sendEvent("modal_close", { modal_id: "login_sheet" });
+                  setShowMobileSheet(false);
+                }}
+              >
+                <UiIcon name="close" className="ui-icon" />
+              </button>
+              <img src={logoSrc} alt="" aria-hidden="true" className="login-sheet-logo" />
+            </div>
             {renderAuthContent()}
           </SheetCard>
         </SheetOverlay>

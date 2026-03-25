@@ -1159,6 +1159,34 @@ html.theme-dark .topbar-icon-button {
   color: var(--text-main) !important;
 }
 
+/* Detalle café: botones sobre la imagen llevan topbar-icon-button; deben verse como en día (círculo blanco, icono oscuro / verde activo), no blanco sobre imagen */
+html.theme-dark .coffee-detail-hero-top-actions .topbar-icon-button {
+  background: var(--pure-white) !important;
+  color: var(--pure-black) !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+}
+
+html.theme-dark .coffee-detail-hero-top-actions .topbar-icon-button.is-active,
+html.theme-dark .coffee-detail-hero-top-actions .coffee-detail-topbar-icon.is-active,
+html.theme-dark .coffee-detail-hero-top-actions .coffee-detail-topbar-icon.is-active .ui-icon {
+  color: var(--electric-green) !important;
+}
+
+/* Mismo criterio con tema automático + sistema oscuro (sin clase theme-dark en html) */
+@media (prefers-color-scheme: dark) {
+  html:not(.theme-light) .coffee-detail-hero-top-actions .topbar-icon-button {
+    background: var(--pure-white) !important;
+    color: var(--pure-black) !important;
+    border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  }
+
+  html:not(.theme-light) .coffee-detail-hero-top-actions .topbar-icon-button.is-active,
+  html:not(.theme-light) .coffee-detail-hero-top-actions .coffee-detail-topbar-icon.is-active,
+  html:not(.theme-light) .coffee-detail-hero-top-actions .coffee-detail-topbar-icon.is-active .ui-icon {
+    color: var(--electric-green) !important;
+  }
+}
+
 html.theme-dark .comment-action-button {
   color: var(--caramel-soft) !important;
 }

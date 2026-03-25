@@ -34,11 +34,14 @@ export function AuthPromptOverlay({
     <SheetOverlay className="auth-prompt-overlay" role="dialog" aria-modal="true" aria-label="Acceso" onDismiss={onClose} onClick={onClose}>
       <SheetCard className="auth-prompt-card" onClick={(event) => event.stopPropagation()}>
         <SheetHandle aria-hidden="true" />
-        <IconButton className="auth-prompt-close" aria-label="Cerrar" onClick={onClose}>
-          <UiIcon name="close" className="ui-icon" />
-        </IconButton>
-        <div className="auth-prompt-avatar" aria-hidden="true">
-          <img src="/logo.png" alt="" loading="lazy" decoding="async" />
+        <div className="auth-prompt-head">
+          <span className="auth-prompt-head-spacer" aria-hidden="true" />
+          <div className="auth-prompt-avatar" aria-hidden="true">
+            <img src="/logo.png" alt="" loading="lazy" decoding="async" />
+          </div>
+          <IconButton className="auth-prompt-close" aria-label="Cerrar" onClick={onClose}>
+            <UiIcon name="close" className="ui-icon" />
+          </IconButton>
         </div>
         <p className="auth-prompt-copy">
           Únete a la comunidad del café para descubrir, elaborar y compartir tu pasión.

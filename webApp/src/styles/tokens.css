@@ -322,6 +322,39 @@
   }
 }
 
+/* Modo claro por sistema (sin tema forzado): mantener superficies y texto en paleta día */
+@media (prefers-color-scheme: light) {
+  :root {
+    --screen-dark-background: var(--screen-light-background);
+    --google-btn-bg: var(--espresso-deep);
+    --google-btn-text: var(--pure-white);
+    --search-border-inactive: #e0e0e0;
+    --espresso-deep: #1a120b;
+    --espresso-medium: #3c2a21;
+    --caramel-accent: #6f4e37;
+    --caramel-soft: #6f4e37;
+    --caramel-soft-rgb: 111, 78, 55;
+    --focus-ring: rgba(111, 78, 55, 0.24);
+    --border-light: rgba(224, 224, 224, 0.4);
+    --nav-rail-border: rgba(0, 0, 0, 0.14);
+    --border-default: #d7d3cf;
+    --border-strong: #cec7c1;
+    --modal-surface-bg: var(--screen-light-background);
+    --modal-header-bg: var(--screen-light-background);
+    --modal-field-bg: var(--pure-white);
+    --modal-field-border: var(--border-light);
+    --modal-text-main: var(--espresso-deep);
+    --modal-text-muted: var(--espresso-medium);
+    --surface: #ffffff;
+    --surface-elevated: #f3f3f3;
+    --surface-muted: #f0efee;
+    --text-main: var(--espresso-deep);
+    --text-subtle: #2b241f;
+    --text-muted: var(--espresso-medium);
+    --slider-track-inactive: rgba(0, 0, 0, 0.12);
+  }
+}
+
 /* Preferencia de usuario: forzar tema claro (Ajustes > Apariencia > Claro) */
 html.theme-light {
   color-scheme: light;
