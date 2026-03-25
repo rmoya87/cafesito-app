@@ -3220,7 +3220,7 @@ export function AppContainer() {
         ) : null}
         <div
           ref={mainScrollRef}
-          className={`main-shell-scroll ${activeTab === "coffee" ? "is-coffee" : ""} ${guardedActiveTab === "search" && searchMode === "coffees" ? "is-search-coffees" : ""} ${guardedActiveTab === "search" && searchMode === "users" ? "is-search-users" : ""} ${guardedActiveTab === "home" ? "is-home" : ""} ${guardedActiveTab === "profile" ? "is-profile" : ""} ${guardedActiveTab === "diary" && diarySubView === "cafes-probados" ? "is-cafes-probados" : ""}`.trim()}
+          className={`main-shell-scroll ${activeTab === "coffee" ? "is-coffee" : ""} ${guardedActiveTab === "search" && searchMode === "coffees" ? "is-search-coffees" : ""} ${guardedActiveTab === "search" && searchMode === "users" ? "is-search-users" : ""} ${guardedActiveTab === "home" ? "is-home" : ""} ${guardedActiveTab === "home" && showNotificationsPanel ? "is-notifications" : ""} ${guardedActiveTab === "profile" ? "is-profile" : ""} ${guardedActiveTab === "diary" && diarySubView === "cafes-probados" ? "is-cafes-probados" : ""}`.trim()}
         >
           <Suspense fallback={<div className="app-content-loading" aria-hidden="true" />}>
             <AppContentRouter

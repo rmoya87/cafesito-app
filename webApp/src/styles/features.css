@@ -158,6 +158,12 @@ input {
   padding-top: 0;
 }
 
+/* Notificaciones (Home): topbar propio dentro del contenido; no reservar hueco del TopBar global (web y PWA) */
+.main-shell-scroll.is-notifications {
+  margin-top: 0;
+  padding-top: 0;
+}
+
 /* Vista detalle café: quitar franja superior desde la raíz (html/body insets en iOS/PWA) */
 html.is-coffee-view,
 html.is-coffee-view body,
@@ -15812,7 +15818,6 @@ html.theme-dark .app-range.app-range--time {
 }
 
 .notifications-header .topbar-slot:first-child {
-  margin-left: 10px;
   min-width: 40px;
   justify-content: flex-start;
 }
@@ -15852,13 +15857,13 @@ html.theme-dark .app-range.app-range--time {
 }
 
 .notifications-list {
-  padding: 4px 0 22px;
+  padding: 0 0 22px;
   gap: 12px;
 }
 
 .notifications-group-heading {
   list-style: none;
-  margin: 10px 6px 2px;
+  margin: 6px 6px 2px;
   padding: 0;
   font-size: 0.86rem;
   font-weight: 800;
@@ -15868,7 +15873,7 @@ html.theme-dark .app-range.app-range--time {
 }
 
 .notifications-group-heading.is-first {
-  margin-top: 2px;
+  margin-top: 0;
 }
 
 .sheet-list {
@@ -20062,8 +20067,8 @@ html.theme-dark .app-range.app-range--time {
 .pwa-standalone .main-shell-scroll {
   overflow-x: hidden;
 }
-/* En PWA el resto de vistas sí necesitan margen bajo el topbar; Cafés probados y detalle café no (contenido a tope) */
-.pwa-standalone .main-shell-scroll:not(.is-cafes-probados):not(.is-coffee) {
+/* En PWA el resto de vistas sí necesitan margen bajo el topbar; Cafés probados, detalle café y notificaciones (cabecera interna) no */
+.pwa-standalone .main-shell-scroll:not(.is-cafes-probados):not(.is-coffee):not(.is-notifications) {
   margin-top: calc(var(--topbar-height) + env(safe-area-inset-top, 44px));
   padding-top: 10px;
 }
