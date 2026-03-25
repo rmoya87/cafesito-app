@@ -1,7 +1,7 @@
 # Registro de desarrollo e incidencias
 
 **Propósito:** Documentar cambios, correcciones y decisiones recientes para tenerlos en cuenta en próximos desarrollos o incidencias.  
-**Última actualización:** 2026-03-24 (§23 Onboarding: fase 3 hardening + flags + a11y)
+**Última actualización:** 2026-03-25 (§24 Web estáticos + login SPA + SEO)
 
 ---
 
@@ -45,6 +45,7 @@ Consultar este documento antes de tocar ramas, deploy, TypeScript/CI o flujos ya
 21. [Listas compartidas: solo editables en modal e icono de lista (17 mar 2026)](#21-listas-compartidas-solo-editables-en-modal-e-icono-de-lista-17-mar-2026)
 22. [Brew Lab: reanudar timer tras reinicio (24 mar 2026)](#22-brew-lab-reanudar-timer-tras-reinicio-24-mar-2026)
 23. [Onboarding «primer valor» — estado en servidor, Android y WebApp (24 mar 2026)](#23-onboarding-primer-valor--estado-en-servidor-android-y-webapp-24-mar-2026)
+24. [Web: landing, legales, login SPA — rutas, CSS y SEO (25 mar 2026)](#24-web-landing-legales-login-spa--rutas-css-y-seo-25-mar-2026)
 
 ---
 
@@ -810,6 +811,16 @@ Misma semántica Web y Android para quién ve listas en el modal y cuándo el ic
 | **Fase 3 (mar 2026)** | Feature flag Android/Web; a11y (TalkBack + overlay Web, Escape, foco); `skipOnboarding` devuelve boolean y Snackbar si falla; refresco Web `visibilitychange` si `pending`; **carrera multi-cliente:** Android `onAppForeground` + `refreshActiveUserFromSupabase` si `pending`, salida auto de ruta `onboarding` al reconciliar; métricas D1 vía GA4 DebugView / embudo `onboarding_*`. |
 
 **Operativo:** columnas + RLS según `onboarding_users_db.sql` y `users_db_update_own_row.sql` (validado en proyecto).
+
+---
+
+## 24. Web: landing, legales, login SPA — rutas, CSS y SEO (25 mar 2026)
+
+**Problema:** Landing sin estilos/imágenes por rutas relativas con canonical `/landing` sin barra final; login SPA con `noindex` y canonical incorrectos (URL real `/` vs SEO `/login`); `LoginGate` con solo `auth.css` → iconos Material y banner de cookies rotos; legales con favicon relativo frágil.
+
+**Solución:** `pathnameForSeo` en `AppContainer` para mapear raíz de app a `/login` cuando corresponde la puerta de login; `LoginGate` importa `features.css`; landing `index.html` usa rutas absolutas `/landing/...`; legales `href="/logo.png"` para favicon.
+
+**Fuente de verdad:** `webApp/docs/ESTATICOS_LANDING_LEGAL_LOGIN_WEB.md` (checklist + archivos). Enlace desde `webApp/docs/SEO_WEBAPP_AVANZADO_2026-03.md` §3.2.b.
 
 ---
 

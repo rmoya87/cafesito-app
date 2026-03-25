@@ -120,6 +120,8 @@ Implementado en estaticas (sin hooks React):
 - JSON-LD especifico tipo `WebPage` por pagina.
 - En landing se mantiene adicionalmente `SoftwareApplication` (contexto de producto/app).
 
+**Runbook anti-regresión (rutas absolutas en landing, login SPA vs `/login`, CSS de `LoginGate`, favicon legal):** `webApp/docs/ESTATICOS_LANDING_LEGAL_LOGIN_WEB.md`.
+
 ---
 
 ## 3.3 Parametros tracking y URL limpia

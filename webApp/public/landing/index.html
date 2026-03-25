@@ -28,11 +28,11 @@
   <meta name="twitter:card" content="summary_large_image">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+  <link rel="icon" type="image/x-icon" href="/landing/assets/favicon.ico">
 
-  <!-- Styles -->
-  <link rel="stylesheet" href="css/design-tokens.css">
-  <link rel="stylesheet" href="css/styles.css">
+  <!-- Styles: rutas absolutas (/landing/...) para que carguen con URL /landing sin barra final -->
+  <link rel="stylesheet" href="/landing/css/design-tokens.css">
+  <link rel="stylesheet" href="/landing/css/styles.css">
   <!-- Icono "Web" (globe): SVG inline para evitar OTS/ERR cuando Google Fonts no está disponible -->
 
   <!-- JSON-LD -->
@@ -91,7 +91,7 @@
       <!-- 2. Logo (Centerish) -->
       <a href="/landing" class="flex items-center" aria-label="Cafesito Home"
         style="z-index: 1; position: relative; margin-right: auto;">
-        <img src="assets/logo.png" alt="Cafesito Logo" width="32" height="32" style="border-radius: 8px;">
+        <img src="/landing/assets/logo.png" alt="Cafesito Logo" width="32" height="32" style="border-radius: 8px;">
         <span class="title-large hidden-mobile" style="margin-left: 12px; font-weight: 800;">Cafesito</span>
       </a>
 
@@ -143,7 +143,7 @@
           </div>
         </div>
         <div class="flex items-center gap-3" style="margin-bottom: 32px; padding-top: 20px;">
-          <img src="assets/logo.png" alt="Cafesito" width="60" height="60" style="border-radius: 12px;">
+          <img src="/landing/assets/logo.png" alt="Cafesito" width="60" height="60" style="border-radius: 12px;">
           <div>
             <h3 class="headline-medium">Cafesito</h3>
             <p class="body-medium">Tu compañero de café</p>
@@ -158,7 +158,7 @@
     <section class="hero">
       <div class="container">
         <div class="hero-content reveal-on-scroll">
-          <img src="assets/logo.png" alt="Icono de la app Cafesito"
+          <img src="/landing/assets/logo.png" alt="Icono de la app Cafesito"
             style="width: 150px; height: 150px; margin-bottom: 32px; margin-inline: auto;">
           <h1 class="display-large">
             Tu café perfecto,<br>cada mañana.
@@ -193,13 +193,13 @@
 
         <div class="hero-phones reveal-stagger">
           <div class="phone-mockup-hero">
-            <img src="assets/phone-mockup-left.png" alt="Captura de la app: timeline">
+            <img src="/landing/assets/phone-mockup-left.png" alt="Captura de la app: timeline">
           </div>
           <div class="phone-mockup-hero center">
-            <img src="assets/phone-mockup-center.png" alt="Captura de la app: pantalla principal">
+            <img src="/landing/assets/phone-mockup-center.png" alt="Captura de la app: pantalla principal">
           </div>
           <div class="phone-mockup-hero">
-            <img src="assets/phone-mockup-right.png" alt="Captura de la app: detalle de café">
+            <img src="/landing/assets/phone-mockup-right.png" alt="Captura de la app: detalle de café">
           </div>
         </div>
       </div>
@@ -240,7 +240,7 @@
           </div>
           <div class="feature-visual">
             <div class="phone-mockup">
-              <img src="assets/timeline.png" alt="Timeline de la app con publicaciones y opiniones sobre cafés">
+              <img src="/landing/assets/timeline.png" alt="Timeline de la app con publicaciones y opiniones sobre cafés">
             </div>
           </div>
         </div>
@@ -249,7 +249,7 @@
         <div class="feature-row reveal-on-scroll">
           <div class="feature-visual">
             <div class="phone-mockup">
-              <img src="assets/buscador.png" alt="Buscador de cafés con filtros">
+              <img src="/landing/assets/buscador.png" alt="Buscador de cafés con filtros">
             </div>
           </div>
           <div class="feature-text text-left">
@@ -273,7 +273,7 @@
           </div>
           <div class="feature-visual">
             <div class="phone-mockup">
-              <img src="assets/elabora.png" alt="Pantalla de elaboración con método y pasos">
+              <img src="/landing/assets/elabora.png" alt="Pantalla de elaboración con método y pasos">
             </div>
           </div>
         </div>
@@ -282,7 +282,7 @@
         <div class="feature-row reveal-on-scroll">
           <div class="feature-visual">
             <div class="phone-mockup">
-              <img src="assets/phone-mockup-right.png" alt="Diario de preparaciones">
+              <img src="/landing/assets/phone-mockup-right.png" alt="Diario de preparaciones">
             </div>
           </div>
           <div class="feature-text text-left">
@@ -303,7 +303,7 @@
         <div class="testimonial-grid reveal-stagger">
           <!-- Card 1 -->
           <div class="testimonial-card">
-            <div class="avatar" style="background-image: url('assets/alex.png'); background-size: cover;">
+            <div class="avatar" style="background-image: url('/landing/assets/alex.png'); background-size: cover;">
             </div>
             <div>
               <h4 class="headline-medium" style="font-size: 18px; margin-bottom: 4px;">Diseño increíble</h4>
@@ -314,7 +314,7 @@
           </div>
           <!-- Card 2 -->
           <div class="testimonial-card">
-            <div class="avatar" style="background-image: url('assets/maria.png'); background-size: cover;">
+            <div class="avatar" style="background-image: url('/landing/assets/maria.png'); background-size: cover;">
             </div>
             <div>
               <h4 class="headline-medium" style="font-size: 18px; margin-bottom: 4px;">Súper útil</h4>
@@ -325,7 +325,7 @@
           </div>
           <!-- Card 3 -->
           <div class="testimonial-card">
-            <div class="avatar" style="background-image: url('assets/carlos.png'); background-size: cover;">
+            <div class="avatar" style="background-image: url('/landing/assets/carlos.png'); background-size: cover;">
             </div>
             <div>
               <h4 class="headline-medium" style="font-size: 18px; margin-bottom: 4px;">Minimalista</h4>
@@ -377,7 +377,7 @@
       <div class="container">
         <div class="app-showcase reveal-on-scroll">
           <div class="text-left">
-            <img src="assets/logo.png" alt="Icono de la app Cafesito" class="app-icon-large">
+            <img src="/landing/assets/logo.png" alt="Icono de la app Cafesito" class="app-icon-large">
             <h2 id="download-title" class="display-large" style="margin-bottom: 24px;">Descarga la App</h2>
             <p class="body-large" style="margin-bottom: 32px;">
               Únete a la comunidad de amantes del café y empieza a mejorar tus mañanas hoy mismo. Disponible en Acceso
@@ -408,7 +408,7 @@
           </div>
           <div class="flex justify-center">
             <div class="phone-mockup">
-              <img src="assets/descarga.png" alt="Pantalla de descarga de la app">
+              <img src="/landing/assets/descarga.png" alt="Pantalla de descarga de la app">
             </div>
           </div>
         </div>
@@ -445,7 +445,7 @@
       </div>
     </footer>
 
-    <script src="js/main.js"></script>
+    <script src="/landing/js/main.js"></script>
     <script>(function(){var h=window.location&&window.location.hostname;if(!h||h==='localhost'||h==='127.0.0.1')return;window.dataLayer=window.dataLayer||[];window.dataLayer.push({event:'page_view',page_path:'/landing',page_title:'Cafesito - Landing',page_location:window.location.origin+window.location.pathname,screen_name:'landing'});})();</script>
 </body>
 

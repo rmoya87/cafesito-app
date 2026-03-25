@@ -1949,15 +1949,6 @@ export function AppContainer() {
     }
   }, [createCoffeeDraft.totalGrams, saveCreateCoffee, setDiaryPantryCoffeeIdDraft, setDiaryPantryGramsDraft, setPantrySheetStep]);
 
-  useCoffeeSeoMeta(
-    detailCoffee,
-    {
-      avgRating: detailCoffeeAverageRating,
-      reviewCount: detailCoffeeReviews.length
-    },
-    typeof window !== "undefined" ? window.location.pathname : undefined
-  );
-
   const handleNavClick = (tabId: TabId) => {
     if (tabId === "brewlab") setBrewCoffeeId("");
     handleNavClickBase(tabId);
@@ -2085,6 +2076,28 @@ export function AppContainer() {
     guardedActiveTab,
     guardedActiveTab === "search" ? searchMode : undefined
   );
+
+  /** La pantalla de login vive en la URL raíz del SPA (`/`), no en `/login`; el SEO debe tratarla como `/login` (index, canonical, OG). */
+  const pathnameForSeo = useMemo(() => {
+    if (typeof window === "undefined") return undefined;
+    const p = window.location.pathname;
+    if (authReady && !sessionEmail && !guestCanAccessCurrentTab) {
+      const root = (getAppRootPath(p) || "/").replace(/\/+$/, "") || "/";
+      const cur = p.replace(/\/+$/, "") || "/";
+      if (cur === root) return root === "/" ? "/login" : `${root}/login`;
+    }
+    return p;
+  }, [sessionEmail, authReady, guestCanAccessCurrentTab]);
+
+  useCoffeeSeoMeta(
+    detailCoffee,
+    {
+      avgRating: detailCoffeeAverageRating,
+      reviewCount: detailCoffeeReviews.length
+    },
+    pathnameForSeo
+  );
+
   const showingLogin = (!authReady && !guestCanAccessCurrentTab) || (!sessionEmail && !guestCanAccessCurrentTab);
   useLayoutEffect(() => {
     if (isNotFoundRoute) return;

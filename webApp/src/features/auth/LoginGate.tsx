@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+/* Iconos Material, banner cookies y sheet móvil: estilos en features.css (no solo auth.css). */
+import "../../styles/features.css";
 import { getAppAssetBase } from "../../core/appAssets";
 import { sendEvent } from "../../core/ga4";
 import { getGoogleClientId, showGoogleOneTap } from "../../core/googleGsi";
