@@ -1,7 +1,7 @@
 # Documentación Cafesito — Índice y gobernanza
 
 **Estado:** vivo  
-**Última actualización:** 2026-03-19 (listas unirse por enlace; registro §20)  
+**Última actualización:** 2026-03-25 (SEO WebApp unificado y checklist operativo en release)  
 **Objetivo:** documentación como fuente de verdad, sin incompatibilidades y con menor tasa de errores.
 
 ---
@@ -176,6 +176,7 @@ flowchart TB
 | `ACCESIBILIDAD_WEBAPP_ANDROID.md` | Accesibilidad unificada Web/Android (ver 4.1). |
 | `webApp/docs/ACCESSIBILITY_AUDIT.md` | Auditoría de accesibilidad (scope, validaciones, riesgos, regresión). |
 | `webApp/docs/PWA_FUNCIONAMIENTO_Y_ESTANDAR.md` | **PWA:** cómo debe funcionar la WebApp instalable (manifest, SW, offline, standalone), archivos implicados y checklist de cumplimiento/pendientes. |
+| `webApp/docs/SEO_WEBAPP_AVANZADO_2026-03.md` | **SEO WebApp avanzado (fuente única):** canonicalización, OG/Twitter/JSON-LD, facetas SEO, sitemaps `.xml.gz` + `image-sitemap`, OG images generadas en build, cache strategy Apache, mejoras CWV y separación SPA vs páginas estáticas (`landing/legal`). |
 | `CHANGELOG_WEB_UI_AND_ANDROID_PORT.md` | Changelog de cambios en la WebApp y guía de traslado nativo a Android (paridad funcional). |
 | `OPCIONES_DE_LISTA_WEB_Y_ANDROID.md` | **Opciones de lista:** backend (Supabase), flujo WebApp (página opciones) y paridad Android (pantalla Opciones de lista, privacidad, miembros, invitaciones, copiar enlace, editar/eliminar/abandonar). |
 

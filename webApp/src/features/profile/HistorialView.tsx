@@ -65,6 +65,7 @@ export function HistorialView({
                   className="coffee-card coffee-card-interactive profile-favorite-row historial-row"
                   role="button"
                   tabIndex={0}
+                  aria-label={`Ver detalle de ${coffee.nombre ?? row.coffee_id}`}
                   onClick={() => onOpenCoffee(row.coffee_id)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {

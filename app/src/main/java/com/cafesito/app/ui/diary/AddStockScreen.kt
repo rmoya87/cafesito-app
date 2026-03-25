@@ -85,8 +85,10 @@ fun AddStockScreen(
         ModalBottomSheet(
             onDismissRequest = { if (!isSaving) { onTrackEvent("modal_close", bundleOf("modal_id" to "add_stock_confirm")); selectedCoffeeId = null } },
             sheetState = sheetState,
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            shape = Shapes.sheetLarge
+            containerColor = CafesitoModalSheetDefaults.containerColor(),
+            shape = CafesitoModalSheetDefaults.shape,
+            scrimColor = CafesitoModalSheetDefaults.scrimColor,
+            dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
         ) {
             Column(
                 modifier = Modifier

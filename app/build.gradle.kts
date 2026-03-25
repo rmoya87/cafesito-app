@@ -30,6 +30,7 @@ val passkeyRequestJson = providers.gradleProperty("PASSKEY_REQUEST_JSON")
 val mapTilerApiKey = providers.gradleProperty("MAPTILER_API_KEY").orElse("").get()
 val gtmContainerId = providers.gradleProperty("GTM_CONTAINER_ID").orElse("").get()
 val lockWidgetRolloutPercent = providers.gradleProperty("LOCK_WIDGET_ROLLOUT_PERCENT").orElse("100").get()
+val appTabTourV1Enabled = providers.gradleProperty("APP_TAB_TOUR_V1_ENABLED").orElse("true").get().toBoolean()
 
 // Cargar propiedades de firma
 val keystorePropertiesFile = rootProject.file("keystore.properties")
@@ -63,6 +64,7 @@ android {
         buildConfigField("String", "MAPTILER_API_KEY", "\"$mapTilerApiKey\"")
         buildConfigField("String", "GTM_CONTAINER_ID", "\"$gtmContainerId\"")
         buildConfigField("int", "LOCK_WIDGET_ROLLOUT_PERCENT", lockWidgetRolloutPercent)
+        buildConfigField("boolean", "APP_TAB_TOUR_V1_ENABLED", appTabTourV1Enabled.toString())
 
         manifestPlaceholders["usesCleartextTraffic"] = "true"
     }

@@ -187,9 +187,10 @@ fun DiaryScreen(
         if (selectedItem != null) {
             ModalBottomSheet(
                 onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "diary_pantry_options")); showPantryOptionsId = null },
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                shape = Shapes.sheetLarge,
-                scrimColor = ScrimDefault
+                containerColor = CafesitoModalSheetDefaults.containerColor(),
+                shape = CafesitoModalSheetDefaults.shape,
+                scrimColor = CafesitoModalSheetDefaults.scrimColor,
+                dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
             ) {
                 Column(Modifier.padding(top = 8.dp, start = 24.dp, end = 24.dp, bottom = 40.dp)) {
                     Text(
@@ -325,16 +326,14 @@ fun DiaryScreen(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         val chipBackground = if (isDarkMode) MaterialTheme.colorScheme.surface else PureWhite
-                        val chipBorderColor = MaterialTheme.colorScheme.outline
                         val chipContentColor = if (isDarkMode) MaterialTheme.colorScheme.onSurface else PureBlack
                         Row(
                             modifier = Modifier
                                 .wrapContentWidth()
-                                .height(40.dp)
+                                .height(44.dp)
                                 .clip(Shapes.pill)
                                 .background(chipBackground)
-                                .border(1.dp, chipBorderColor, Shapes.pill)
-                                .padding(horizontal = 2.dp),
+                                .padding(horizontal = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             IconButton(
@@ -345,7 +344,7 @@ fun DiaryScreen(
                                         else -> viewModel.prevDay()
                                     }
                                 },
-                                modifier = Modifier.size(32.dp).minimumInteractiveComponentSize(),
+                                modifier = Modifier.size(36.dp).minimumInteractiveComponentSize(),
                                 colors = IconButtonDefaults.iconButtonColors(
                                     containerColor = Color.Transparent,
                                     contentColor = chipContentColor
@@ -359,7 +358,7 @@ fun DiaryScreen(
                                     .fillMaxHeight()
                                     .minimumInteractiveComponentSize()
                                     .clickable(onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "diary_period")); showPeriodMenu = true })
-                                    .padding(horizontal = 10.dp),
+                                    .padding(horizontal = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
@@ -379,7 +378,7 @@ fun DiaryScreen(
                                             else -> viewModel.nextDay()
                                         }
                                     },
-                                    modifier = Modifier.size(32.dp).minimumInteractiveComponentSize(),
+                                    modifier = Modifier.size(36.dp).minimumInteractiveComponentSize(),
                                     colors = IconButtonDefaults.iconButtonColors(
                                         containerColor = Color.Transparent,
                                         contentColor = chipContentColor
@@ -388,7 +387,7 @@ fun DiaryScreen(
                                     Icon(Icons.Default.ChevronRight, contentDescription = if (selectedPeriod == DiaryPeriod.MES) "Mes siguiente" else "Siguiente", modifier = Modifier.size(20.dp))
                                 }
                             } else {
-                                Spacer(Modifier.size(32.dp))
+                                Spacer(Modifier.size(36.dp))
                             }
                         }
                     }

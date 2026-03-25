@@ -136,11 +136,13 @@ async function main() {
     slugCounts.set(base, count);
     const slug = count > 1 ? `${base}-${count}` : base;
 
-    const coffeePath = `/coffee/${slug}/`;
+    // Sin "/" final (canonical)
+    const coffeePath = `/coffee/${slug}`;
     const canonical = `${siteUrl}${coffeePath}`;
     const title = `${coffee.nombre} | Cafesito`;
     const fallbackDescription = `${coffee.nombre} ${coffee.marca ?? ""}`.trim() || "Detalle de cafe en Cafesito";
     const description = (coffee.descripcion ?? fallbackDescription).slice(0, 160);
+    const ogImage = `${siteUrl}/og/coffee/${coffee.id}.jpg`;
 
     let html = rewriteRelativeAssetUrls(indexHtml, appBasePath);
     html = html.replace(/<title>[^<]*<\/title>/i, `<title>${title}</title>`);
@@ -150,6 +152,9 @@ async function main() {
     html = upsertTag(html, /<meta\s+property=["']og:title["'][^>]*>/i, `<meta property="og:title" content="${title}">`);
     html = upsertTag(html, /<meta\s+property=["']og:type["'][^>]*>/i, `<meta property="og:type" content="product">`);
     html = upsertTag(html, /<meta\s+property=["']og:url["'][^>]*>/i, `<meta property="og:url" content="${canonical}">`);
+    html = upsertTag(html, /<meta\s+property=["']og:image["'][^>]*>/i, `<meta property="og:image" content="${ogImage}">`);
+    html = upsertTag(html, /<meta\s+name=["']twitter:card["'][^>]*>/i, `<meta name="twitter:card" content="summary_large_image">`);
+    html = upsertTag(html, /<meta\s+name=["']twitter:image["'][^>]*>/i, `<meta name="twitter:image" content="${ogImage}">`);
 
     const jsonLd = {
       "@context": "https://schema.org",

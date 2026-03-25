@@ -60,7 +60,12 @@ class CompleteProfileViewModel @Inject constructor(
                 fullName = trimmedUsername,
                 avatarUrl = avatarUrl,
                 email = email,
-                bio = bio
+                bio = bio,
+                onboardingStatus = null,
+                onboardingCompletedAt = null,
+                onboardingSkippedAt = null,
+                appTourSkippedAt = null,
+                appTourDismissedSteps = null
             )
             
             userRepository.upsertUser(newUser)

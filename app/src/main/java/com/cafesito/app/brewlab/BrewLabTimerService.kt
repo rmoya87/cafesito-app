@@ -45,6 +45,37 @@ class BrewLabTimerService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
+            ACTION_CONTINUE_AFTER_REBOOT -> {
+                readStateFromPrefs()
+                reconcileElapsedWithWallClock()
+                cancelResumeAfterRebootNotification()
+                if (totalSeconds <= 0 || methodName.isBlank()) {
+                    stopSelf()
+                    return START_NOT_STICKY
+                }
+                if (elapsedSeconds >= totalSeconds) {
+                    onTimerCompleted()
+                    return START_NOT_STICKY
+                }
+                isPaused = false
+                writeStateToPrefs()
+                setRunningInPrefs(true)
+                startForegroundWithType()
+                startTickLoop()
+                updateNotification()
+                val openBrewLab = Intent(this, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    putExtra(EXTRA_OPEN_BREWLAB, true)
+                    putExtra(EXTRA_ENTRY_SOURCE, ENTRY_SOURCE_POST_REBOOT)
+                }
+                startActivity(openBrewLab)
+                return START_NOT_STICKY
+            }
+            ACTION_CANCEL_AFTER_REBOOT -> {
+                cancelResumeAfterRebootNotification()
+                stopTimerAndService()
+                return START_NOT_STICKY
+            }
             ACTION_PAUSE -> {
                 readStateFromPrefs()
                 isPaused = true
@@ -54,8 +85,10 @@ class BrewLabTimerService : Service() {
             }
             ACTION_RESUME -> {
                 readStateFromPrefs()
+                reconcileElapsedWithWallClock()
                 isPaused = false
                 writeStateToPrefs()
+                startForegroundWithType()
                 startTickLoop()
                 updateNotification()
                 return START_NOT_STICKY
@@ -150,7 +183,7 @@ class BrewLabTimerService : Service() {
         }
 
         val openApp = PendingIntent.getActivity(
-            this, 0,
+            this, PI_REQ_ONGOING_OPEN_APP,
             Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
                 putExtra(EXTRA_OPEN_BREWLAB, true)
@@ -159,7 +192,7 @@ class BrewLabTimerService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val openBrewLabAction = PendingIntent.getActivity(
-            this, 1,
+            this, PI_REQ_ONGOING_OPEN_BREW,
             Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
                 putExtra(EXTRA_OPEN_BREWLAB, true)
@@ -170,20 +203,20 @@ class BrewLabTimerService : Service() {
 
         val pauseResumeAction = if (isPaused) {
             PendingIntent.getService(
-                this, 0,
+                this, PI_REQ_ONGOING_RESUME,
                 Intent(this, BrewLabTimerService::class.java).setAction(ACTION_RESUME),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
         } else {
             PendingIntent.getService(
-                this, 0,
+                this, PI_REQ_ONGOING_PAUSE,
                 Intent(this, BrewLabTimerService::class.java).setAction(ACTION_PAUSE),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
         }
 
         val cancelAction = PendingIntent.getService(
-            this, 0,
+            this, PI_REQ_ONGOING_CANCEL,
             Intent(this, BrewLabTimerService::class.java).setAction(ACTION_CANCEL),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -207,7 +240,7 @@ class BrewLabTimerService : Service() {
 
     private fun showRegisterNotification() {
         val openConsumo = PendingIntent.getActivity(
-            this, 0,
+            this, PI_REQ_REGISTER_OPEN_CONSUMO,
             Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
                 putExtra(EXTRA_OPEN_BREWLAB_CONSUMO, true)
@@ -216,7 +249,7 @@ class BrewLabTimerService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val dismissLater = PendingIntent.getBroadcast(
-            this, 0,
+            this, PI_REQ_REGISTER_DISMISS,
             Intent(this, NotificationActionReceiver::class.java).apply {
                 action = NotificationActionReceiver.ACTION_DISMISS_BREW_REGISTER
                 putExtra(NotificationActionReceiver.EXTRA_NOTIFICATION_ID, REGISTER_NOTIFICATION_ID)
@@ -243,7 +276,19 @@ class BrewLabTimerService : Service() {
             totalSeconds = prefs.getInt(KEY_TOTAL, 0)
             methodName = prefs.getString(KEY_METHOD, "") ?: ""
         }
+        isPaused = prefs.getBoolean(KEY_PAUSED, isPaused)
         elapsedSeconds = prefs.getInt(KEY_ELAPSED, elapsedSeconds).coerceIn(0, totalSeconds.coerceAtLeast(1))
+    }
+
+    private fun reconcileElapsedWithWallClock() {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val lastUpdatedAt = prefs.getLong(KEY_LAST_UPDATED_AT, 0L)
+        if (isPaused || lastUpdatedAt <= 0L || totalSeconds <= 0) return
+        val now = System.currentTimeMillis()
+        val diffSeconds = ((now - lastUpdatedAt) / 1000L).toInt().coerceAtLeast(0)
+        if (diffSeconds > 0) {
+            elapsedSeconds = (elapsedSeconds + diffSeconds).coerceAtMost(totalSeconds)
+        }
     }
 
     private fun writeStateToPrefs() {
@@ -252,6 +297,7 @@ class BrewLabTimerService : Service() {
             .putInt(KEY_TOTAL, totalSeconds)
             .putString(KEY_METHOD, methodName)
             .putBoolean(KEY_PAUSED, isPaused)
+            .putLong(KEY_LAST_UPDATED_AT, System.currentTimeMillis())
             .apply()
     }
 
@@ -273,9 +319,15 @@ class BrewLabTimerService : Service() {
             .remove(KEY_TOTAL)
             .remove(KEY_METHOD)
             .remove(KEY_PAUSED)
+            .remove(KEY_LAST_UPDATED_AT)
             .remove(KEY_RUNNING)
             .remove(KEY_JUST_ENDED)
             .apply()
+    }
+
+    private fun cancelResumeAfterRebootNotification() {
+        (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+            .cancel(RESUME_AFTER_REBOOT_NOTIFICATION_ID)
     }
 
     override fun onDestroy() {
@@ -287,6 +339,8 @@ class BrewLabTimerService : Service() {
         const val ACTION_PAUSE = "com.cafesito.app.brewlab.BrewLabTimerService.PAUSE"
         const val ACTION_RESUME = "com.cafesito.app.brewlab.BrewLabTimerService.RESUME"
         const val ACTION_CANCEL = "com.cafesito.app.brewlab.BrewLabTimerService.CANCEL"
+        const val ACTION_CONTINUE_AFTER_REBOOT = "com.cafesito.app.brewlab.BrewLabTimerService.CONTINUE_AFTER_REBOOT"
+        const val ACTION_CANCEL_AFTER_REBOOT = "com.cafesito.app.brewlab.BrewLabTimerService.CANCEL_AFTER_REBOOT"
         const val EXTRA_TOTAL_SECONDS = "total_seconds"
         const val EXTRA_METHOD_NAME = "method_name"
         const val EXTRA_CURRENT_SECONDS = "current_seconds"
@@ -298,15 +352,31 @@ class BrewLabTimerService : Service() {
         const val ENTRY_SOURCE_NOTIFICATION_ACTION = "notification_action"
         const val ENTRY_SOURCE_WIDGET = "widget"
         const val ENTRY_SOURCE_QUICK_TILE = "quick_tile"
+        const val ENTRY_SOURCE_POST_REBOOT = "post_reboot_resume"
 
         private const val NOTIFICATION_ID = 9001
         /** ID de la notificación «¿Registrar elaboración?»; usado para añadir acción «Más tarde» que la cierra. */
         const val REGISTER_NOTIFICATION_ID = 9002
+        const val RESUME_AFTER_REBOOT_NOTIFICATION_ID = 9003
+
+        /**
+         * Request codes distintos por PendingIntent con FLAG_UPDATE_CURRENT; si colisionan, Android
+         * reutiliza el mismo PI y las acciones de la notificación pueden ejecutar el intent equivocado.
+         */
+        private const val PI_REQ_ONGOING_OPEN_APP = 9010
+        private const val PI_REQ_ONGOING_OPEN_BREW = 9011
+        private const val PI_REQ_ONGOING_PAUSE = 9012
+        private const val PI_REQ_ONGOING_RESUME = 9013
+        private const val PI_REQ_ONGOING_CANCEL = 9014
+        private const val PI_REQ_REGISTER_OPEN_CONSUMO = 9020
+        private const val PI_REQ_REGISTER_DISMISS = 9021
         const val PREFS_NAME = "brew_timer_service"
         const val KEY_ELAPSED = "elapsed_seconds"
         const val KEY_TOTAL = "total_seconds"
         const val KEY_METHOD = "method_name"
         const val KEY_PAUSED = "paused"
+        const val KEY_LAST_UPDATED_AT = "last_updated_at"
+        const val KEY_LAST_BOOT_HANDLED_AT = "last_boot_handled_at"
         const val KEY_RUNNING = "running"
         const val KEY_JUST_ENDED = "just_ended"
 
@@ -337,6 +407,82 @@ class BrewLabTimerService : Service() {
 
         fun sendCancel(context: Context) {
             context.startService(Intent(context, BrewLabTimerService::class.java).setAction(ACTION_CANCEL))
+        }
+
+        fun showResumeAfterRebootNotification(context: Context, methodName: String, remainingSeconds: Int) {
+            NotificationChannels.ensureCreated(context)
+            val mm = remainingSeconds.coerceAtLeast(0) / 60
+            val ss = remainingSeconds.coerceAtLeast(0) % 60
+            val timeText = String.format("%02d:%02d", mm, ss)
+
+            val continuePendingIntent = PendingIntent.getService(
+                context,
+                10,
+                Intent(context, BrewLabTimerService::class.java).setAction(ACTION_CONTINUE_AFTER_REBOOT),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val cancelPendingIntent = PendingIntent.getService(
+                context,
+                11,
+                Intent(context, BrewLabTimerService::class.java).setAction(ACTION_CANCEL_AFTER_REBOOT),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val openBrewLab = PendingIntent.getService(
+                context,
+                12,
+                Intent(context, BrewLabTimerService::class.java).setAction(ACTION_CONTINUE_AFTER_REBOOT),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val notification = NotificationCompat.Builder(context, NotificationChannels.CHANNEL_BREW_TIMER)
+                .setContentTitle(context.getString(R.string.brew_timer_resume_reboot_title, methodName))
+                .setContentText(context.getString(R.string.brew_timer_resume_reboot_text, timeText))
+                .setSmallIcon(R.drawable.ic_cafesito_tile)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setAutoCancel(true)
+                .setContentIntent(openBrewLab)
+                .addAction(android.R.drawable.ic_media_play, context.getString(R.string.brew_timer_resume_reboot_continue), continuePendingIntent)
+                .addAction(android.R.drawable.ic_delete, context.getString(R.string.brew_timer_resume_reboot_cancel), cancelPendingIntent)
+                .build()
+
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.notify(RESUME_AFTER_REBOOT_NOTIFICATION_ID, notification)
+        }
+
+        fun showRegisterAfterRebootNotification(context: Context) {
+            NotificationChannels.ensureCreated(context)
+            val openConsumo = PendingIntent.getActivity(
+                context,
+                20,
+                Intent(context, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+                    putExtra(EXTRA_OPEN_BREWLAB_CONSUMO, true)
+                    putExtra(EXTRA_ENTRY_SOURCE, ENTRY_SOURCE_POST_REBOOT)
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val dismissLater = PendingIntent.getBroadcast(
+                context,
+                21,
+                Intent(context, NotificationActionReceiver::class.java).apply {
+                    action = NotificationActionReceiver.ACTION_DISMISS_BREW_REGISTER
+                    putExtra(NotificationActionReceiver.EXTRA_NOTIFICATION_ID, REGISTER_NOTIFICATION_ID)
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val notification = NotificationCompat.Builder(context, NotificationChannels.CHANNEL_GENERAL)
+                .setContentTitle(context.getString(R.string.brew_timer_register_title))
+                .setContentText(context.getString(R.string.brew_timer_register_text))
+                .setSmallIcon(R.drawable.ic_cafesito_tile)
+                .setContentIntent(openConsumo)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setAutoCancel(true)
+                .addAction(android.R.drawable.ic_menu_edit, context.getString(R.string.brew_timer_register_yes), openConsumo)
+                .addAction(android.R.drawable.ic_menu_close_clear_cancel, context.getString(R.string.brew_timer_register_later), dismissLater)
+                .build()
+
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.notify(REGISTER_NOTIFICATION_ID, notification)
         }
     }
 }

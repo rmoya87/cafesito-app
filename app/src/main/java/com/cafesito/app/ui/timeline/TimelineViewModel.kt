@@ -372,7 +372,65 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun buildCoffeeRecommendations(data: TimelineBaseData): List<CoffeeWithDetails> {
+    private suspend fun buildCoffeeRecommendations(data: TimelineBaseData): List<CoffeeWithDetails> {
+        // Recomendaciones "recomendadas" (fuente de verdad): RPC Supabase `get_coffee_recommendations`.
+        // Si falla (sin red/500) usamos fallback local para no bloquear Home.
+        val rpc = runCatching {
+            withContext(Dispatchers.IO) {
+                supabaseDataSource.getRecommendationsWithCache(data.activeUser.id)
+            }
+        }.getOrNull().orEmpty()
+        if (rpc.isNotEmpty()) {
+            val (allowCapsule, allowDecaf) = inferUserRecommendationConstraints(data)
+            val byId = data.allCoffees.associateBy { it.coffee.id }
+            val mapped = rpc.mapNotNull { coffee ->
+                byId[coffee.id] ?: CoffeeWithDetails(coffee, null, emptyList())
+            }.distinctBy { it.coffee.id }
+
+            val filtered = mapped.filter { details ->
+                val formato = normalize(details.coffee.formato)
+                val cafeina = normalize(details.coffee.cafeina)
+                val isCapsule = formato.contains("capsul")
+                val isDecaf = isNoCaffeine(cafeina)
+                (!isCapsule || allowCapsule) && (!isDecaf || allowDecaf)
+            }
+            val picked = filtered.take(10)
+            if (picked.isNotEmpty()) return picked
+        }
+
+        return buildCoffeeRecommendationsLocal(data)
+    }
+
+    /**
+     * Si el usuario nunca interactuó con cápsulas o descafeinado (favoritos, reseñas, despensa, diario),
+     * lo filtramos de las recomendaciones para evitar "sorpresas" en Home.
+     */
+    private fun inferUserRecommendationConstraints(data: TimelineBaseData): Pair<Boolean, Boolean> {
+        val favoriteIds = data.favorites.filter { it.userId == data.activeUser.id }.map { it.coffeeId }.toSet()
+        val reviewedIds = data.userReviews.filter { it.userId == data.activeUser.id }.map { it.coffeeId }.toSet()
+        val diaryIds = data.diaryEntries.mapNotNull { it.coffeeId }.toSet()
+        val referenceIds = favoriteIds + reviewedIds + data.pantryCoffeeIds + diaryIds
+        val referenceCoffees = data.allCoffees.asSequence()
+            .filter { referenceIds.contains(it.coffee.id) }
+            .map { it.coffee }
+            .toList()
+
+        val hasCapsuleSignal = referenceCoffees.any { normalize(it.formato).contains("capsul") }
+        val hasDecafSignal = referenceCoffees.any { isNoCaffeine(normalize(it.cafeina)) }
+        return hasCapsuleSignal to hasDecafSignal
+    }
+
+    private fun normalize(v: String?): String = v?.trim()?.lowercase() ?: ""
+
+    private fun isNoCaffeine(cafeinaNormalized: String): Boolean {
+        if (cafeinaNormalized.isBlank()) return false
+        // En dataset se ven valores tipo "Sí/No" y también textos tipo "Sin cafeina/Descafeinado".
+        return cafeinaNormalized == "no" ||
+            cafeinaNormalized.contains("sin") && cafeinaNormalized.contains("cafe") ||
+            cafeinaNormalized.contains("descaf")
+    }
+
+    private fun buildCoffeeRecommendationsLocal(data: TimelineBaseData): List<CoffeeWithDetails> {
         val favoriteIds = data.favorites.filter { it.userId == data.activeUser.id }.map { it.coffeeId }.toSet()
         val reviewedIds = data.userReviews.filter { it.userId == data.activeUser.id }.map { it.coffeeId }.toSet()
         val referenceIds = favoriteIds + reviewedIds + data.pantryCoffeeIds

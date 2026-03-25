@@ -2209,6 +2209,14 @@ html.theme-light .list-options-members-copy-link .list-options-members-copy-icon
   animation: coffee-detail-enter 0.28s ease-out;
 }
 
+/* CWV: optimiza listas largas (render diferido fuera de viewport). */
+.coffee-list > li,
+.search-users-list > li,
+.search-filter-list > li {
+  content-visibility: auto;
+  contain-intrinsic-size: 96px;
+}
+
 @keyframes coffee-detail-enter {
   from {
     opacity: 0;
@@ -3039,7 +3047,7 @@ html.theme-dark .home-carousel-nav-btn:hover {
   margin: 0;
   margin-top: 4px;
   font-size: var(--font-size-sm);
-  color: var(--text-subtle);
+  color: var(--text-main);
 }
 
 /* Card del café debajo del tiempo: si es lista, arriba icono+nombre → lista; línea de separación; abajo imagen, nombre+marca, flecha → detalle (fondo = página) */
@@ -9974,8 +9982,10 @@ html.theme-dark .diary-day-header.is-today {
 
 .profile-stat-clickable {
   border: none;
-  padding: 0;
+  padding: 6px 8px;
   margin: 0;
+  min-width: 44px;
+  min-height: 44px;
   background: none;
   font: inherit;
   color: inherit;
@@ -10613,6 +10623,7 @@ html.theme-dark .content.content-profile {
   text-align: left;
   cursor: pointer;
   appearance: none;
+  min-height: 44px;
 }
 .profile-list-row .profile-list-icon {
   width: 24px;
@@ -11181,7 +11192,9 @@ html.theme-dark .create-list-sheet .create-list-privacy-option-check-empty {
   color: var(--text-subtle);
 }
 .share-list-sheet-invite-btn {
-  padding: 8px 14px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 10px 14px;
   font-size: 0.9rem;
   font-weight: 700;
   border-radius: var(--radius-md);

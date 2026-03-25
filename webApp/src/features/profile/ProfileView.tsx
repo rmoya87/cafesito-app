@@ -67,6 +67,7 @@ function ProfileFavoriteItem({
         style={{ transform: `translateX(${offsetX}px)` }}
         role="button"
         tabIndex={0}
+        aria-label={`Ver detalle de ${coffee.nombre}`}
         onClick={(event) => {
           if (movedRef.current || Math.abs(offsetX) > 4) {
             event.preventDefault();
@@ -746,7 +747,7 @@ export function ProfileView({
                             aria-label={isOwnActivity ? "Ver tu perfil" : `Ver perfil de ${item.userName}`}
                           >
                             {item.avatarUrl ? (
-                              <img className="avatar avatar-photo profile-activity-avatar" src={item.avatarUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                              <img className="avatar avatar-photo profile-activity-avatar" src={item.avatarUrl} alt={`Avatar de ${displayName}`} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                             ) : (
                               <div className="avatar profile-activity-avatar" aria-hidden="true">{displayName.slice(0, 2).toUpperCase()}</div>
                             )}
@@ -800,7 +801,7 @@ export function ProfileView({
                                 >
                                   <span className="profile-activity-coffee-card-media">
                                     {coffee.image_url ? (
-                                      <img className="profile-activity-coffee-card-image" src={coffee.image_url} alt="" loading="lazy" decoding="async" />
+                                      <img className="profile-activity-coffee-card-image" src={coffee.image_url} alt={`Imagen de ${coffee.nombre}`} loading="lazy" decoding="async" />
                                     ) : (
                                       <span className="profile-activity-coffee-card-image profile-activity-coffee-card-fallback" aria-hidden="true">{(coffee.nombre || "C").slice(0, 1).toUpperCase()}</span>
                                     )}

@@ -77,6 +77,7 @@
   --icon-size-sm: 17px;
   --icon-size-md: 20px;
   --icon-size-lg: 24px;
+  --tap-target-min: 44px;
 
   --radius-pill: 999px;
   --radius-sm: 10px;

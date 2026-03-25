@@ -395,8 +395,10 @@ fun BaristaCoffeesListSheet(
     val dateFormat = remember { SimpleDateFormat("d MMM yyyy", Locale.forLanguageTag("es-ES")) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        shape = Shapes.sheetLarge
+        containerColor = CafesitoModalSheetDefaults.containerColor(),
+        shape = CafesitoModalSheetDefaults.shape,
+        scrimColor = CafesitoModalSheetDefaults.scrimColor,
+        dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
     ) {
         Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
             Text(
@@ -568,11 +570,10 @@ fun PeriodSelectorPremium(period: DiaryPeriod, onClick: () -> Unit) {
         onClick = onClick,
         color = MaterialTheme.colorScheme.surfaceVariant,
         shape = Shapes.cardSmall,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        modifier = Modifier.height(40.dp)
+        modifier = Modifier.height(44.dp)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = Spacing.space3),
+            modifier = Modifier.padding(horizontal = Spacing.space4),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -602,8 +603,10 @@ fun AddEntryBottomSheet(
     val quickActionIconColor = if (isSystemInDarkTheme()) PureWhite else PureBlack
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        shape = Shapes.sheetLarge
+        containerColor = CafesitoModalSheetDefaults.containerColor(),
+        shape = CafesitoModalSheetDefaults.shape,
+        scrimColor = CafesitoModalSheetDefaults.scrimColor,
+        dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
     ) {
         Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
             Text(
@@ -681,8 +684,10 @@ fun DiaryDatePickerSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        shape = Shapes.sheetLarge
+        containerColor = CafesitoModalSheetDefaults.containerColor(),
+        shape = CafesitoModalSheetDefaults.shape,
+        scrimColor = CafesitoModalSheetDefaults.scrimColor,
+        dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
     ) {
         Column(Modifier.fillMaxWidth().padding(top = 8.dp).navigationBarsPadding()) {
             Row(
@@ -862,8 +867,7 @@ fun EntryOption(title: String, icon: ImageVector, color: Color, onClick: () -> U
             .fillMaxWidth()
             .padding(vertical = 6.dp),
         shape = Shapes.shapeCardMedium,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        color = MaterialTheme.colorScheme.surface
     ) {
         Row(Modifier.padding(Spacing.space4), verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, contentDescription = title, tint = color, modifier = Modifier.size(Spacing.space6))
@@ -1126,7 +1130,10 @@ fun PeriodBottomSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer
+        containerColor = CafesitoModalSheetDefaults.containerColor(),
+        shape = CafesitoModalSheetDefaults.shape,
+        scrimColor = CafesitoModalSheetDefaults.scrimColor,
+        dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
     ) {
         Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
             Text(
@@ -1147,17 +1154,24 @@ fun PeriodBottomSheet(
                     onClick = { onPeriodSelected(period); onDismiss() },
                     modifier = Modifier
                         .fillMaxWidth()
+                        .height(44.dp)
                         .padding(vertical = Spacing.space1),
                     shape = Shapes.card,
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                    border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
                 ) {
-                    Text(
-                        label,
-                        modifier = Modifier.padding(Spacing.space4),
-                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = Spacing.space4),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        Text(
+                            label,
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
                 }
             }
             if (selectedPeriod == DiaryPeriod.MES && selectedDateMs != 0L) {

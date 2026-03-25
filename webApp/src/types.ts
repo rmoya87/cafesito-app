@@ -53,6 +53,13 @@ export type UserRow = {
   avatar_url: string;
   email: string;
   bio: string | null;
+  /** Fuente de verdad Supabase; paridad con Android. */
+  onboarding_status?: "pending" | "completed_value" | "skipped" | null;
+  onboarding_completed_at?: number | null;
+  onboarding_skipped_at?: number | null;
+  /** Tour por pestañas (Android + Web); null = no omitido / sin pasos guardados. */
+  app_tour_skipped_at?: number | null;
+  app_tour_dismissed_steps?: string | null;
 };
 
 export type PostRow = {

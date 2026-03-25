@@ -66,7 +66,14 @@ data class UserEntity(
     @SerialName("full_name") val fullName: String,
     @SerialName("avatar_url") val avatarUrl: String,
     val email: String,
-    val bio: String?
+    val bio: String?,
+    /** Legacy onboarding v1 (lectura); el tour por pestañas usa `app_tour_*`. */
+    @SerialName("onboarding_status") val onboardingStatus: String? = null,
+    @SerialName("onboarding_completed_at") val onboardingCompletedAt: Long? = null,
+    @SerialName("onboarding_skipped_at") val onboardingSkippedAt: Long? = null,
+    @SerialName("app_tour_skipped_at") val appTourSkippedAt: Long? = null,
+    /** JSON array de ids de paso ya cerrados con «Entendido», p. ej. `["home","search"]`. */
+    @SerialName("app_tour_dismissed_steps") val appTourDismissedSteps: String? = null
 )
 
 @Serializable

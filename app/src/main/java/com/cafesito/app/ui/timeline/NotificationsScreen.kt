@@ -1,7 +1,6 @@
 package com.cafesito.app.ui.timeline
 
 import androidx.compose.animation.*
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -246,7 +245,6 @@ private fun NotificationItemRow(
         onClick = onClick,
         shape = Shapes.shapeCardMedium,
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -280,14 +278,13 @@ private fun NotificationItemRow(
             when (notification) {
                 is TimelineNotification.Follow -> {
                     if (isFollowing) {
-                        OutlinedButton(
+                        Button(
                             onClick = { onFollowToggle(notification.user.id) },
                             modifier = Modifier.height(32.dp),
                             shape = Shapes.cardSmall,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.primary,
-                                containerColor = Color.Transparent
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.primary
                             ),
                             contentPadding = PaddingValues(horizontal = 12.dp)
                         ) {
@@ -331,11 +328,14 @@ private fun NotificationItemRow(
                 is TimelineNotification.FirstCoffee -> { }
                 is TimelineNotification.ListInvite -> {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(
+                        Button(
                             onClick = { onDeclineListInvite(notification.invitationId) },
                             modifier = Modifier.height(32.dp),
                             shape = Shapes.cardSmall,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            ),
                             contentPadding = PaddingValues(horizontal = 12.dp)
                         ) {
                             Text("Rechazar", fontWeight = FontWeight.Medium, fontSize = 10.sp)

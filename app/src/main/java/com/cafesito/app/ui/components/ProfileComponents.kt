@@ -184,10 +184,12 @@ fun ProfileFavorites(
 fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
-        onDismissRequest = onDismiss, 
-        containerColor = MaterialTheme.colorScheme.surfaceContainer, 
+        onDismissRequest = onDismiss,
+        containerColor = CafesitoModalSheetDefaults.containerColor(),
         sheetState = sheetState,
-        scrimColor = ScrimDefault
+        shape = CafesitoModalSheetDefaults.shape,
+        scrimColor = CafesitoModalSheetDefaults.scrimColor,
+        dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
     ) {
         Column(
             Modifier
@@ -247,7 +249,6 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
                 Surface(
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
                     shape = Shapes.card,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(Modifier.padding(20.dp)) {
@@ -675,9 +676,10 @@ fun CreateListBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = Shapes.sheetLarge,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        scrimColor = ScrimDefault
+        shape = CafesitoModalSheetDefaults.shape,
+        containerColor = CafesitoModalSheetDefaults.containerColor(),
+        scrimColor = CafesitoModalSheetDefaults.scrimColor,
+        dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
     ) {
         Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space2).navigationBarsPadding()) {
             Box(Modifier.fillMaxWidth()) {
@@ -881,9 +883,10 @@ fun AddToListBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = Shapes.sheetLarge,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        scrimColor = ScrimDefault
+        shape = CafesitoModalSheetDefaults.shape,
+        containerColor = CafesitoModalSheetDefaults.containerColor(),
+        scrimColor = CafesitoModalSheetDefaults.scrimColor,
+        dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
     ) {
         Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space2).navigationBarsPadding()) {
             Row(
@@ -985,9 +988,10 @@ fun ListOptionsBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = Shapes.sheetLarge,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        scrimColor = ScrimDefault
+        shape = CafesitoModalSheetDefaults.shape,
+        containerColor = CafesitoModalSheetDefaults.containerColor(),
+        scrimColor = CafesitoModalSheetDefaults.scrimColor,
+        dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
     ) {
         Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space2).navigationBarsPadding()) {
             AddToListOptionRow(
@@ -1028,9 +1032,10 @@ fun ShareListBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = Shapes.sheetLarge,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        scrimColor = ScrimDefault
+        shape = CafesitoModalSheetDefaults.shape,
+        containerColor = CafesitoModalSheetDefaults.containerColor(),
+        scrimColor = CafesitoModalSheetDefaults.scrimColor,
+        dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
     ) {
         Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space2).navigationBarsPadding()) {
             Text(
@@ -1092,9 +1097,10 @@ fun ListDeleteConfirmBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = Shapes.sheetLarge,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        scrimColor = ScrimDefault
+        shape = CafesitoModalSheetDefaults.shape,
+        containerColor = CafesitoModalSheetDefaults.containerColor(),
+        scrimColor = CafesitoModalSheetDefaults.scrimColor,
+        dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
     ) {
         Column(
             modifier = Modifier.padding(start = Spacing.space6, end = Spacing.space6, top = 8.dp, bottom = 40.dp),
@@ -1121,12 +1127,14 @@ fun ListDeleteConfirmBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.space3)
             ) {
-                OutlinedButton(
+                Button(
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f).height(56.dp),
                     shape = Shapes.pillFull,
-                    border = BorderStroke(1.dp, cancelColor),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = cancelColor)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = cancelColor
+                    )
                 ) {
                     Text("CANCELAR", fontWeight = FontWeight.Medium)
                 }
@@ -1193,7 +1201,6 @@ fun CoffeeFavoriteListItem(
             .clickable(onClick = onClick),
         shape = Shapes.card,
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         shadowElevation = 0.dp
     ) {
         Row(
@@ -1260,7 +1267,6 @@ fun CoffeeListRowWithChevron(
             .clickable(onClick = onClick),
         shape = Shapes.card,
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         shadowElevation = 0.dp
     ) {
         Row(

@@ -30,6 +30,7 @@ class AppSessionCoordinator @Inject constructor(
                 if (lifecycleResult == UserRepository.AccountLifecycleSyncResult.Deleted) return@launch
                 withContext(Dispatchers.IO) {
                     syncManager.syncEssentialForLaunch()
+                    userRepository.refreshActiveUserFromSupabase()
                 }
                 scope.launch {
                     delay(5_000)
@@ -56,6 +57,17 @@ class AppSessionCoordinator @Inject constructor(
 
     fun onAppForeground(scope: CoroutineScope) {
         lastAppOpenTracker.save()
+        // Tour por pestañas / otra pestaña Web: reconciliar `users_db` en primer plano.
+        scope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    if (userRepository.getActiveUser() != null) {
+                        userRepository.refreshActiveUserFromSupabase()
+                    }
+                }
+            } catch (_: Exception) {
+            }
+        }
         val now = System.currentTimeMillis()
         if (now - lastForegroundTokenRefreshAt < 60_000L) return
         lastForegroundTokenRefreshAt = now

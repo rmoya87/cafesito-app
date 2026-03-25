@@ -46,6 +46,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
@@ -56,7 +57,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.cafesito.app.R
+import com.cafesito.app.data.AppTabTour
 import com.cafesito.app.data.UserRepository
+import com.cafesito.app.data.shouldShowAppTabTourStep
+import com.cafesito.app.ui.components.AppTabTourOverlay
 import com.cafesito.app.ui.components.ModernAvatar
 import com.cafesito.app.ui.access.*
 import com.cafesito.app.ui.brewlab.*
@@ -68,12 +73,14 @@ import com.cafesito.app.ui.search.SearchScreen
 import com.cafesito.app.ui.theme.Dimens
 import com.cafesito.app.ui.theme.Shapes
 import com.cafesito.app.ui.timeline.*
+import com.cafesito.app.BuildConfig
 import com.cafesito.app.analytics.AnalyticsHelper
 import com.cafesito.app.brewlab.BrewLabTimerService
 import com.cafesito.app.startup.PredictiveShortcutsHelper
 import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,15 +102,20 @@ fun AppNavigation(
     val deepLinkViewModel: DeepLinkViewModel = hiltViewModel()
     var startRoute by rememberSaveable { mutableStateOf<String?>(null) }
     var wasAuthenticatedInCurrentInstance by remember { mutableStateOf(false) }
+    val activeUser by userRepository.getActiveUserFlow().collectAsState(initial = null)
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) {}
 
-    LaunchedEffect(sessionState) {
+    LaunchedEffect(sessionState, activeUser) {
         when (sessionState) {
             is SessionState.Authenticated -> {
                 wasAuthenticatedInCurrentInstance = true
-                if (startRoute == null) startRoute = "home"
+                if (startRoute == null) {
+                    val u = activeUser
+                    if (u == null) return@LaunchedEffect
+                    startRoute = "home"
+                }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     val permission = Manifest.permission.POST_NOTIFICATIONS
                     if (ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
@@ -118,7 +130,7 @@ fun AppNavigation(
                     navController.navigate("login") { popUpTo(0) { inclusive = true } }
                 }
             }
-            else -> {} 
+            else -> {}
         }
     }
 
@@ -135,7 +147,8 @@ fun AppNavigation(
         val lockEntrySource = nav.source?.takeIf {
             it == BrewLabTimerService.ENTRY_SOURCE_NOTIFICATION_ACTION ||
                 it == BrewLabTimerService.ENTRY_SOURCE_WIDGET ||
-                it == BrewLabTimerService.ENTRY_SOURCE_QUICK_TILE
+                it == BrewLabTimerService.ENTRY_SOURCE_QUICK_TILE ||
+                it == BrewLabTimerService.ENTRY_SOURCE_POST_REBOOT
         }
         when (nav.type) {
             "NOTIFICATIONS" -> navController.navigate("notifications")
@@ -232,17 +245,22 @@ fun AppNavigation(
         val listId = deepLinkListId ?: return@LaunchedEffect
         if (sessionState !is SessionState.Authenticated) return@LaunchedEffect
         delay(400) // Dejar que LoginScreen navegue a home antes de ir a la lista
-        val ownerId = deepLinkViewModel.getListOwnerId(listId)
-        if (ownerId != null) {
-            navController.navigate("profile/$ownerId") { launchSingleTop = true }
-            navController.navigate("profile/$ownerId/list/$listId")
-        } else {
-            val joinInfo = deepLinkViewModel.getListInfoForJoin(listId)
-            if (joinInfo != null) {
-                navController.navigate("listJoin/$listId") { launchSingleTop = true }
+        try {
+            val ownerId = deepLinkViewModel.getListOwnerId(listId)
+            if (ownerId != null) {
+                navController.navigate("profile/$ownerId") { launchSingleTop = true }
+                navController.navigate("profile/$ownerId/list/$listId")
+            } else {
+                val joinInfo = deepLinkViewModel.getListInfoForJoin(listId)
+                if (joinInfo != null) {
+                    navController.navigate("listJoin/$listId") { launchSingleTop = true }
+                }
             }
+        } finally {
+            // Siempre limpiar (lista borrada, privada, error de red o excepción) para no re-ejecutar
+            // el efecto en cada cambio de navegación con el mismo id colgando.
+            onDeepLinkListConsumed()
         }
-        onDeepLinkListConsumed()
     }
 
     // Deep link perfil: /profile/{userId}
@@ -251,16 +269,19 @@ fun AppNavigation(
         if (userIdentifier.isBlank()) return@LaunchedEffect
         if (sessionState !is SessionState.Authenticated) return@LaunchedEffect
         delay(400) // Dejar que LoginScreen navegue a home antes de abrir perfil
-        val userId = userIdentifier.toIntOrNull()
-            ?: userRepository.getUserByUsername(userIdentifier)?.id
-            ?: return@LaunchedEffect
-        navController.navigate("profile/$userId") { launchSingleTop = true }
-        onDeepLinkProfileConsumed()
+        try {
+            val userId = userIdentifier.toIntOrNull()
+                ?: userRepository.getUserByUsername(userIdentifier)?.id
+            if (userId != null) {
+                navController.navigate("profile/$userId") { launchSingleTop = true }
+            }
+        } finally {
+            onDeepLinkProfileConsumed()
+        }
     }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: ""
-    val activeUser by userRepository.getActiveUserFlow().collectAsState(initial = null)
 
     // Predictive app actions: notificar uso de atajo para que el sistema priorice en recientes
     LaunchedEffect(currentRoute) {
@@ -987,6 +1008,54 @@ SearchScreen(
                 }
             }
         }
+
+        val tourScope = rememberCoroutineScope()
+        val profileUserIdArg = navBackStackEntry?.arguments?.getInt("userId")
+        val uTour = activeUser
+        // Optimista: al pulsar "Entendido/Omitir todo" ocultamos el tour localmente al instante.
+        // El guardado en servidor/Room puede fallar (sin red) y si ocurre se re-evaluará en otra sesión.
+        var locallyHiddenTourStep by remember { mutableStateOf<String?>(null) }
+        var locallySkipAllTour by remember { mutableStateOf(false) }
+        val tourStep = remember(currentRoute, profileUserIdArg, uTour?.id, sessionState) {
+            if (!BuildConfig.APP_TAB_TOUR_V1_ENABLED) return@remember null
+            if (sessionState !is SessionState.Authenticated) return@remember null
+            if (uTour == null) return@remember null
+            val step = AppTabTour.resolveStepForNavRoute(currentRoute, profileUserIdArg, uTour.id)
+            if (step == null || !uTour.shouldShowAppTabTourStep(step)) null else step
+        }
+        val effectiveTourStep = remember(tourStep, locallyHiddenTourStep, locallySkipAllTour) {
+            if (locallySkipAllTour) return@remember null
+            if (tourStep != null && tourStep == locallyHiddenTourStep) null else tourStep
+        }
+
+        LaunchedEffect(effectiveTourStep) {
+            if (effectiveTourStep != null) {
+                analyticsHelper.trackEvent("app_tab_tour_step_shown", bundleOf("step" to effectiveTourStep))
+            }
+        }
+
+        if (effectiveTourStep != null) {
+            val stepId = effectiveTourStep
+            val (tourTitle, tourBody) = appTabTourStepStrings(stepId)
+            AppTabTourOverlay(
+                title = tourTitle,
+                body = tourBody,
+                onDismissStep = {
+                    locallyHiddenTourStep = stepId
+                    tourScope.launch {
+                        val ok = userRepository.dismissAppTabTourStep(stepId)
+                        if (ok) analyticsHelper.trackEvent("app_tab_tour_step_dismissed", bundleOf("step" to stepId))
+                    }
+                },
+                onSkipAll = {
+                    locallySkipAllTour = true
+                    tourScope.launch {
+                        val ok = userRepository.skipAllAppTabTour()
+                        if (ok) analyticsHelper.trackEvent("app_tab_tour_skip_all", bundleOf("step" to stepId))
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -1019,6 +1088,24 @@ data class NotificationNavigation(
             }
             return type?.let { NotificationNavigation(it, targetId, commentId, source) }
         }
+    }
+}
+
+@Composable
+private fun appTabTourStepStrings(step: String): Pair<String, String> {
+    return when (step) {
+        AppTabTour.STEP_HOME ->
+            stringResource(R.string.app_tab_tour_home_title) to stringResource(R.string.app_tab_tour_home_body)
+        AppTabTour.STEP_SEARCH ->
+            stringResource(R.string.app_tab_tour_search_title) to stringResource(R.string.app_tab_tour_search_body)
+        AppTabTour.STEP_BREWLAB ->
+            stringResource(R.string.app_tab_tour_brewlab_title) to stringResource(R.string.app_tab_tour_brewlab_body)
+        AppTabTour.STEP_DIARY ->
+            stringResource(R.string.app_tab_tour_diary_title) to stringResource(R.string.app_tab_tour_diary_body)
+        AppTabTour.STEP_PROFILE ->
+            stringResource(R.string.app_tab_tour_profile_title) to stringResource(R.string.app_tab_tour_profile_body)
+        else ->
+            stringResource(R.string.app_tab_tour_home_title) to stringResource(R.string.app_tab_tour_home_body)
     }
 }
 

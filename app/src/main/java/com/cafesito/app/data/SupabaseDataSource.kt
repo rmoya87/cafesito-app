@@ -81,7 +81,23 @@ class SupabaseDataSource @Inject constructor(
     }.decodeSingleOrNull<UserEntity>()
     suspend fun getUserByGoogleId(googleId: String): UserEntity? = client.postgrest["users_db"].select { filter { eq("google_id", googleId) } }.decodeSingleOrNull<UserEntity>()
     suspend fun upsertUser(user: UserEntity) { client.postgrest["users_db"].upsert(user) }
-    
+
+    suspend fun updateUserAppTabTour(
+        userId: Int,
+        skippedAt: Long? = null,
+        dismissedStepsJson: String? = null,
+        clearDismissedSteps: Boolean = false
+    ) {
+        client.postgrest["users_db"].update(
+            {
+                if (skippedAt != null) set("app_tour_skipped_at", skippedAt)
+                if (clearDismissedSteps) set("app_tour_dismissed_steps", null as String?)
+                if (dismissedStepsJson != null) set("app_tour_dismissed_steps", dismissedStepsJson)
+            }
+        ) {
+            filter { eq("id", userId) }
+        }
+    }
 
     suspend fun touchUserLastInteraction(userId: Int) {
         client.postgrest["users_db"].update(

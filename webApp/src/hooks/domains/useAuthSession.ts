@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { getAppRootPath } from "../../core/routing";
 import { getSupabaseClient, supabaseConfigError } from "../../supabase";
 
 const SESSION_ACTIVITY_TTL_MS = 5 * 24 * 60 * 60 * 1000; // 5 días sin acceso → cierre de sesión
@@ -184,13 +185,22 @@ export function useAuthSession(): UseAuthSessionResult {
     if (sessionEmail) setShowAuthPrompt(false);
   }, [sessionEmail]);
 
-  // Tras callback OAuth en raíz (/?code=...): dejar URL limpia en /home
+  /**
+   * OAuth PKCE: Supabase redirige a la URL de `redirectTo` con `?code=`.
+   * Tras tener sesión, normalizamos a `{getAppRootPath}/home` (paridad con `AppContainer` ante `authError`;
+   * soporta raíz `/` y despliegue con base path). One Tap (`signInWithIdToken`) no pasa por aquí.
+   */
   useEffect(() => {
     if (!sessionEmail) return;
-    const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
     const search = window.location.search || "";
-    if (pathname !== "/" || !search.includes("code=")) return;
-    window.history.replaceState(null, "", "/home");
+    if (!search.includes("code=")) return;
+    const pathnameRaw = window.location.pathname;
+    const pathname = pathnameRaw.replace(/\/+$/, "") || "/";
+    const base = (getAppRootPath(pathnameRaw) || "/").replace(/\/+$/, "") || "/";
+    const atAppEntry = pathname === base || pathname === "/" || pathname === "";
+    if (!atAppEntry) return;
+    const homePath = (base === "/" ? "/home" : `${base}/home`).replace(/\/+/g, "/");
+    window.history.replaceState(null, "", `${homePath}${window.location.hash}`);
   }, [sessionEmail]);
 
   return {

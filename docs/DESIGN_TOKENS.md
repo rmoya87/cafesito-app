@@ -2,7 +2,7 @@
 
 **Propósito:** Un único documento de referencia para colores, espaciados y radios usados en WebApp y Android. Evita que ambas plataformas se desalineen con el tiempo.
 
-**Última actualización:** 2026-03-13  
+**Última actualización:** 2026-03-19  
 **Ámbito:** WebApp (`webApp/`), Android (`app/`).
 
 ---
@@ -117,6 +117,7 @@ Usar esta escala para consistencia. Android puede mapear a `dp` (1:1 con px para
 | `--space-5` | 20px | Separación media |
 | `--space-6` | 24px | Separación grande |
 | `--space-8` | 32px | Padding de pantalla, márgenes amplios |
+| `--tap-target-min` | 44px | Tamaño mínimo para botones/icon buttons en WebApp (a11y) |
 
 **Android:** Usar `Spacing.space1` … `Spacing.space8` (ver `app/.../ui/theme/Spacing.kt`) para alinear con esta escala.
 
@@ -164,6 +165,12 @@ Usar esta escala para consistencia. Android puede mapear a `dp` (1:1 con px para
 |------------|-------------------|--------|
 | Web | `webApp/src/styles/tokens.css` | Variables CSS en `:root` y `@media (prefers-color-scheme: dark)`. |
 | Android | `app/.../ui/theme/Color.kt` | Colores estáticos. |
-| Android | `app/.../ui/theme/Theme.kt` | `LightColorScheme` / `DarkColorScheme`, `LocalCaramelAccent`, `LocalDateMetaColor`. |
+| Android | `app/.../ui/theme/Theme.kt` | `LightColorScheme` / `DarkColorScheme`, `dynamicLightColorScheme` / `dynamicDarkColorScheme` (Android 12+), `LocalCaramelAccent`, `LocalDateMetaColor`. |
+
+### 4.1 Material You (Android 12+)
+
+- `dynamicColor` está soportado mediante preferencia de usuario (`dynamic_color_enabled`).
+- Si el dispositivo está en Android 12+ y la preferencia está activa, la app usa la paleta dinámica del sistema.
+- Si no está disponible (Android <= 11) o el usuario lo desactiva, se mantiene el esquema Cafesito estático para preservar identidad visual.
 
 Al añadir o cambiar un token, actualizar este documento y el fichero correspondiente de cada plataforma para mantener la paridad.

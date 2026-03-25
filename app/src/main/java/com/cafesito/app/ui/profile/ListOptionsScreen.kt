@@ -40,6 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -760,6 +761,7 @@ fun ListOptionsScreen(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .minimumInteractiveComponentSize()
                                         .padding(Spacing.space4, 14.dp)
                                         .clickable { onTrackEvent("modal_open", bundleOf("modal_id" to "leave_list_confirm")); showLeaveConfirm = true },
                                     verticalAlignment = Alignment.CenterVertically
@@ -782,6 +784,7 @@ private fun OptionRowInCard(icon: androidx.compose.ui.graphics.vector.ImageVecto
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .minimumInteractiveComponentSize()
             .padding(Spacing.space4, 14.dp)
             .clickable { onClick() },
         verticalAlignment = Alignment.CenterVertically

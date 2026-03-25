@@ -3,11 +3,15 @@ package com.cafesito.app.ui.theme
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 
 /** En modo noche es marrón claro (CaramelSoft), en modo claro es marrón café (CaramelAccent). */
 val LocalCaramelAccent = staticCompositionLocalOf { CaramelAccent }
@@ -21,6 +25,12 @@ object ThemeMode {
     const val AUTO = "auto"
     const val LIGHT = "light"
     const val DARK = "dark"
+}
+
+/** Preferencia para activar/desactivar Dynamic Color en Android 12+ (Material You). */
+object DynamicColorMode {
+    const val KEY = "dynamic_color_enabled"
+    const val DEFAULT = true
 }
 
 /** Resuelve si debe usarse tema oscuro según preferencia guardada y sistema. */
@@ -75,13 +85,31 @@ private val DarkColorScheme = darkColorScheme(
 @Composable
 fun CafesitoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColorEnabled: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) {
-        DarkColorScheme
+    val context = LocalContext.current
+    val baseColorScheme = if (dynamicColorEnabled && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+        if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
     } else {
-        LightColorScheme
+        if (darkTheme) DarkColorScheme else LightColorScheme
     }
+    // Unificación global:
+    // - Sin líneas de borde en cajas (outline/outlineVariant transparentes).
+    // - Modo día + Material You: superficie casi blanca con tinte mínimo del primary dinámico (lerp 0.99 hacia blanco).
+    // - Sin dinámico o estático: AdviceCardBg* como antes.
+    val surfaceForCards = when {
+        darkTheme -> AdviceCardBgDark
+        dynamicColorEnabled && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S ->
+            lerp(baseColorScheme.primary, PureWhite, 0.99f)
+        else -> AdviceCardBgLight
+    }
+    val colorScheme = baseColorScheme.copy(
+        surface = surfaceForCards,
+        surfaceVariant = surfaceForCards,
+        outline = Color.Transparent,
+        outlineVariant = Color.Transparent
+    )
 
     val caramelAccent = if (darkTheme) CaramelSoft else CaramelAccent
     val dateMetaColor = if (darkTheme) DateMetaDark else DateMetaLight

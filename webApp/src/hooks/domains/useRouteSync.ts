@@ -2,6 +2,21 @@ import { useEffect } from "react";
 import { buildRoute, getAppRootPath, isKnownRoute, parseRoute } from "../../core/routing";
 import { canNavigateToTab } from "../../core/guards";
 
+function stripTrackingParams(search: string): string {
+  if (!search) return "";
+  const raw = search.startsWith("?") ? search.slice(1) : search;
+  if (!raw) return "";
+  const params = new URLSearchParams(raw);
+  const dropPrefixes = ["utm_"];
+  const dropKeys = new Set(["gclid", "fbclid", "ref", "ref_src", "mc_cid", "mc_eid"]);
+  for (const key of Array.from(params.keys())) {
+    const k = key.toLowerCase();
+    if (dropKeys.has(k) || dropPrefixes.some((p) => k.startsWith(p))) params.delete(key);
+  }
+  const out = params.toString();
+  return out ? `?${out}` : "";
+}
+
 /**
  * Sincroniza la URL canónica (normalización y redirección cuando no autenticado).
  * Solo aplica la lógica cuando authReady es true para no pisar la URL en F5 antes de restaurar sesión.
@@ -19,15 +34,26 @@ export function useRouteCanonicalSync(isAuthenticated?: boolean, authReady = tru
       }
       const current = pathname.replace(/\/+$/, "") || "/";
       if (current !== base) {
-        window.history.replaceState({}, "", `${base}${window.location.search}${window.location.hash}`);
+        window.history.replaceState({}, "", `${base}${stripTrackingParams(window.location.search)}${window.location.hash}`);
       }
       return;
     }
     const route = parseRoute(pathname);
-    const routePath = buildRoute(route.tab, route.searchMode, route.profileUsername, route.coffeeSlug, route.profileSection, (route as { profileListId?: string }).profileListId, undefined, (route as { listOptionsView?: boolean }).listOptionsView);
+    const routePath = buildRoute(
+      route.tab,
+      route.searchMode,
+      route.profileUsername,
+      route.coffeeSlug,
+      route.profileSection,
+      (route as { profileListId?: string }).profileListId,
+      (route as { diarySubView?: "cafes-probados" }).diarySubView,
+      (route as { listOptionsView?: boolean }).listOptionsView,
+      (route as { searchFacetType?: string | null }).searchFacetType as any,
+      (route as { searchFacetValue?: string | null }).searchFacetValue as any
+    );
     const normalized = base === "/" ? routePath : `${base}${routePath}`;
     if (pathname !== normalized) {
-      window.history.replaceState({}, "", `${normalized}${window.location.search}${window.location.hash}`);
+      window.history.replaceState({}, "", `${normalized}${stripTrackingParams(window.location.search)}${window.location.hash}`);
     }
   }, [isAuthenticated, authReady]);
 }

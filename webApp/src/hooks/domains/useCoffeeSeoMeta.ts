@@ -1,9 +1,8 @@
 import { useEffect } from "react";
-import { parseRoute } from "../../core/routing";
 import type { CoffeeRow } from "../../types";
 
 const ROBOTS_INDEX_FOLLOW = "index, follow";
-const ROBOTS_NOINDEX = "noindex, nofollow";
+const ROBOTS_NOINDEX_FOLLOW = "noindex, follow";
 
 const DEFAULT_TITLE = "Cafesito";
 const DEFAULT_DESCRIPTION = "Comunidad de café para compartir timeline, explorar cafés y seguir perfiles.";
@@ -13,6 +12,42 @@ const MAX_DESCRIPTION_LENGTH = 160;
 const SEARCH_COFFEES_TITLE = "Explorar cafés | Cafesito";
 const SEARCH_COFFEES_DESCRIPTION =
   "Explora y descubre cafés, marcas y orígenes. Busca por nombre, filtra por tipo o valoración y encuentra tu próximo café favorito en la comunidad Cafesito.";
+
+const DEFAULT_OG_IMAGE = "https://cafesitoapp.com/logo.png";
+const SEARCH_OG_IMAGE = "https://cafesitoapp.com/og/search.jpg";
+const LOGIN_OG_IMAGE = "https://cafesitoapp.com/og/login.jpg";
+const OG_IMAGE_WIDTH = "1200";
+const OG_IMAGE_HEIGHT = "630";
+const OG_LOCALE = "es_ES";
+const TWITTER_SITE = "@cafesitoapp";
+const TWITTER_CREATOR = "@cafesitoapp";
+
+function stripTrailingSlash(pathname: string): string {
+  const p = (pathname ?? "").replace(/\/+$/, "") || "/";
+  return p === "" ? "/" : p;
+}
+
+function upsertWebSiteSearchActionJsonLd(doc: Document, siteUrl: string) {
+  const id = "website-searchaction-ld";
+  const existing = doc.getElementById(id) as HTMLScriptElement | null;
+  const base = siteUrl.replace(/\/+$/, "");
+  const payload = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: SITE_NAME,
+    url: base,
+    potentialAction: {
+      "@type": "SearchAction",
+      target: `${base}/search?q={search_term_string}`,
+      "query-input": "required name=search_term_string"
+    }
+  };
+  const script = existing ?? doc.createElement("script");
+  script.id = id;
+  script.type = "application/ld+json";
+  script.textContent = JSON.stringify(payload);
+  if (!existing) doc.head.appendChild(script);
+}
 
 function setOrCreateMeta(
   doc: Document,
@@ -50,6 +85,13 @@ function removeJsonLd(doc: Document, id: string): void {
   if (el) el.remove();
 }
 
+function setOgImageMeta(doc: Document, url: string) {
+  setOrCreateMeta(doc, "meta", "property", "og:image", url);
+  setOrCreateMeta(doc, "meta", "property", "og:image:width", OG_IMAGE_WIDTH);
+  setOrCreateMeta(doc, "meta", "property", "og:image:height", OG_IMAGE_HEIGHT);
+  setOrCreateMeta(doc, "meta", "name", "twitter:image", url);
+}
+
 export function useCoffeeSeoMeta(
   detailCoffee: CoffeeRow | null,
   options?: { avgRating?: number; reviewCount?: number },
@@ -57,14 +99,21 @@ export function useCoffeeSeoMeta(
 ) {
   useEffect(() => {
     const doc = document;
-    const pathname = (pathnameOverride ?? (typeof window !== "undefined" ? window.location.pathname : "")).replace(/\/+$/, "") || "/";
+    const rawPathname = pathnameOverride ?? (typeof window !== "undefined" ? window.location.pathname : "");
+    const pathname = stripTrailingSlash(rawPathname);
     const isCoffeeRoute = pathname.includes("/coffee/");
     const isSearchRoute = /\/search(\/|$)/.test(pathname);
     const isSearchCoffeesOnly = isSearchRoute && !/\/search\/users/.test(pathname);
+    const isLoginRoute = /\/login(\/|$)/.test(pathname);
+    const isSearchFacetRoute = /\/search\/(origen|tueste|especialidad|formato|nota)\/[^/]+$/.test(pathname);
     const siteUrl = (import.meta.env.VITE_SITE_URL as string | undefined) ?? (typeof window !== "undefined" ? window.location.origin : "");
-    const canonicalHref = `${siteUrl}${pathname}`;
+    const canonicalHref = `${siteUrl.replace(/\/+$/, "")}${pathname}`;
 
     setOrCreateLink(doc, "canonical", canonicalHref);
+    upsertWebSiteSearchActionJsonLd(doc, siteUrl);
+    setOrCreateMeta(doc, "meta", "property", "og:locale", OG_LOCALE);
+    setOrCreateMeta(doc, "meta", "name", "twitter:site", TWITTER_SITE);
+    setOrCreateMeta(doc, "meta", "name", "twitter:creator", TWITTER_CREATOR);
 
     let descriptionMeta = doc.querySelector("meta[name='description']") as HTMLMetaElement | null;
     if (!descriptionMeta) {
@@ -73,9 +122,14 @@ export function useCoffeeSeoMeta(
       doc.head.appendChild(descriptionMeta);
     }
 
-    if (isSearchCoffeesOnly) {
+    if (isSearchCoffeesOnly || isSearchFacetRoute) {
+      const facetMatch = pathname.match(/\/search\/(origen|tueste|especialidad|formato|nota)\/([^/]+)$/);
+      const facetType = facetMatch?.[1] ?? null;
+      const facetValue = facetMatch?.[2] ? decodeURIComponent(facetMatch[2]) : null;
       const title = SEARCH_COFFEES_TITLE;
-      const description = SEARCH_COFFEES_DESCRIPTION;
+      const description = facetType && facetValue
+        ? `${SEARCH_COFFEES_DESCRIPTION} Filtrado por ${facetType}: ${facetValue}.`
+        : SEARCH_COFFEES_DESCRIPTION;
       const descTruncated = description.slice(0, MAX_DESCRIPTION_LENGTH);
       doc.title = title;
       descriptionMeta.content = descTruncated;
@@ -84,7 +138,8 @@ export function useCoffeeSeoMeta(
       setOrCreateMeta(doc, "meta", "property", "og:type", "website");
       setOrCreateMeta(doc, "meta", "property", "og:url", canonicalHref);
       setOrCreateMeta(doc, "meta", "property", "og:site_name", SITE_NAME);
-      setOrCreateMeta(doc, "meta", "name", "twitter:card", "summary");
+      setOgImageMeta(doc, SEARCH_OG_IMAGE);
+      setOrCreateMeta(doc, "meta", "name", "twitter:card", "summary_large_image");
       setOrCreateMeta(doc, "meta", "name", "twitter:title", title);
       setOrCreateMeta(doc, "meta", "name", "twitter:description", descTruncated);
       setOrCreateMeta(doc, "meta", "name", "robots", ROBOTS_INDEX_FOLLOW);
@@ -108,10 +163,10 @@ export function useCoffeeSeoMeta(
     }
 
     if (!isCoffeeRoute) {
-      const route = parseRoute(pathname);
-      const robots =
-        route.tab === "home" ? ROBOTS_INDEX_FOLLOW : ROBOTS_NOINDEX;
-      setOrCreateMeta(doc, "meta", "name", "robots", robots);
+      // Política SEO SPA:
+      // - Indexar: /search (cafés), /coffee/* y /login
+      // - El resto de rutas SPA se marcan como noindex
+      setOrCreateMeta(doc, "meta", "name", "robots", isLoginRoute ? ROBOTS_INDEX_FOLLOW : ROBOTS_NOINDEX_FOLLOW);
       doc.title = DEFAULT_TITLE;
       descriptionMeta.content = DEFAULT_DESCRIPTION;
       setOrCreateMeta(doc, "meta", "property", "og:title", DEFAULT_TITLE);
@@ -119,7 +174,13 @@ export function useCoffeeSeoMeta(
       setOrCreateMeta(doc, "meta", "property", "og:type", "website");
       setOrCreateMeta(doc, "meta", "property", "og:url", canonicalHref);
       setOrCreateMeta(doc, "meta", "property", "og:site_name", SITE_NAME);
-      setOrCreateMeta(doc, "meta", "name", "twitter:card", "summary");
+      if (isLoginRoute) {
+        setOgImageMeta(doc, LOGIN_OG_IMAGE);
+        setOrCreateMeta(doc, "meta", "name", "twitter:card", "summary_large_image");
+      } else {
+        setOgImageMeta(doc, DEFAULT_OG_IMAGE);
+        setOrCreateMeta(doc, "meta", "name", "twitter:card", "summary");
+      }
       setOrCreateMeta(doc, "meta", "name", "twitter:title", DEFAULT_TITLE);
       setOrCreateMeta(doc, "meta", "name", "twitter:description", DEFAULT_DESCRIPTION);
       removeJsonLd(doc, "coffee-product-ld");
@@ -133,6 +194,9 @@ export function useCoffeeSeoMeta(
       ? (detailCoffee.descripcion?.trim() || `${detailCoffee.nombre}${detailCoffee.marca ? ` · ${detailCoffee.marca}` : ""}${detailCoffee.pais_origen ? ` · ${detailCoffee.pais_origen}` : ""}`.trim() || "Detalle de café en Cafesito")
       : "Detalle de café en Cafesito";
     const description = rawDesc.slice(0, MAX_DESCRIPTION_LENGTH);
+    // Preferimos una OG image 1200x630 generada en build (si existe). Fallback: image_url del café.
+    // OG images se generan y sirven en producción bajo cafesitoapp.com
+    const ogGeneratedUrl = detailCoffee ? `https://cafesitoapp.com/og/coffee/${encodeURIComponent(detailCoffee.id)}.jpg` : "";
     const imageUrl =
       detailCoffee?.image_url
         ? (detailCoffee.image_url.startsWith("http") ? detailCoffee.image_url : `${siteUrl}${detailCoffee.image_url}`)
@@ -147,12 +211,11 @@ export function useCoffeeSeoMeta(
     setOrCreateMeta(doc, "meta", "property", "og:type", "product");
     setOrCreateMeta(doc, "meta", "property", "og:url", canonicalHref);
     setOrCreateMeta(doc, "meta", "property", "og:site_name", SITE_NAME);
-    if (imageUrl) setOrCreateMeta(doc, "meta", "property", "og:image", imageUrl);
+    setOgImageMeta(doc, ogGeneratedUrl || imageUrl || DEFAULT_OG_IMAGE);
 
-    setOrCreateMeta(doc, "meta", "name", "twitter:card", imageUrl ? "summary_large_image" : "summary");
+    setOrCreateMeta(doc, "meta", "name", "twitter:card", "summary_large_image");
     setOrCreateMeta(doc, "meta", "name", "twitter:title", title);
     setOrCreateMeta(doc, "meta", "name", "twitter:description", description);
-    if (imageUrl) setOrCreateMeta(doc, "meta", "name", "twitter:image", imageUrl);
 
     if (detailCoffee) {
       const avgRating = options?.avgRating ?? 0;

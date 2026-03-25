@@ -1,7 +1,7 @@
 # Workflow Release & Deploy
 
 **Estado:** vivo  
-**Última actualización:** 2026-03-17  
+**Última actualización:** 2026-03-25  
 **Fuente de verdad:** comportamiento por rama y despliegue (Android + Web).
 
 Workflow único de GitHub Actions (`.github/workflows/release-deploy.yml`) que gestiona el release de Android en Google Play y el despliegue de la web en Ionos según la rama.
@@ -203,6 +203,33 @@ No hay workflow automático. Los crashes se revisan y resuelven **desde Cursor**
 - **workflow_dispatch**: eliges manualmente “solo Android”, “solo web” o ambos (sin filtro por ficheros). Antes de desplegar se hace merge de main en la rama elegida, así que el despliegue incluye todos los cambios de main.
 - **schedule**: deploy web según cola Supabase; Android no se publica en schedule.
 - Para cambiar la rama nocturna, ajusta `NIGHTLY_DEPLOY_BRANCH` en Variables de GitHub Actions.
+
+## Checklist operativo SEO (deploy web)
+
+Usar este checklist rapido cuando el despliegue incluye cambios SEO o de rutas web:
+
+1. Ejecutar `npm run build:full` en `webApp/` (incluye OG + prerender + sitemaps).
+2. Verificar `dist/robots.txt` con `Sitemap: https://cafesitoapp.com/sitemap.xml.gz`.
+3. Verificar `dist/sitemap.xml.gz` y `dist/image-sitemap.xml.gz` generados.
+4. Confirmar canonical sin slash final en rutas indexables clave (`/landing`, `/search`, `/coffee/<slug>`, `/login`, `/legal/*.html`).
+5. Confirmar `hreflang` en paginas estaticas (`landing` y `legal`).
+6. Confirmar JSON-LD especifico en estaticas (`WebPage`) y dinamico en SPA (`WebSite + SearchAction`/`Product`).
+7. Validar OG base: `https://cafesitoapp.com/og/search.jpg` y una OG de cafe existente.
+8. Validar headers en PRO: `Cache-Control` esperado para `/`, `/search`, `/coffee/<slug>`, `assets/*` y `og/*`.
+9. Probar 301 de slash final (`/landing/` -> `/landing`, `/coffee/<slug>/` -> `/coffee/<slug>`).
+10. Smoke SEO final: abrir URL compartible de cafe y comprobar preview OG/Twitter.
+
+### Validacion rapida: Local vs PRO
+
+| Item SEO | Local (build/dist) | PRO (dominio) |
+|---|---|---|
+| Build completo SEO (`build:full`) | Si | Recomendado (pipeline) |
+| Presencia de `robots.txt`, `sitemap.xml.gz`, `image-sitemap.xml.gz` | Si | Si |
+| Canonical/hreflang/JSON-LD en HTML estatico | Si | Si |
+| Metas SEO runtime SPA (hooks React) | Parcial (entorno local) | Si (fuente de verdad) |
+| OG images (`/og/search.jpg`, `/og/coffee/<id>.jpg`) | En `dist/og/*` | Si (URL publica 200) |
+| Headers `Cache-Control` y redirecciones 301 reales | No fiable en local | Si (validacion obligatoria) |
+| Preview en redes (OG/Twitter) | No | Si (prueba final) |
 
 ## Registro de cambios de despliegue
 

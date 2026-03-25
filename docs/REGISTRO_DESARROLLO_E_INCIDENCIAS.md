@@ -1,7 +1,7 @@
 # Registro de desarrollo e incidencias
 
 **Propósito:** Documentar cambios, correcciones y decisiones recientes para tenerlos en cuenta en próximos desarrollos o incidencias.  
-**Última actualización:** 2026-03-17 (registro §21 listas compartidas: permiso de edición en detalle y modal)
+**Última actualización:** 2026-03-24 (§23 Onboarding: fase 3 hardening + flags + a11y)
 
 ---
 
@@ -43,6 +43,8 @@ Consultar este documento antes de tocar ramas, deploy, TypeScript/CI o flujos ya
 19. [Integraciones Android documentadas y Futuros desarrollos refactor (18 mar 2026)](#19-integraciones-android-documentadas-y-futuros-desarrollos-refactor-18-mar-2026)
 20. [Listas: unirse por enlace — Supabase, WebApp, Android (19 mar 2026)](#20-listas-unirse-por-enlace--supabase-webapp-android-19-mar-2026)
 21. [Listas compartidas: solo editables en modal e icono de lista (17 mar 2026)](#21-listas-compartidas-solo-editables-en-modal-e-icono-de-lista-17-mar-2026)
+22. [Brew Lab: reanudar timer tras reinicio (24 mar 2026)](#22-brew-lab-reanudar-timer-tras-reinicio-24-mar-2026)
+23. [Onboarding «primer valor» — estado en servidor, Android y WebApp (24 mar 2026)](#23-onboarding-primer-valor--estado-en-servidor-android-y-webapp-24-mar-2026)
 
 ---
 
@@ -776,6 +778,38 @@ Cambios en la notificación «¿Registrar elaboración?», enlace a pantalla Con
 ### 21.3 Paridad
 
 Misma semántica Web y Android para quién ve listas en el modal y cuándo el icono de lista está activo en detalle.
+
+---
+
+## 22. Brew Lab: reanudar timer tras reinicio (24 mar 2026)
+
+**Objetivo:** Si el dispositivo reinicia con una elaboración marcada como en curso, el usuario puede continuar con tiempo restante reconciliado o cancelar; si el tiempo ya expiró durante el apagado, se le ofrece el flujo «Registrar elaboración» hacia Consumo.
+
+| Pieza | Detalle |
+|-------|---------|
+| **Receiver** | `BrewLabBootReceiver`: `BOOT_COMPLETED` / `LOCKED_BOOT_COMPLETED`; deduplicación ~15 s (`KEY_LAST_BOOT_HANDLED_AT`). |
+| **Servicio** | `BrewLabTimerService`: `last_updated_at` para reconciliar tiempo en frío; acciones `CONTINUE_AFTER_REBOOT` / `CANCEL_AFTER_REBOOT`; notificación de reanudación `9003`; fin durante reinicio → notificación registrar (`REGISTER_NOTIFICATION_ID`) con `entry_source=post_reboot_resume`. |
+| **Manifest** | `RECEIVE_BOOT_COMPLETED`; receiver exportado. |
+| **Analítica** | `AppNavigation` incluye `ENTRY_SOURCE_POST_REBOOT` en el embudo `lock_entry_*` (mismo patrón que widget/tile/notificación). Ver `docs/ANALITICAS.md` §10.1. |
+| **Documentación** | `docs/ANDROID_INTEGRACIONES_IMPLEMENTADAS.md` §2; `docs/FUTUROS_DESARROLLOS_ANDROID.md` tarea 13 y checklist QA. |
+
+**Rollout:** Sin feature flag en código; validación manual recomendada en Pixel + Xiaomi/HyperOS (notificaciones, boot directo vs direct boot si aplica).
+
+---
+
+## 23. Onboarding «primer valor» — estado en servidor, Android y WebApp (24 mar 2026)
+
+**Objetivo:** Un solo estado de onboarding en Supabase (`users_db.onboarding_status` + timestamps); completar u omitir en una plataforma no muestra el flujo en la otra. **Elaborar:** primer arranque del timer en Brew (fases > 0 s), con red de guardado diario taza/agua desde Brew; además: diario fuera de Brew, despensa, ≥2 seguimientos.
+
+| Ámbito | Detalle |
+|--------|---------|
+| **SQL** | `docs/supabase/onboarding_users_db.sql` — columnas; legacy con actividad (diario, despensa, follows, posts) → `completed_value`; resto NULL → `skipped`. Reparación si ya se aplicó “todo skipped”: `onboarding_legacy_repair_skipped_to_completed.sql`. **RLS:** `users_db_update_own_row.sql` (requiere `get_my_internal_id()`). |
+| **Android** | Ruta `onboarding`; `startRoute` según `UserEntity.needsOnboarding()`; perfil nuevo → onboarding; login → onboarding o home; `OnboardingScreen` + `UserRepository.skipOnboarding` / `completeOnboardingValueIfPending`. **Brew (acción “elaborar”):** primer arranque del timer en `BrewLabViewModel.toggleTimer` (rama FGS, `totalSeconds > 0`). **Diario/despensa:** `DiaryRepository`. **Social:** `toggleFollow` → ≥2 follows. |
+| **WebApp** | `UserRow` + selects iniciales; **Brew:** `AppContainer` (primer `brewRunning` en paso `brewing`, `timerSeconds === 0`) → `completeOnboardingValueIfPending`; resto en `supabaseApi.ts` (diario, despensa, follows). Overlay; `cafesito-onboarding-updated`. **Navegador (sin PWA):** OAuth `useAuthSession` (`redirectTo`, limpieza `?code=` → home con `getAppRootPath`); deep link lista → `sessionStorage` + restore en `AppContainer`. |
+| **Analítica** | `docs/ANALITICAS.md` §14 — `onboarding_started`, `onboarding_skipped`, CTAs; flags en §14. |
+| **Fase 3 (mar 2026)** | Feature flag Android/Web; a11y (TalkBack + overlay Web, Escape, foco); `skipOnboarding` devuelve boolean y Snackbar si falla; refresco Web `visibilitychange` si `pending`; **carrera multi-cliente:** Android `onAppForeground` + `refreshActiveUserFromSupabase` si `pending`, salida auto de ruta `onboarding` al reconciliar; métricas D1 vía GA4 DebugView / embudo `onboarding_*`. |
+
+**Operativo:** columnas + RLS según `onboarding_users_db.sql` y `users_db_update_own_row.sql` (validado en proyecto).
 
 ---
 

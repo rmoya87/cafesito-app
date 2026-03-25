@@ -12,6 +12,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,18 +26,22 @@ import com.cafesito.app.analytics.AnalyticsHelper
 import com.cafesito.app.data.UserRepository
 import com.cafesito.app.navigation.AppNavigation
 import com.cafesito.app.navigation.NotificationNavigation
+import com.cafesito.app.share.DirectShareRepository
+import com.cafesito.app.share.DirectShareShortcutPublisher
 import com.cafesito.app.startup.AppSessionCoordinator
 import com.cafesito.app.startup.AppUiInitializer
 import com.cafesito.app.startup.PredictiveShortcutsHelper
 import com.cafesito.app.startup.ShortcutActionResolver
-import com.cafesito.app.share.DirectShareShortcutPublisher
 import com.cafesito.app.ui.access.SessionState
 import com.cafesito.app.ui.access.SessionViewModel
 import com.cafesito.app.ui.theme.CafesitoTheme
+import com.cafesito.app.ui.theme.DynamicColorMode
 import com.cafesito.app.ui.theme.ThemeMode
 import com.cafesito.app.ui.theme.resolveDarkTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -51,6 +56,12 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var sessionCoordinator: AppSessionCoordinator
+
+    @Inject
+    lateinit var directShareRepository: DirectShareRepository
+
+    @Inject
+    lateinit var directShareShortcutPublisher: DirectShareShortcutPublisher
 
     private val notificationNavigation = mutableStateOf<NotificationNavigation?>(null)
     private val shortcutNavigation = mutableStateOf<String?>(null)
@@ -69,9 +80,24 @@ class MainActivity : ComponentActivity() {
         setContent {
             val context = LocalContext.current
             val prefs = remember { context.getSharedPreferences("cafesito_prefs", Context.MODE_PRIVATE) }
-            val themeMode = remember { prefs.getString(ThemeMode.KEY, ThemeMode.AUTO) ?: ThemeMode.AUTO }
+            var themeMode by remember { mutableStateOf(prefs.getString(ThemeMode.KEY, ThemeMode.AUTO) ?: ThemeMode.AUTO) }
+            var dynamicColorEnabled by remember { mutableStateOf(prefs.getBoolean(DynamicColorMode.KEY, DynamicColorMode.DEFAULT)) }
+            DisposableEffect(prefs) {
+                val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { sharedPrefs, key ->
+                    when (key) {
+                        ThemeMode.KEY -> {
+                            themeMode = sharedPrefs.getString(ThemeMode.KEY, ThemeMode.AUTO) ?: ThemeMode.AUTO
+                        }
+                        DynamicColorMode.KEY -> {
+                            dynamicColorEnabled = sharedPrefs.getBoolean(DynamicColorMode.KEY, DynamicColorMode.DEFAULT)
+                        }
+                    }
+                }
+                prefs.registerOnSharedPreferenceChangeListener(listener)
+                onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+            }
             val darkTheme = resolveDarkTheme(themeMode = themeMode, isSystemInDarkTheme = isSystemInDarkTheme())
-            CafesitoTheme(darkTheme = darkTheme) {
+            CafesitoTheme(darkTheme = darkTheme, dynamicColorEnabled = dynamicColorEnabled) {
                 val sessionState by sessionViewModel.sessionState.collectAsState()
 
                 LaunchedEffect(sessionState) {
@@ -80,6 +106,10 @@ class MainActivity : ComponentActivity() {
                             sessionCoordinator.onAuthenticated(state.userId, lifecycleScope)
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
                                 PredictiveShortcutsHelper.updatePredictiveShortcuts(context)
+                            }
+                            lifecycleScope.launch(Dispatchers.IO) {
+                                val targets = directShareRepository.getSuggestedTargets(limit = 4)
+                                directShareShortcutPublisher.publishSuggestedTargets(context, targets)
                             }
                         }
                         is SessionState.NotAuthenticated -> sessionCoordinator.onNotAuthenticated()

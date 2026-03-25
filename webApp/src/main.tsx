@@ -9,7 +9,39 @@ import { applyThemeToDocument, getThemeMode } from "./core/theme";
 import "./fonts-material-symbols.css";
 import "./styles.css";
 
-if (getConsent() === "all") {
+function appendHeadHint(rel: "preconnect" | "dns-prefetch", href: string, crossOrigin = false): void {
+  if (typeof document === "undefined") return;
+  if (document.head.querySelector(`link[rel='${rel}'][href='${href}']`)) return;
+  const link = document.createElement("link");
+  link.rel = rel;
+  link.href = href;
+  if (crossOrigin) link.crossOrigin = "anonymous";
+  document.head.appendChild(link);
+}
+
+function configureNetworkHints(consent: "all" | "essential" | "none" | null): void {
+  // Supabase es tráfico funcional de la app, permitido siempre.
+  const supabaseUrl = (window as Window & { __SUPABASE_CONFIG__?: { url?: string } }).__SUPABASE_CONFIG__?.url;
+  if (supabaseUrl) {
+    try {
+      const origin = new URL(supabaseUrl).origin;
+      appendHeadHint("preconnect", origin, true);
+      appendHeadHint("dns-prefetch", origin);
+    } catch {
+      // ignore malformed URL
+    }
+  }
+  // GA/GTM solo con consentimiento total.
+  if (consent === "all") {
+    appendHeadHint("preconnect", "https://www.googletagmanager.com", true);
+    appendHeadHint("dns-prefetch", "https://region1.google-analytics.com");
+    appendHeadHint("preconnect", "https://accounts.google.com", true);
+  }
+}
+
+const consent = getConsent();
+configureNetworkHints(consent);
+if (consent === "all") {
   initGa4();
 }
 applyThemeToDocument(getThemeMode());
