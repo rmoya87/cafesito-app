@@ -134,6 +134,12 @@ Por tanto, no hace falta mergear main en beta a mano antes de pulsar "Run workfl
 
 En **Settings → Secrets and variables → Actions**:
 
+### CI (merge main -> rama en workflow_dispatch)
+
+- `CI_PUSH_TOKEN` – PAT con permisos `repo` + `workflow` para que el job `sync-main-into-branch` pueda hacer push cuando `main` incluye cambios en `.github/workflows/*`.
+  - Sin este secret, GitHub rechaza el push del bot con: `without workflows permission`.
+  - Uso recomendado: token de cuenta técnica (no personal), con alcance mínimo necesario.
+
 ### Android / Play
 
 - `GOOGLE_PLAY_JSON` – JSON del Service Account de Play.

@@ -73,6 +73,14 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
+      - name: Validate CI_PUSH_TOKEN (required for workflow file updates)
+        run: |
+          if [[ -z "${{ secrets.CI_PUSH_TOKEN }}" ]]; then
+            echo "::error::Falta el secret CI_PUSH_TOKEN. Debe tener permisos repo + workflow para poder hacer merge main -> rama cuando hay cambios en .github/workflows/*."
+            echo "::error::Sin ese token, GitHub rechaza el push del bot con: 'without workflows permission'."
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v5
         with:
@@ -83,6 +91,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${{ secrets.CI_PUSH_TOKEN }}@github.com/${{ github.repository }}.git"
           git fetch origin main
           git merge origin/main -m "Merge main into ${{ env.TARGET_BRANCH }} for deploy [skip ci]"
           git push origin "HEAD:${{ env.TARGET_BRANCH }}"
