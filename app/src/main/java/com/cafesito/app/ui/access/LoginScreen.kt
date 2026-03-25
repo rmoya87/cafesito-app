@@ -56,6 +56,7 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.cafesito.app.ui.theme.CafesitoModalSheetDefaults
 import com.cafesito.app.ui.theme.LocalCaramelAccent
 import com.cafesito.app.ui.theme.PureBlack
 import com.cafesito.app.ui.theme.PureWhite
@@ -191,7 +192,10 @@ fun LoginScreen(
     if (showLoginModal) {
         ModalBottomSheet(
             onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "login_sheet")); showLoginModal = false },
-            scrimColor = ScrimDefault
+            containerColor = CafesitoModalSheetDefaults.containerColor(),
+            shape = CafesitoModalSheetDefaults.shape,
+            scrimColor = CafesitoModalSheetDefaults.scrimColor,
+            dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp, start = 32.dp, end = 32.dp, bottom = 32.dp),

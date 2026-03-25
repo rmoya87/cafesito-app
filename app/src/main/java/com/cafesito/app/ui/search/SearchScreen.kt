@@ -19,10 +19,8 @@ import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -304,7 +302,6 @@ private fun FilterChipsRow(
     onFilterClick: (String) -> Unit,
     isLoading: Boolean
 ) {
-    val optionBackground = if (isSystemInDarkTheme()) PureBlack else PureWhite
     LazyRow(
         contentPadding = PaddingValues(start = Spacing.space4, end = 0.dp, top = Spacing.space1, bottom = Spacing.space1),
         horizontalArrangement = Arrangement.spacedBy(Spacing.space2),
@@ -315,10 +312,14 @@ private fun FilterChipsRow(
         } else {
             items(availableFilters) { filter ->
                 val count = filterCounts[filter] ?: 0
+                val chipColor = if (count > 0) {
+                    LocalCaramelAccent.current.copy(alpha = 0.14f)
+                } else {
+                    MaterialTheme.colorScheme.surface
+                }
                 Surface(
                     shape = Shapes.cardSmall,
-                    color = optionBackground,
-                    border = BorderStroke(1.dp, if (count > 0) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline),
+                    color = chipColor,
                     modifier = Modifier.clickable { onFilterClick(filter) }
                 ) {
                     Row(
@@ -535,8 +536,10 @@ fun SearchScreen(
             ModalBottomSheet(
                 onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "search_filter")); showFilterSheet = false },
                 sheetState = sheetState,
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                scrimColor = ScrimDefault
+                containerColor = CafesitoModalSheetDefaults.containerColor(),
+                shape = CafesitoModalSheetDefaults.shape,
+                scrimColor = CafesitoModalSheetDefaults.scrimColor,
+                dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
             ) {
                 Box(
                     modifier = Modifier
@@ -643,7 +646,6 @@ private fun FilterSelectionContent(
     onOptionToggle: (String) -> Unit,
     onClearAll: () -> Unit
 ) {
-    val optionBackground = if (isSystemInDarkTheme()) PureBlack else PureWhite
     Column {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.space5),
@@ -659,6 +661,11 @@ private fun FilterSelectionContent(
         ) {
             items(options) { option ->
                 val isSelected = selectedValues.contains(option)
+                val rowColor = if (isSelected) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                } else {
+                    MaterialTheme.colorScheme.surface
+                }
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -666,8 +673,7 @@ private fun FilterSelectionContent(
                         .padding(vertical = Spacing.space1)
                         .clickable { onOptionToggle(option) },
                     shape = Shapes.cardSmall,
-                    color = optionBackground,
-                    border = BorderStroke(1.dp, if (isSelected) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
+                    color = rowColor
                 ) {
                     Row(
                         modifier = Modifier
@@ -732,8 +738,7 @@ private fun RecentSearches(
                 Surface(
                     modifier = Modifier.clickable { onRecentSearchClick(term) },
                     shape = Shapes.card,
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                    color = MaterialTheme.colorScheme.surface
                 ) {
                     Text(text = term, modifier = Modifier.padding(horizontal = Spacing.space3, vertical = Spacing.space2), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
                 }

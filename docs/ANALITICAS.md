@@ -1,7 +1,7 @@
 # Analíticas — Fuente de verdad
 
 **Estado:** vivo  
-**Última actualización:** 2026-03  
+**Última actualización:** 2026-03-24 (§14 onboarding_started + flags fase 3)  
 **Propósito:** Documentación única de analíticas (GA4, GTM, WebApp y Android): qué se recoge, dónde está el código, cómo configurar GTM y GA4, y checklist al cambiar funcionalidad.
 
 Consultar **siempre** este documento antes de eliminar o modificar pantallas/rutas/flujos, o al añadir nuevas acciones relevantes para producto.
@@ -51,7 +51,7 @@ Con GTM activo, ambos envían al **mismo GA4** (User-ID unificado, user property
 |-----|--------|---------|
 | **Producto** | GA4 vía GTM (contenedor `VITE_GTM_CONTAINER_ID`); no se usa gtag directo | Firebase Analytics + dataLayer GTM si `GTM_CONTAINER_ID` |
 | **Vistas** | `page_view` (`page_path`, `page_title`, `page_location`); GTM puede enviar además `screen_view` para paridad | `screen_view` (`screen_name`, `screen_class`) |
-| **Eventos custom** | `set_user_id`, `modal_open`, `modal_close`, `button_click`, `carousel_nav` (vía dataLayer) | Los mismos + `login_success`, `profile_completed`, `notification_action_*` |
+| **Eventos custom** | `set_user_id`, `modal_open`, `modal_close`, `button_click`, `carousel_nav` (vía dataLayer) + **`onboarding_started`**, **`onboarding_skipped`**, **`onboarding_cta_brewlab`**, **`onboarding_cta_diary`** (primer valor; ver §14) | Los mismos + `login_success`, `profile_completed`, `notification_action_*`, `lock_entry_opened` / `lock_entry_completed` / `lock_entry_failed` (entradas desde lock / notificación / widget / tile / **post-reboot**) + los cuatro `onboarding_*` anteriores |
 | **Usuario** | `setGa4UserId(id)` → evento `set_user_id` en dataLayer (GTM envía a GA4) | `setUserId(id)` + push `set_user_id` al dataLayer |
 | **Plataforma** | User property `platform` = `"web"` | User property `platform` = `"android"` |
 | **PWA** | `?pwa=1` en `page_path` y `page_location` | N/A |
@@ -164,6 +164,18 @@ Los eventos que envía GTM (`page_view`, `screen_view`, `modal_open`, `button_cl
 - **Eventos personalizados derivados (opcional):** Crear en GA4 eventos basados en condiciones (ej. “Vista detalle café” cuando `page_path` contiene `/coffee/` o `screen_name` contiene `detail/`), útiles para audiencias e informes. Para unificar web y app, definir condición para cada plataforma y en audiencias combinar con “o”.
 - **Audiencias:** Usuarios Web (`platform` = `web`), Usuarios Android (`platform` = `android`), Usuarios PWA (`page_path` contiene `pwa=1`), “Vieron detalle café”, “Usan Elabora”, “Usan diario”, “Completaron perfil”, “Multiplataforma”. Detalle en §11.3 y en [CONTAINER_REFERENCE_WEB.md](gtm/CONTAINER_REFERENCE_WEB.md).
 
+### 10.1 Android — Brew Lab: reanudación tras reinicio (lock / notificación)
+
+Cuando el usuario abre Brew Lab o Consumo desde el flujo post-reinicio, el `Intent` lleva `entry_source` = `post_reboot_resume` (constante `BrewLabTimerService.ENTRY_SOURCE_POST_REBOOT`). `AppNavigation` emite el mismo embudo que otras entradas “desde lock”:
+
+| Evento | Parámetros | Cuándo |
+|--------|------------|--------|
+| `lock_entry_opened` | `entry_type` = `post_reboot_resume`, `target_type` = `brewlab` o `brewlab_consumo` | Antes de `navigate` a `brewlab` |
+| `lock_entry_completed` | Igual | Navegación correcta |
+| `lock_entry_failed` | Igual | Excepción al navegar |
+
+**Nota:** Otros valores de `entry_type` para el mismo patrón: `notification_action`, `widget`, `quick_tile`. En GA4 se puede segmentar embudo post-reboot filtrando `entry_type` = `post_reboot_resume`. Los eventos planificados exclusivos `brew_resume_prompt_shown` / `brew_resume_accept` / `brew_resume_cancel` del diseño inicial **no están implementados**; el producto puede añadirlos en `BrewLabBootReceiver` / acciones de notificación si hace falta granularidad sin depender de `lock_entry_*`.
+
 ---
 
 ## 11. Recomendaciones de configuración en GA4 (audiencias, conversiones, segmentos)
@@ -229,6 +241,145 @@ En **Exploración** (Informes o Exploración), usar como **segmento**:
 | WebApp | `webApp/src/app/AppContainer.tsx` | `sendPageView(gaPagePath, pageTitle)`, `setGa4UserId()`. |
 | Android | `app/.../analytics/AnalyticsHelper.kt` | `trackScreenView()`, `trackEvent()`, `setUserId()`, push al dataLayer GTM. |
 | Android | `app/.../navigation/AppNavigation.kt` | `trackScreenView(currentRoute)`, `onTrackEvent` en pantallas. |
+
+---
+
+## 13. Direct Share — Logging backend y dashboard base
+
+Además de GA4/GTM, se recomienda persistir `share_*` en Supabase para auditoría y métricas internas.
+
+### 13.1 Script SQL (backend)
+
+- Script: `docs/supabase/direct_share_event_logging.sql`
+- Crea:
+  - tabla `public.share_event_logs`
+  - índices por `created_at`, `event_name`, `platform`, `user_id`
+  - RPC `public.log_share_event(...)`
+- Eventos soportados:
+  - `share_opened`
+  - `share_target_shown`
+  - `share_target_clicked`
+  - `share_completed`
+  - `share_failed`
+
+### 13.2 KPIs mínimos (dashboard)
+
+- **Aperturas de share**: total de `share_opened`.
+- **Tasa de éxito**: `share_completed / share_opened`.
+- **Tasa de fallo**: `share_failed / share_opened`.
+- **CTR destinos directos**: `share_target_clicked / share_target_shown`.
+- **Rendimiento por plataforma**: comparación `android` vs `web`.
+- **Top pantallas origen**: `origin_screen` con más `share_opened`.
+
+### 13.3 Queries base (Supabase SQL Editor)
+
+```sql
+-- 1) Embudo diario (últimos 30 días)
+select
+  date_trunc('day', created_at) as day,
+  count(*) filter (where event_name = 'share_opened') as opened,
+  count(*) filter (where event_name = 'share_target_shown') as target_shown,
+  count(*) filter (where event_name = 'share_target_clicked') as target_clicked,
+  count(*) filter (where event_name = 'share_completed') as completed,
+  count(*) filter (where event_name = 'share_failed') as failed
+from public.share_event_logs
+where created_at >= now() - interval '30 days'
+group by 1
+order by 1;
+```
+
+```sql
+-- 2) Conversión por plataforma (últimos 30 días)
+with base as (
+  select
+    platform,
+    count(*) filter (where event_name = 'share_opened') as opened,
+    count(*) filter (where event_name = 'share_completed') as completed,
+    count(*) filter (where event_name = 'share_failed') as failed
+  from public.share_event_logs
+  where created_at >= now() - interval '30 days'
+  group by platform
+)
+select
+  platform,
+  opened,
+  completed,
+  failed,
+  round((completed::numeric / nullif(opened, 0)) * 100, 2) as success_rate_pct,
+  round((failed::numeric / nullif(opened, 0)) * 100, 2) as fail_rate_pct
+from base
+order by platform;
+```
+
+```sql
+-- 3) Top origen de share (últimos 30 días)
+select
+  coalesce(origin_screen, 'unknown') as origin_screen,
+  count(*) filter (where event_name = 'share_opened') as opened,
+  count(*) filter (where event_name = 'share_completed') as completed
+from public.share_event_logs
+where created_at >= now() - interval '30 days'
+group by 1
+order by opened desc
+limit 20;
+```
+
+```sql
+-- 4) CTR de destinos directos (últimos 30 días)
+with c as (
+  select
+    count(*) filter (where event_name = 'share_target_shown') as shown,
+    count(*) filter (where event_name = 'share_target_clicked') as clicked
+  from public.share_event_logs
+  where created_at >= now() - interval '30 days'
+)
+select
+  shown,
+  clicked,
+  round((clicked::numeric / nullif(shown, 0)) * 100, 2) as ctr_pct
+from c;
+```
+
+```sql
+-- 5) Verificación rápida Android/Web (últimas 24h)
+select
+  platform,
+  event_name,
+  count(*) as total
+from public.share_event_logs
+where created_at >= now() - interval '24 hours'
+group by platform, event_name
+order by platform, event_name;
+```
+
+### 13.4 Checklist de activación
+
+- [ ] Ejecutar `docs/supabase/direct_share_event_logging.sql` en Supabase.
+- [x] Confirmar llamadas a `log_share_event(...)` en Android/WebApp o Edge Function.
+- [x] Verificar llegada de eventos en `public.share_event_logs`.
+- [ ] Construir panel inicial con las queries de §13.3.
+- [ ] Revisar retención y privacidad de datos (`metadata`) trimestralmente.
+
+---
+
+## 14. Onboarding «primer valor» (estado en servidor, paridad Web / Android)
+
+**Contexto:** `users_db.onboarding_status` (`pending` | `completed_value` | `skipped`) y timestamps; una sola cuenta = un estado remoto (completar u omitir en una plataforma cierra el flujo en la otra). Detalle de producto: `docs/FUTUROS_DESARROLLOS_ANDROID.md` §3.4.1. **Web solo navegador:** el flujo y el overlay son los mismos que en PWA; tras OAuth la URL pasa a home canónico — ver §2.6 funcional y `useAuthSession` / `AppContainer`. **Concurrencia:** servidor gana; Web refresca perfil al volver visibilidad si `pending`; Android reconcilia en primer plano (`AppSessionCoordinator`) y cierra ruta `onboarding` si ya no aplica.
+
+**Vistas:** Android envía `screen_view` con `screen_name` = `onboarding` al estar en la ruta `onboarding` (`AppNavigation.kt`). WebApp no tiene ruta dedicada: overlay a pantalla completa; el `page_view` sigue la pestaña actual (p. ej. `home`); los eventos de CTA/skip identifican el flujo.
+
+| Evento | Cuándo | Dónde (referencia) |
+|--------|--------|---------------------|
+| `onboarding_started` | Primera vez que el usuario ve el flujo (`pending`) | Android: `AppNavigation` al entrar en ruta `onboarding` (`entry` = `post_login`). Web: `AppContainer` al mostrar overlay |
+| `onboarding_skipped` | Omitir con éxito en servidor (`skipped`) | Android: `AppNavigation` tras `UserRepository.skipOnboarding()` = true. Web: `sendEvent` tras `skipOnboarding()` sin error |
+| `onboarding_cta_brewlab` | CTA «Ir a elaboración» | Android: `AppNavigation`. Web: `AppContainer` |
+| `onboarding_cta_diary` | CTA «Ir al diario» | Android: `AppNavigation`. Web: `AppContainer` |
+
+**Feature flag (fase 3):** Android `BuildConfig.ONBOARDING_V1_ENABLED` (Gradle `ONBOARDING_V1_ENABLED`, por defecto `true`). Web `VITE_ONBOARDING_V1_ENABLED` (`false`/`0` desactiva). Con flag en falso no se envían eventos de onboarding porque el flujo no se muestra.
+
+**Completado sin evento dedicado:** al registrar primer valor se actualiza `completed_value` en servidor (`UserRepository` / `supabaseApi.ts`); no hay evento `onboarding_completed` salvo que producto lo pida. **Definición “inicio elaboración” (Brew):** primer **start** del temporizador en paso en curso con **suma de duración de fases > 0** — Android `BrewLabViewModel.toggleTimer` (primera llamada que arranca FGS); Web `AppContainer` (efecto: `brewStep === "brewing"`, `brewRunning` pasa a true con `timerSeconds === 0`). **Red:** guardar entrada de diario (taza/agua) desde Brew vía `DiaryRepository` / API diario también completa si aún estaba `pending` (p. ej. timeline 0 s). Resto: despensa, diario fuera de Brew, **≥2** follows.
+
+**Checklist GTM (opcional):** registrar los tres eventos como disparadores personalizados si se quieren conversiones o embudos; user property `platform` ya segmenta web vs Android.
 
 ---
 

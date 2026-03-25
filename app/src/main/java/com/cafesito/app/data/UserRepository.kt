@@ -167,8 +167,6 @@ class UserRepository @Inject constructor(
         local
     }
 
-    // ... (resto de métodos omitidos para brevedad, se mantienen igual)
-    
     fun getAllUsersFlow(): Flow<List<UserEntity>> = _refreshTrigger
         .flatMapLatest {
             networkBoundResource(
@@ -479,6 +477,58 @@ class UserRepository @Inject constructor(
 
     suspend fun insertUsers(users: List<UserEntity>) {
         userDao.insertUsers(users)
+    }
+
+    /**
+     * Refresca el usuario activo desde Supabase (login y reconciliación multi-dispositivo del tour
+     * por pestañas vía [AppSessionCoordinator.onAppForeground]).
+     */
+    suspend fun refreshActiveUserFromSupabase() = withContext(Dispatchers.IO) {
+        val uid = getActiveUser()?.id ?: return@withContext
+        if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) return@withContext
+        try {
+            supabaseDataSource.getUserById(uid)?.let { userDao.upsertUser(it) }
+            triggerRefresh()
+        } catch (_: Exception) { }
+    }
+
+    /** @return true si el servidor y Room quedaron actualizados. */
+    suspend fun dismissAppTabTourStep(stepId: String): Boolean = withContext(Dispatchers.IO) {
+        val u = getActiveUser() ?: return@withContext false
+        if (u.isAppTabTourGloballySkipped()) return@withContext false
+        if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) return@withContext false
+        return@withContext try {
+            ensureConnected()
+            val merged = AppTabTour.parseDismissedSteps(u.appTourDismissedSteps).toMutableSet()
+            merged.add(stepId)
+            val json = AppTabTour.encodeDismissedSteps(merged)
+            supabaseDataSource.updateUserAppTabTour(u.id, dismissedStepsJson = json)
+            supabaseDataSource.getUserById(u.id)?.let { userDao.upsertUser(it) }
+            triggerRefresh()
+            true
+        } catch (e: Exception) {
+            Log.e("UserRepository", "dismissAppTabTourStep failed", e)
+            false
+        }
+    }
+
+    suspend fun skipAllAppTabTour(): Boolean = withContext(Dispatchers.IO) {
+        val u = getActiveUser() ?: return@withContext false
+        if (connectivityObserver.observe().first() != ConnectivityObserver.Status.Available) return@withContext false
+        return@withContext try {
+            ensureConnected()
+            supabaseDataSource.updateUserAppTabTour(
+                u.id,
+                skippedAt = System.currentTimeMillis(),
+                clearDismissedSteps = true
+            )
+            supabaseDataSource.getUserById(u.id)?.let { userDao.upsertUser(it) }
+            triggerRefresh()
+            true
+        } catch (e: Exception) {
+            Log.e("UserRepository", "skipAllAppTabTour failed", e)
+            false
+        }
     }
 
     private fun savePendingFcmToken(token: String) {

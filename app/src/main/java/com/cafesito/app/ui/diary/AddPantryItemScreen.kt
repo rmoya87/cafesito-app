@@ -618,8 +618,10 @@ fun AddPantryItemScreen(
         if (showImagePickerSheet) {
             ModalBottomSheet(
                 onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "add_pantry_image_picker")); showImagePickerSheet = false },
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                scrimColor = ScrimDefault
+                containerColor = CafesitoModalSheetDefaults.containerColor(),
+                shape = CafesitoModalSheetDefaults.shape,
+                scrimColor = CafesitoModalSheetDefaults.scrimColor,
+                dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
             ) {
                 Column(Modifier.padding(top = 8.dp, start = 24.dp, end = 24.dp, bottom = 40.dp)) {
                     Text(
@@ -675,8 +677,10 @@ fun AddPantryItemScreen(
             val optionBg = if (isDark) PureBlack else PureWhite
             ModalBottomSheet(
                 onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = null },
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                scrimColor = ScrimDefault
+                containerColor = CafesitoModalSheetDefaults.containerColor(),
+                shape = CafesitoModalSheetDefaults.shape,
+                scrimColor = CafesitoModalSheetDefaults.scrimColor,
+                dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
             ) {
                 Column(Modifier.padding(horizontal = 20.dp).padding(top = 8.dp, bottom = 20.dp)) {
                     Box(modifier = Modifier.fillMaxWidth()) {

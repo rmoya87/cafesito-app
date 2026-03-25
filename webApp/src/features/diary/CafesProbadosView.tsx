@@ -236,7 +236,7 @@ export function CafesProbadosView({
                       aria-label={`Ver detalle de ${coffee.nombre}`}
                     >
                       {coffee.image_url ? (
-                        <img className="search-coffee-thumb" src={coffee.image_url} alt="" loading="lazy" decoding="async" />
+                        <img className="search-coffee-thumb" src={coffee.image_url} alt={`Imagen de ${coffee.nombre}`} loading="lazy" decoding="async" />
                       ) : (
                         <div className="search-coffee-thumb search-coffee-thumb-fallback" aria-hidden="true">
                           <UiIcon name="coffee" className="ui-icon" />

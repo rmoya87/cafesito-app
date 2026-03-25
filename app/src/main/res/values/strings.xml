@@ -15,6 +15,11 @@
     <string name="brew_timer_pause">Pausar</string>
     <string name="brew_timer_resume">Reanudar</string>
     <string name="brew_timer_cancel">Cancelar</string>
+    <string name="brew_timer_open_brewlab">Elaborar</string>
+    <string name="brew_timer_resume_reboot_title">¿Continuar elaboración? (%1$s)</string>
+    <string name="brew_timer_resume_reboot_text">Tiempo restante aproximado: %1$s</string>
+    <string name="brew_timer_resume_reboot_continue">Continuar</string>
+    <string name="brew_timer_resume_reboot_cancel">Cancelar</string>
     <string name="brew_timer_register_title">¿Registrar elaboración?</string>
     <string name="brew_timer_register_text">Abre Cafesito y guarda en tu diario. Continuar.</string>
     <string name="brew_timer_register_yes">Sí, registrar</string>
@@ -24,6 +29,9 @@
     <string name="tile_label_brewing">Ver elaboración</string>
     <string name="tile_content_description_default">Abrir Cafesito</string>
     <string name="tile_content_description_brewing">Ver elaboración en curso</string>
+    <string name="widget_elaborar_title">Brew Lab</string>
+    <string name="widget_elaborar_cta">Elaborar</string>
+    <string name="widget_elaborar_description">Acceso rápido a Brew Lab</string>
 
     <!-- Unirse a lista por enlace -->
     <string name="join_list_title">Te han invitado a una lista</string>
@@ -71,4 +79,16 @@
     <string name="empty_favorites">No hay cafés favoritos</string>
     <string name="error_load_data">No se han podido cargar los datos.</string>
     <string name="error_retry">Reintentar</string>
+
+    <!-- Tour por pestañas (sincronizado con WebApp vía users_db.app_tour_*) -->
+    <string name="app_tab_tour_home_title">Inicio</string>
+    <string name="app_tab_tour_home_body">Bienvenido a Cafesito, aquí puedes elaborar, gestionar tu despensa para saber cuánto café te queda y descubrir nuevas personas.</string>
+    <string name="app_tab_tour_search_title">Explorar</string>
+    <string name="app_tab_tour_search_body">Busca cafés y tostadores por nombre o por código de barras. Abre cualquier café para ver sus detalles, reseñas y notas.</string>
+    <string name="app_tab_tour_brewlab_title">Elaborar</string>
+    <string name="app_tab_tour_brewlab_body">Elige método y café, ajusta los parámetros y activa el temporizador. Te guiará paso a paso durante la elaboración y podrás guardar el resultado en tu diario.</string>
+    <string name="app_tab_tour_diary_title">Diario</string>
+    <string name="app_tab_tour_diary_body">Registra tus consumos de café y agua. Consulta tu historial y entiende tus hábitos con métricas y resúmenes.</string>
+    <string name="app_tab_tour_profile_title">Perfil</string>
+    <string name="app_tab_tour_profile_body">Personaliza tu experiencia, en Actividad ves lo que prueban las personas que sigues, en ADN descubres tu perfil de sabor en base a los cafés que has probado, y en Listas creas o compartes colecciones de cafés.</string>
 </resources>

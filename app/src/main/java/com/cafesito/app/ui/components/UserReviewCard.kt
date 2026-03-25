@@ -1,6 +1,5 @@
 package com.cafesito.app.ui.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -93,8 +92,7 @@ fun UserReviewCard(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = Shapes.pill,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                    shape = Shapes.pill
                 ) {
                     Row(
                         modifier = Modifier.padding(12.dp),

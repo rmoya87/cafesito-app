@@ -57,6 +57,7 @@ function FavoritosListRow({
         style={{ transform: `translateX(${offsetX}px)` }}
         role="button"
         tabIndex={0}
+        aria-label={`Ver detalle de ${coffee.nombre}`}
         onClick={(event) => {
           if (movedRef.current || Math.abs(offsetX) > 4) {
             event.preventDefault();

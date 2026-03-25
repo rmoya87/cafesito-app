@@ -118,6 +118,54 @@ export default defineConfig(({ mode }) => {
     transformIndexHtml() {
       return [
         {
+          tag: "meta",
+          injectTo: "head-prepend",
+          attrs: {
+            "http-equiv": "Content-Security-Policy",
+            content: (() => {
+              // CSP por entorno (evita `localhost` en producción).
+              // Nota: mantenemos 'unsafe-inline' por GTM y algunos snippets; en prod evitamos 'unsafe-eval'.
+              const isDevLike = mode === "development" || mode === "test";
+              const allowLocal = isDevLike;
+              const connectSrc = [
+                "'self'",
+                "https://*.supabase.co",
+                "wss://*.supabase.co",
+                "https://region1.google-analytics.com",
+                "https://www.google-analytics.com",
+                "https://www.googletagmanager.com",
+                "https://accounts.google.com",
+                "https://oauth2.googleapis.com",
+                "https://www.googleapis.com"
+              ];
+              if (allowLocal) {
+                connectSrc.push("ws://localhost:4173", "http://localhost:4173");
+              }
+              const scriptSrc = [
+                "'self'",
+                "'unsafe-inline'",
+                ...(isDevLike ? ["'unsafe-eval'"] : []),
+                "https://www.googletagmanager.com",
+                "https://accounts.google.com"
+              ];
+              const styleSrc = ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://accounts.google.com"];
+              const imgSrc = ["'self'", "data:", "blob:", "https:"];
+              const fontSrc = ["'self'", "data:", "https://r2cdn.perplexity.ai", "https://fonts.gstatic.com"];
+              const frameSrc = ["https://accounts.google.com"];
+
+              return [
+                `default-src 'self'`,
+                `connect-src ${connectSrc.join(" ")}`,
+                `img-src ${imgSrc.join(" ")}`,
+                `font-src ${fontSrc.join(" ")}`,
+                `style-src ${styleSrc.join(" ")}`,
+                `script-src ${scriptSrc.join(" ")}`,
+                `frame-src ${frameSrc.join(" ")}`
+              ].join("; ");
+            })()
+          }
+        },
+        {
           tag: "script",
           injectTo: "head-prepend",
           children: `window.__SUPABASE_CONFIG__=${JSON.stringify(supabaseConfig)};`

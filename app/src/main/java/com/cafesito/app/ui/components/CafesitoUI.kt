@@ -104,8 +104,7 @@ fun PremiumCard(
     Surface(
         modifier = modifier,
         shape = shape,
-        color = containerColor,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        color = containerColor
     ) {
         Column(content = content)
     }
@@ -113,10 +112,10 @@ fun PremiumCard(
 
 @Composable
 fun Modifier.premiumBorder(shape: RoundedCornerShape = Shapes.shapePremium) = 
-    this.border(1.dp, MaterialTheme.colorScheme.outline, shape)
+    this
 
 @Composable
-fun borderLight() = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+fun borderLight() = BorderStroke(0.dp, Color.Transparent)
 
 @Composable
 fun ModernAvatar(

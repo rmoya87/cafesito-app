@@ -1,6 +1,5 @@
 package com.cafesito.app.ui.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,8 +19,7 @@ import com.cafesito.app.ui.theme.*
 fun TagChip(label: String, value: String) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = Shapes.cardSmall,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        shape = Shapes.cardSmall
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),

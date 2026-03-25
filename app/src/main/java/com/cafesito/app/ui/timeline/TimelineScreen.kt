@@ -120,9 +120,10 @@ fun HomeScreen(
         if (selectedItem != null) {
             ModalBottomSheet(
                 onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "timeline_pantry_options")); showPantryOptionsId = null },
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                shape = Shapes.sheetLarge,
-                scrimColor = ScrimDefault
+                containerColor = CafesitoModalSheetDefaults.containerColor(),
+                shape = CafesitoModalSheetDefaults.shape,
+                scrimColor = CafesitoModalSheetDefaults.scrimColor,
+                dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
             ) {
                 Column(Modifier.padding(top = 8.dp, start = 24.dp, end = 24.dp, bottom = 40.dp)) {
                     Text(

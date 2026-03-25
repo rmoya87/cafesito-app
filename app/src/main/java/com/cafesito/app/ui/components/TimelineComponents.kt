@@ -5,7 +5,6 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -166,8 +165,10 @@ fun NotificationsBottomSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        // scrimColor removed
+        containerColor = CafesitoModalSheetDefaults.containerColor(),
+        shape = CafesitoModalSheetDefaults.shape,
+        scrimColor = CafesitoModalSheetDefaults.scrimColor,
+        dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
     ) {
         Column(Modifier
             .fillMaxWidth()
@@ -226,12 +227,14 @@ fun NotificationsBottomSheet(
                                             }
                                             val buttonModifier = Modifier.height(Spacing.space8)
                                             if (isFollowing) {
-                                                OutlinedButton(
+                                                Button(
                                                     onClick = { onFollowToggle(notification.user.id) },
                                                     modifier = buttonModifier,
                                                     shape = Shapes.cardSmall,
-                                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                                                    colors = buttonColors
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
                                                 ) {
                                                     Text("SIGUIENDO", fontWeight = FontWeight.Medium, fontSize = 11.sp)
                                                 }
@@ -312,7 +315,6 @@ private fun NotificationRow(
         onClick = onClick,
         shape = Shapes.shapeCardMedium,
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -424,8 +426,7 @@ fun MentionText(
                     Surface(
                         onClick = { onMentionClick(username) },
                         shape = Shapes.card,
-                        color = LocalCaramelAccent.current.copy(alpha = 0.08f),
-                        border = BorderStroke(1.dp, LocalCaramelAccent.current.copy(alpha = 0.38f))
+                        color = LocalCaramelAccent.current.copy(alpha = 0.08f)
                     ) {
                         Row(
                             modifier = Modifier
@@ -530,8 +531,7 @@ private data class ComposerMentionVisual(
 private fun ComposerMentionPill(user: UserEntity) {
     Surface(
         shape = Shapes.card,
-        color = LocalCaramelAccent.current.copy(alpha = 0.08f),
-        border = BorderStroke(1.dp, LocalCaramelAccent.current.copy(alpha = 0.38f))
+        color = LocalCaramelAccent.current.copy(alpha = 0.08f)
     ) {
         Row(
             modifier = Modifier
@@ -679,8 +679,7 @@ fun SuggestionChip(user: UserEntity, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = Shapes.card,
-        color = LocalCaramelAccent.current.copy(alpha = 0.08f),
-        border = BorderStroke(1.dp, LocalCaramelAccent.current.copy(alpha = 0.38f))
+        color = LocalCaramelAccent.current.copy(alpha = 0.08f)
     ) {
         Row(modifier = Modifier.padding(horizontal = Spacing.space3, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(model = user.avatarUrl, contentDescription = "Avatar de ${user.fullName.ifBlank { user.username } }", modifier = Modifier
@@ -883,8 +882,7 @@ fun DiaryEntryItem(
                 if (onClick != null) baseModifier.clickable(onClick = onClick) else baseModifier
             },
         color = cardColor,
-        shape = Shapes.shapeCardMedium,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+        shape = Shapes.shapeCardMedium
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1236,10 +1234,10 @@ fun DiaryEntryEditBottomSheet(
     ModalBottomSheet(
         sheetState = sheetState,
         onDismissRequest = onDismiss,
-        dragHandle = { BottomSheetDefaults.DragHandle() },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        shape = Shapes.sheetLarge,
-        scrimColor = ScrimDefault
+        dragHandle = { CafesitoModalSheetDefaults.dragHandle() },
+        containerColor = CafesitoModalSheetDefaults.containerColor(),
+        shape = CafesitoModalSheetDefaults.shape,
+        scrimColor = CafesitoModalSheetDefaults.scrimColor
     ) {
         Column(
             modifier = Modifier
@@ -1310,10 +1308,6 @@ fun DiaryEntryEditBottomSheet(
                             onClick = { selectedBrewMethod = if (selectedBrewMethod == methodName) null else methodName },
                             shape = Shapes.card,
                             color = if (isSelected) LocalCaramelAccent.current else unselectedChipBg,
-                            border = BorderStroke(
-                                width = if (isSelected) 2.dp else 1.dp,
-                                color = if (isSelected) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                            ),
                             modifier = Modifier.width(chipMinWidth).heightIn(min = chipMinHeight)
                         ) {
                             Row(
@@ -1378,10 +1372,6 @@ fun DiaryEntryEditBottomSheet(
                             onClick = { selectedPreparation = option.label },
                             shape = Shapes.card,
                             color = if (isSelected) LocalCaramelAccent.current else unselectedChipBg,
-                            border = BorderStroke(
-                                width = if (isSelected) 2.dp else 1.dp,
-                                color = if (isSelected) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                            ),
                             modifier = Modifier.width(chipMinWidth).heightIn(min = chipMinHeight)
                         ) {
                             Row(
@@ -1477,10 +1467,6 @@ fun DiaryEntryEditBottomSheet(
                             onClick = { selectedSize = option.label },
                             shape = Shapes.cardSmall,
                             color = chipBg,
-                            border = BorderStroke(
-                                width = if (isSelected) 2.dp else 1.dp,
-                                color = if (isSelected) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                            ),
                             modifier = Modifier.width(editModalChipMinWidth)
                         ) {
                             Row(
@@ -1588,10 +1574,6 @@ fun DiaryEntryEditBottomSheet(
                             onClick = { selectedBrewTaste = taste },
                             shape = Shapes.card,
                             color = if (isSelected) LocalCaramelAccent.current else unselectedChipBgResult,
-                            border = BorderStroke(
-                                width = if (isSelected) 2.dp else 1.dp,
-                                color = if (isSelected) LocalCaramelAccent.current else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                            ),
                             modifier = Modifier.width(editModalChipMinWidth)
                         ) {
                             Column(
@@ -1868,8 +1850,10 @@ fun InfoBottomSheet(onDismiss: () -> Unit) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        scrimColor = ScrimDefault
+        containerColor = CafesitoModalSheetDefaults.containerColor(),
+        shape = CafesitoModalSheetDefaults.shape,
+        scrimColor = CafesitoModalSheetDefaults.scrimColor,
+        dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
     ) {
         Column(Modifier
             .fillMaxWidth()
@@ -1912,8 +1896,10 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        scrimColor = ScrimDefault
+        containerColor = CafesitoModalSheetDefaults.containerColor(),
+        shape = CafesitoModalSheetDefaults.shape,
+        scrimColor = CafesitoModalSheetDefaults.scrimColor,
+        dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
     ) {
         Column(
             Modifier
@@ -1954,14 +1940,16 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.space3)
             ) {
-                OutlinedButton(
+                Button(
                     onClick = onDismiss,
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),
                     shape = Shapes.card,
-                    border = BorderStroke(1.dp, cancelBorderAndText),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = cancelBorderAndText)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = cancelBorderAndText
+                    )
                 ) {
                     Text("CANCELAR", fontWeight = FontWeight.Medium)
                 }
@@ -1997,8 +1985,7 @@ fun ModalMenuOption(
             .fillMaxWidth()
             .padding(vertical = 6.dp),
         shape = Shapes.shapeCardMedium,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        color = MaterialTheme.colorScheme.surface
     ) {
         Row(
             modifier = Modifier.padding(Spacing.space4),
@@ -2040,8 +2027,7 @@ fun ModalMenuOption(
             .fillMaxWidth()
             .padding(vertical = 6.dp),
         shape = Shapes.shapeCardMedium,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        color = MaterialTheme.colorScheme.surface
     ) {
         Row(
             modifier = Modifier.padding(Spacing.space4),
@@ -2100,9 +2086,10 @@ fun PostOptionsBottomSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        shape = Shapes.sheetLarge,
-        scrimColor = ScrimDefault
+        containerColor = CafesitoModalSheetDefaults.containerColor(),
+        shape = CafesitoModalSheetDefaults.shape,
+        scrimColor = CafesitoModalSheetDefaults.scrimColor,
+        dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
     ) {
         Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
             ModalMenuOption(
@@ -2130,11 +2117,18 @@ fun SettingsBottomSheet(
     onDeleteAccountClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
+    val context = LocalContext.current
+    val prefs = remember(context) { context.getSharedPreferences("cafesito_prefs", android.content.Context.MODE_PRIVATE) }
+    var dynamicColorEnabled by remember {
+        mutableStateOf(prefs.getBoolean(DynamicColorMode.KEY, DynamicColorMode.DEFAULT))
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        shape = Shapes.sheetLarge,
-        scrimColor = ScrimDefault
+        containerColor = CafesitoModalSheetDefaults.containerColor(),
+        shape = CafesitoModalSheetDefaults.shape,
+        scrimColor = CafesitoModalSheetDefaults.scrimColor,
+        dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
     ) {
         Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = 48.dp)) {
             Text(
@@ -2149,17 +2143,35 @@ fun SettingsBottomSheet(
                 shape = MaterialTheme.shapes.medium
             ) {
                 Column {
+                    SettingsOptionRow(
+                        icon = Icons.Default.History,
+                        title = "Cafés consumidos",
+                        onClick = { onDismiss(); onHistorialClick() }
+                    )
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(Spacing.space4, 14.dp)
-                            .clickable { onDismiss(); onHistorialClick() },
+                            .padding(Spacing.space4, 14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(Icons.Default.Palette, contentDescription = "Material You", modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
                         Spacer(Modifier.width(Spacing.space3))
-                        Text("Cafés consumidos", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
-                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Material You", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+                            Text(
+                                text = "Usar colores dinámicos del sistema",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = dynamicColorEnabled,
+                            onCheckedChange = { enabled ->
+                                dynamicColorEnabled = enabled
+                                prefs.edit().putBoolean(DynamicColorMode.KEY, enabled).apply()
+                            },
+                            enabled = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S
+                        )
                     }
                 }
             }
@@ -2176,47 +2188,46 @@ fun SettingsBottomSheet(
                 shape = MaterialTheme.shapes.medium
             ) {
                 Column {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(Spacing.space4, 14.dp)
-                            .clickable { onDismiss(); onEditClick() },
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
-                        Spacer(Modifier.width(Spacing.space3))
-                        Text("Editar perfil", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
-                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                    SettingsOptionRow(
+                        icon = Icons.Default.Edit,
+                        title = "Editar perfil",
+                        onClick = { onDismiss(); onEditClick() }
+                    )
                     HorizontalDivider(Modifier.padding(horizontal = 16.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(Spacing.space4, 14.dp)
-                            .clickable { onDismiss(); onDeleteAccountClick() },
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.PersonRemove, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
-                        Spacer(Modifier.width(Spacing.space3))
-                        Text("Eliminar mi cuenta y mis datos", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
-                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                    SettingsOptionRow(
+                        icon = Icons.Default.PersonRemove,
+                        title = "Eliminar mi cuenta y mis datos",
+                        onClick = { onDismiss(); onDeleteAccountClick() }
+                    )
                     HorizontalDivider(Modifier.padding(horizontal = 16.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(Spacing.space4, 14.dp)
-                            .clickable { onDismiss(); onLogoutClick() },
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
-                        Spacer(Modifier.width(Spacing.space3))
-                        Text("Cerrar sesión", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
-                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                    SettingsOptionRow(
+                        icon = Icons.AutoMirrored.Filled.Logout,
+                        title = "Cerrar sesión",
+                        onClick = { onDismiss(); onLogoutClick() }
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SettingsOptionRow(
+    icon: ImageVector,
+    title: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(Spacing.space4, 14.dp)
+            .clickable { onClick() },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
+        Spacer(Modifier.width(Spacing.space3))
+        Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -2235,8 +2246,10 @@ fun DeleteConfirmationDialog(
     val deleteContent = if (isDark) PureBlack else PureWhite
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        shape = Shapes.sheetLarge
+        containerColor = CafesitoModalSheetDefaults.containerColor(),
+        shape = CafesitoModalSheetDefaults.shape,
+        scrimColor = CafesitoModalSheetDefaults.scrimColor,
+        dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
     ) {
         Column(
             modifier = Modifier.padding(start = Spacing.space6, end = Spacing.space6, top = 8.dp, bottom = 40.dp),
@@ -2263,14 +2276,16 @@ fun DeleteConfirmationDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.space3)
             ) {
-                OutlinedButton(
+                Button(
                     onClick = onDismissRequest,
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),
                     shape = Shapes.pillFull,
-                    border = BorderStroke(1.dp, cancelColor),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = cancelColor)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = cancelColor
+                    )
                 ) {
                     Text("CANCELAR", fontWeight = FontWeight.Medium)
                 }

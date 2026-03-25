@@ -30,8 +30,12 @@ import {
   mapUserDataBundle,
   mapUserRow
 } from "../mappers/supabaseMappers";
+import { parseAppTourDismissedSteps } from "../features/tour/appTabTour";
 
 type SupabaseErrorLike = { message: string } | null;
+
+const USERS_DB_SELECT_STANDARD =
+  "id,username,full_name,avatar_url,email,bio,onboarding_status,onboarding_completed_at,onboarding_skipped_at,app_tour_skipped_at,app_tour_dismissed_steps";
 
 function throwIfError(error: SupabaseErrorLike): void {
   if (error) throw new Error(error.message);
@@ -138,7 +142,10 @@ let cachedInitialDataAt = 0;
 async function fetchInitialDataFromSupabase(): Promise<InitialDataBundle> {
   const supabase = getSupabaseClient();
   const L = INITIAL_DATA_LIMITS;
-  const usersReq = supabase.from("users_db").select("id,username,full_name,avatar_url,email,bio").limit(L.users);
+  const usersReq = supabase
+    .from("users_db")
+    .select(USERS_DB_SELECT_STANDARD)
+    .limit(L.users);
   const coffeesReq = supabase
     .from("coffees")
     .select(
@@ -400,6 +407,49 @@ export async function createComment(postId: string, userId: number, text: string
   return row;
 }
 
+/** Marca un paso del tour como visto (JSON en `app_tour_dismissed_steps`). Paridad Android. */
+export async function dismissAppTabTourStep(userId: number, stepId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { data: row, error: fetchErr } = await supabase
+    .from("users_db")
+    .select("app_tour_skipped_at,app_tour_dismissed_steps")
+    .eq("id", userId)
+    .maybeSingle<{ app_tour_skipped_at: number | null; app_tour_dismissed_steps: string | null }>();
+  if (fetchErr || !row) return;
+  if (row.app_tour_skipped_at != null && Number(row.app_tour_skipped_at) > 0) return;
+  const merged = parseAppTourDismissedSteps(row.app_tour_dismissed_steps);
+  merged.add(stepId);
+  const json = JSON.stringify([...merged].sort());
+  const { error } = await supabase.from("users_db").update({ app_tour_dismissed_steps: json }).eq("id", userId);
+  throwIfError(error);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("cafesito-app-tour-updated"));
+  }
+}
+
+export async function skipAllAppTabTour(userId: number): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase
+    .from("users_db")
+    .update({
+      app_tour_skipped_at: Date.now(),
+      app_tour_dismissed_steps: null
+    })
+    .eq("id", userId);
+  throwIfError(error);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("cafesito-app-tour-updated"));
+  }
+}
+
+/** Recomendaciones (RPC recomendado): fuente de verdad Supabase `get_coffee_recommendations`. */
+export async function fetchCoffeeRecommendationsRpc(userId: number): Promise<CoffeeRow[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc("get_coffee_recommendations", { target_user_id: userId });
+  throwIfError(error);
+  return (data ?? []) as CoffeeRow[];
+}
+
 export async function toggleFollow(
   followerId: number,
   followedId: number,
@@ -589,7 +639,7 @@ export async function fetchUserById(userId: number): Promise<UserRow | null> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("users_db")
-    .select("id,username,full_name,avatar_url,email,bio")
+    .select(USERS_DB_SELECT_STANDARD)
     .eq("id", userId)
     .maybeSingle();
   if (error || !data) return null;
@@ -603,7 +653,7 @@ export async function fetchUsersByIds(userIds: number[]): Promise<UserRow[]> {
   const uniq = [...new Set(userIds)];
   const { data, error } = await supabase
     .from("users_db")
-    .select("id,username,full_name,avatar_url,email,bio")
+    .select(USERS_DB_SELECT_STANDARD)
     .in("id", uniq);
   if (error) return [];
   return ((data ?? []) as unknown[]).map(mapUserRow);
@@ -645,6 +695,35 @@ const userListsCache = new Map<
 export function invalidateUserListsCache(userId?: number): void {
   if (userId !== undefined) userListsCache.delete(userId);
   else userListsCache.clear();
+}
+
+export type DirectShareTarget = {
+  id: string;
+  type: "list" | "contact";
+  label: string;
+  deep_link: string;
+  rank_score: number;
+};
+
+export async function logShareEvent(params: {
+  event_name: "share_opened" | "share_target_shown" | "share_target_clicked" | "share_completed" | "share_failed";
+  origin_screen?: string;
+  content_type?: string;
+  target_type?: string;
+  target_id?: string;
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.rpc("log_share_event", {
+    p_event_name: params.event_name,
+    p_platform: "web",
+    p_origin_screen: params.origin_screen ?? null,
+    p_content_type: params.content_type ?? null,
+    p_target_type: params.target_type ?? null,
+    p_target_id: params.target_id ?? null,
+    p_metadata: params.metadata ?? {}
+  });
+  if (error) throw error;
 }
 
 async function fetchUserListsRaw(userId: number): Promise<UserListRow[]> {
@@ -728,6 +807,29 @@ export async function fetchUserLists(userId: number): Promise<UserListRow[]> {
   } catch {
     return [];
   }
+}
+
+/**
+ * Endpoint de ranking real para Direct Share.
+ * RPC esperada en backend: get_direct_share_targets(p_user_id, p_limit).
+ * Si no existe la RPC o falla, devuelve [] (fallback lo resuelve la capa de UI).
+ */
+export async function fetchDirectShareTargets(userId: number, limit = 5): Promise<DirectShareTarget[]> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc("get_direct_share_targets", {
+    p_user_id: userId,
+    p_limit: limit
+  });
+  if (error || !Array.isArray(data)) return [];
+  return (data as Array<Record<string, unknown>>)
+    .map((row): DirectShareTarget => ({
+      id: String(row.id ?? ""),
+      type: (String(row.type ?? "").toLowerCase() === "contact" ? "contact" : "list") as "list" | "contact",
+      label: String(row.label ?? "").trim(),
+      deep_link: String(row.deep_link ?? "").trim(),
+      rank_score: Number(row.rank_score ?? 0)
+    }))
+    .filter((row) => row.id.length > 0 && row.label.length > 0 && row.deep_link.length > 0);
 }
 
 /** Obtiene las listas compartidas con el usuario (con caché TTL 5 min). En error se reintenta contra Supabase. */

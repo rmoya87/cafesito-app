@@ -15,6 +15,8 @@ import {
   fetchUserListById,
   fetchUserListItems,
   fetchCoffeeIdsInEditableUserLists,
+  fetchDirectShareTargets,
+  logShareEvent,
   fetchSharedWithMeLists,
   fetchUserLists,
   insertFinishedCoffee,
@@ -24,6 +26,9 @@ import {
   removeUserListItem,
   requestAccountDeletion,
   syncAccountLifecycleAfterLogin,
+  dismissAppTabTourStep,
+  skipAllAppTabTour,
+  fetchCoffeeRecommendationsRpc,
   toggleFavoriteCoffee,
   updateUserList,
   updateUserListWithPrivacy,
@@ -41,6 +46,7 @@ import { canAccessTabAsGuest, resolveGuardedTab } from "../core/guards";
 import { getBrewMethodProfile, getBrewStepTitle, getBrewTimeProfile } from "../core/brew";
 import { formatMonthYear, formatWeekRange, getMondayOfWeek, type DiaryPeriod } from "../core/diaryAnalytics";
 import { normalizeLookupText } from "../core/text";
+import { copyToClipboard, shareOrCopyLink } from "../core/shareService";
 
 import { useGlobalUiEvents } from "../hooks/useGlobalUiEvents";
 import { useResponsiveMode } from "../hooks/useResponsiveMode";
@@ -77,6 +83,7 @@ import {
 } from "../hooks/domains/useRouteSync";
 import { getSupabaseClient, supabaseConfigError } from "../supabase";
 import { applyThemeToDocument, getThemeMode } from "../core/theme";
+import { isAppTabTourV1Enabled } from "../core/featureFlags";
 import { TopBar } from "../features/topbar/TopBar";
 import { FavoritosListView } from "../features/profile/FavoritosListView";
 import { HistorialView } from "../features/profile/HistorialView";
@@ -95,6 +102,11 @@ import { NotificationsSheet } from "../features/timeline/NotificationsSheet";
 import { MobileBarcodeScannerSheet } from "../features/search/MobileBarcodeScannerSheet";
 import { LoginGate } from "../features/auth/LoginGate";
 import { AuthPromptOverlay } from "../features/auth/AuthPromptOverlay";
+import { AppTabTourOverlay } from "../features/tour/AppTabTourOverlay";
+import {
+  resolveAppTabTourStepFromTab,
+  shouldShowAppTabTourStep
+} from "../features/tour/appTabTour";
 import { CafesProbadosView } from "../features/diary/CafesProbadosView";
 import { DiarySheets } from "../features/diary/DiarySheets";
 import { BottomNav, DesktopNavRail } from "../features/navigation/NavControls";
@@ -131,6 +143,27 @@ import type {
 } from "../types";
 
 export function AppContainer() {
+  const logShareEventBackend = useCallback(
+    (
+      eventName: "share_opened" | "share_target_shown" | "share_target_clicked" | "share_completed" | "share_failed",
+      targetType: string,
+      targetId?: string,
+      metadata?: Record<string, unknown>
+    ) => {
+      void logShareEvent({
+        event_name: eventName,
+        origin_screen: "list_options",
+        content_type: "list",
+        target_type: targetType,
+        target_id: targetId,
+        metadata
+      }).catch(() => {
+        // Logging backend es best-effort: no romper UX de share.
+      });
+    },
+    []
+  );
+
   const initialRoute = parseRoute(window.location.pathname);
   const isNotFoundRoute = !isKnownRoute(window.location.pathname);
   const { mode, viewportWidth } = useResponsiveMode();
@@ -739,6 +772,14 @@ export function AppContainer() {
     onTopbarScroll: setTopbarScrolled
   });
 
+  useEffect(() => {
+    const listener = () => {
+      void reloadInitialData(true);
+    };
+    window.addEventListener("cafesito-app-tour-updated", listener);
+    return () => window.removeEventListener("cafesito-app-tour-updated", listener);
+  }, [reloadInitialData]);
+
   const lastScrollTopRef = useRef(0);
 
   const applyScrollState = useCallback((scrollTop: number) => {
@@ -936,6 +977,89 @@ export function AppContainer() {
     profileUserListItems,
     followedUsersActivityData
   });
+
+  // Recomendaciones: preferir el RPC recomendado (Supabase) como fuente de verdad.
+  // Si falla (sin red/500), usamos el cálculo local de `useAppDerivedData` como fallback.
+  const [homeRecommendationsRpc, setHomeRecommendationsRpc] = useState<typeof homeRecommendations | null>(null);
+  const homeRecommendationsRpcTsRef = useRef<number>(0);
+  const userRecommendationConstraints = useMemo(() => {
+    if (!activeUser?.id) return { allowCapsule: true, allowDecaf: true };
+    const normalize = (v: string | null | undefined) => String(v ?? "").trim().toLowerCase();
+    const isCapsule = (formato: string) => formato.includes("capsul");
+    const isDecaf = (cafeina: string) =>
+      cafeina === "no" ||
+      (cafeina.includes("sin") && cafeina.includes("cafe")) ||
+      cafeina.includes("descaf");
+
+    const referenceIds = new Set<string>();
+    favorites.filter((f) => f.user_id === activeUser.id).forEach((f) => referenceIds.add(f.coffee_id));
+    pantryItems.filter((p) => p.user_id === activeUser.id).forEach((p) => referenceIds.add(p.coffee_id));
+    diaryEntries.filter((d) => d.user_id === activeUser.id && d.coffee_id).forEach((d) => referenceIds.add(String(d.coffee_id)));
+
+    const referenceCoffees = coffees.filter((c) => referenceIds.has(c.id));
+    const allowCapsule = referenceCoffees.some((c) => isCapsule(normalize(c.formato)));
+    const allowDecaf = referenceCoffees.some((c) => isDecaf(normalize(c.cafeina)));
+    return { allowCapsule, allowDecaf };
+  }, [activeUser?.id, coffees, diaryEntries, favorites, pantryItems]);
+  useEffect(() => {
+    if (!activeUser?.id) {
+      setHomeRecommendationsRpc(null);
+      return;
+    }
+    let cancelled = false;
+    const now = Date.now();
+    // TTL simple 1h (paridad con Android).
+    if (homeRecommendationsRpc && now - homeRecommendationsRpcTsRef.current < 60 * 60 * 1000) return;
+    (async () => {
+      try {
+        const listRaw = await fetchCoffeeRecommendationsRpc(activeUser.id);
+        const normalize = (v: string | null | undefined) => String(v ?? "").trim().toLowerCase();
+        const isCapsule = (formato: string) => formato.includes("capsul");
+        const isDecaf = (cafeina: string) =>
+          cafeina === "no" ||
+          (cafeina.includes("sin") && cafeina.includes("cafe")) ||
+          cafeina.includes("descaf");
+
+        const filtered = listRaw.filter((c) => {
+          const formato = normalize(c.formato);
+          const cafeina = normalize(c.cafeina);
+          if (!userRecommendationConstraints.allowCapsule && isCapsule(formato)) return false;
+          if (!userRecommendationConstraints.allowDecaf && isDecaf(cafeina)) return false;
+          return true;
+        });
+
+        // Si filtramos mucho, rellenar con fallback local para mantener carrusel completo.
+        const merged: typeof listRaw = [];
+        const seen = new Set<string>();
+        for (const c of filtered) {
+          if (merged.length >= 9) break;
+          if (seen.has(c.id)) continue;
+          seen.add(c.id);
+          merged.push(c);
+        }
+        for (const c of homeRecommendations) {
+          if (merged.length >= 9) break;
+          if (seen.has(c.id)) continue;
+          const formato = normalize(c.formato);
+          const cafeina = normalize(c.cafeina);
+          if (!userRecommendationConstraints.allowCapsule && isCapsule(formato)) continue;
+          if (!userRecommendationConstraints.allowDecaf && isDecaf(cafeina)) continue;
+          seen.add(c.id);
+          merged.push(c);
+        }
+        if (cancelled) return;
+        homeRecommendationsRpcTsRef.current = Date.now();
+        setHomeRecommendationsRpc(merged);
+      } catch (e) {
+        if (cancelled) return;
+        setHomeRecommendationsRpc(null);
+        console.warn("fetchCoffeeRecommendationsRpc failed", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeUser?.id, homeRecommendations, homeRecommendationsRpc, userRecommendationConstraints.allowCapsule, userRecommendationConstraints.allowDecaf]);
 
   // Al entrar en elaboración sin método elegido, marcar por defecto el primero de la lista = último usado (actividad del diario).
   useEffect(() => {
@@ -1845,6 +1969,68 @@ export function AppContainer() {
     activeTab === "search" ? searchMode : undefined
   );
 
+  const [appTabTourError, setAppTabTourError] = useState<string | null>(null);
+  const appTabTourShownRef = useRef<string | null>(null);
+  // Optimista: ocultar al instante aunque falle el guardado (sin red).
+  const [appTabTourLocallyHiddenStep, setAppTabTourLocallyHiddenStep] = useState<string | null>(null);
+  const [appTabTourLocallySkipAll, setAppTabTourLocallySkipAll] = useState(false);
+
+  const appTabTourStep = useMemo(() => {
+    if (!isAppTabTourV1Enabled() || !sessionEmail || !activeUser?.id) return null;
+    if (appTabTourLocallySkipAll) return null;
+    const step = resolveAppTabTourStepFromTab(guardedActiveTab, profileUsername, activeUser.username);
+    if (!step || !shouldShowAppTabTourStep(activeUser, step)) return null;
+    if (appTabTourLocallyHiddenStep && step === appTabTourLocallyHiddenStep) return null;
+    return step;
+  }, [
+    sessionEmail,
+    activeUser,
+    guardedActiveTab,
+    profileUsername,
+    appTabTourLocallyHiddenStep,
+    appTabTourLocallySkipAll
+  ]);
+
+  useEffect(() => {
+    if (!appTabTourStep) {
+      appTabTourShownRef.current = null;
+      setAppTabTourError(null);
+      return;
+    }
+    if (appTabTourShownRef.current !== appTabTourStep) {
+      appTabTourShownRef.current = appTabTourStep;
+      sendEvent("app_tab_tour_step_shown", { step: appTabTourStep });
+    }
+  }, [appTabTourStep]);
+
+  const handleAppTabTourDismiss = useCallback(async () => {
+    if (!activeUser || !appTabTourStep) return;
+    setAppTabTourLocallyHiddenStep(appTabTourStep);
+    setAppTabTourError(null);
+    try {
+      await dismissAppTabTourStep(activeUser.id, appTabTourStep);
+      setAppTabTourError(null);
+      sendEvent("app_tab_tour_step_dismissed", { step: appTabTourStep });
+    } catch (e) {
+      setAppTabTourError("Sin conexión o error al guardar. Inténtalo de nuevo.");
+      console.warn("dismissAppTabTourStep", e);
+    }
+  }, [activeUser, appTabTourStep]);
+
+  const handleAppTabTourSkipAll = useCallback(async () => {
+    if (!activeUser) return;
+    setAppTabTourLocallySkipAll(true);
+    setAppTabTourError(null);
+    try {
+      await skipAllAppTabTour(activeUser.id);
+      setAppTabTourError(null);
+      sendEvent("app_tab_tour_skip_all", { step: appTabTourStep ?? "all" });
+    } catch (e) {
+      setAppTabTourError("Sin conexión o error al guardar. Inténtalo de nuevo.");
+      console.warn("skipAllAppTabTour", e);
+    }
+  }, [activeUser, appTabTourStep]);
+
   // GA4: enviar page_view en cada cambio de ruta (SPA)
   const coffeeSlugForGa =
     guardedActiveTab === "coffee" && detailCoffeeId ? coffeeSlugIndex.byId.get(detailCoffeeId) ?? null : null;
@@ -2028,7 +2214,7 @@ export function AppContainer() {
       <LazyHomeView
         mode={mode}
         cards={homeCards}
-        recommendations={homeRecommendations}
+        recommendations={homeRecommendationsRpc ?? homeRecommendations}
         suggestions={homeSuggestions}
         suggestionIndices={homeSuggestionIndices}
         followingIds={followingIds}
@@ -2410,15 +2596,59 @@ export function AppContainer() {
                 }
               }}
               onCopyLink={() => {
-                navigator.clipboard.writeText(shareUrl).catch(() => {
-                  const input = document.createElement("input");
-                  input.value = shareUrl;
-                  document.body.appendChild(input);
-                  input.select();
-                  document.execCommand("copy");
-                  document.body.removeChild(input);
+                sendEvent("share_opened", { origin_screen: "list_options", content_type: "list", target_type: "clipboard" });
+                logShareEventBackend("share_opened", "clipboard", profileListId ?? undefined, { list_id: profileListId, share_method: "clipboard" });
+                void copyToClipboard(shareUrl).then((ok) => {
+                  if (ok) {
+                    setShowCopyChip(true);
+                    sendEvent("share_completed", { origin_screen: "list_options", content_type: "list", target_type: "clipboard" });
+                    logShareEventBackend("share_completed", "clipboard", profileListId ?? undefined, { list_id: profileListId, share_method: "clipboard" });
+                  } else {
+                    sendEvent("share_failed", { origin_screen: "list_options", content_type: "list", target_type: "clipboard" });
+                    logShareEventBackend("share_failed", "clipboard", profileListId ?? undefined, { list_id: profileListId, share_method: "clipboard" });
+                  }
                 });
-                setShowCopyChip(true);
+              }}
+              onQuickShare={() => {
+                sendEvent("share_opened", { origin_screen: "list_options", content_type: "list", target_type: "native_or_fallback" });
+                logShareEventBackend("share_opened", "native_or_fallback", profileListId ?? undefined, { list_id: profileListId, share_method: "native_or_fallback" });
+                void (async () => {
+                  const userId = activeUser?.id ?? 0;
+                  if (userId > 0) {
+                    const rankedTargets = await fetchDirectShareTargets(userId, 5);
+                    sendEvent("share_target_shown", {
+                      origin_screen: "list_options",
+                      content_type: "list",
+                      target_type: "direct",
+                      target_id: `ranked_${rankedTargets.length}`
+                    });
+                    logShareEventBackend("share_target_shown", "direct", `ranked_${rankedTargets.length}`, {
+                      list_id: profileListId,
+                      share_method: "native_or_fallback",
+                      ranked_targets_count: rankedTargets.length
+                    });
+                  }
+                  const result = await shareOrCopyLink({
+                    title: "Lista de Cafesito",
+                    text: "Te comparto esta lista",
+                    url: shareUrl
+                  });
+                  if (result.ok) {
+                    sendEvent("share_completed", {
+                      origin_screen: "list_options",
+                      content_type: "list",
+                      target_type: result.method
+                    });
+                    logShareEventBackend("share_completed", result.method, profileListId ?? undefined, { list_id: profileListId, share_method: result.method });
+                  } else {
+                    sendEvent("share_failed", {
+                      origin_screen: "list_options",
+                      content_type: "list",
+                      target_type: result.method
+                    });
+                    logShareEventBackend("share_failed", result.method, profileListId ?? undefined, { list_id: profileListId, share_method: result.method });
+                  }
+                })();
               }}
               onRemoveMember={async (userId) => {
                 try {
@@ -3094,6 +3324,14 @@ export function AppContainer() {
         notificationsSheet={notificationsOverlay}
         diarySheets={diarySheetsOverlay}
       />
+      {appTabTourStep && activeUser ? (
+        <AppTabTourOverlay
+          stepId={appTabTourStep}
+          onDismissStep={handleAppTabTourDismiss}
+          onSkipAll={handleAppTabTourSkipAll}
+          errorMessage={appTabTourError}
+        />
+      ) : null}
     </div>
   );
 }

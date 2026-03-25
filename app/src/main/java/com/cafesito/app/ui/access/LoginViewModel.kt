@@ -33,12 +33,13 @@ class LoginViewModel @Inject constructor(
                 if (existingUser != null && existingUser.username.isNotBlank()) {
                     // El usuario ya existe, lo guardamos localmente para la sesión
                     userRepository.upsertLocalOnly(existingUser)
+                    userRepository.refreshActiveUserFromSupabase()
                     _isLoading.value = false
-                    onSuccess(supabaseUuid, false) // isNewUser = false
+                    onSuccess(supabaseUuid, false)
                 } else {
                     // Usuario nuevo o perfil incompleto
                     _isLoading.value = false
-                    onSuccess(supabaseUuid, true) // isNewUser = true
+                    onSuccess(supabaseUuid, true)
                 }
             } else {
                 _isLoading.value = false

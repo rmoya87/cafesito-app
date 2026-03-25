@@ -379,7 +379,11 @@ private fun DetailContent(
                                 )
                             },
                             coffee.moliendaRecomendada.takeIf { it.isNotBlank() }?.let {
-                                DetailTechnicalItem(label = "MOLIENDA", value = it, icon = Icons.Default.Grain)
+                                DetailTechnicalItem(
+                                    label = "MOLIENDA",
+                                    value = it,
+                                    iconPainter = painterResource(id = R.drawable.molienda)
+                                )
                             },
                             DetailTechnicalItem(
                                 label = "FORMATO",
@@ -814,7 +818,10 @@ private fun SensoryProfileBottomSheet(
     val caramelColor = LocalCaramelAccent.current
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = CafesitoModalSheetDefaults.containerColor(),
+        shape = CafesitoModalSheetDefaults.shape,
+        scrimColor = CafesitoModalSheetDefaults.scrimColor,
+        dragHandle = { CafesitoModalSheetDefaults.dragHandle() },
         sheetState = sheetState
     ) {
         Column(
@@ -910,11 +917,12 @@ fun ReviewBottomSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ModalBottomSheet(
-        onDismissRequest = onDismissRequest, 
-        containerColor = MaterialTheme.colorScheme.surfaceContainer, 
-        shape = Shapes.sheetLarge,
+        onDismissRequest = onDismissRequest,
+        containerColor = CafesitoModalSheetDefaults.containerColor(),
+        shape = CafesitoModalSheetDefaults.shape,
         sheetState = sheetState,
-        scrimColor = ScrimDefault
+        scrimColor = CafesitoModalSheetDefaults.scrimColor,
+        dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
     ) {
         Column(
             modifier = Modifier
@@ -1078,10 +1086,11 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
     val caramelColor = LocalCaramelAccent.current
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss, 
-        containerColor = MaterialTheme.colorScheme.surfaceContainer, 
-        shape = Shapes.sheetLarge,
-        scrimColor = ScrimDefault
+        onDismissRequest = onDismiss,
+        containerColor = CafesitoModalSheetDefaults.containerColor(),
+        shape = CafesitoModalSheetDefaults.shape,
+        scrimColor = CafesitoModalSheetDefaults.scrimColor,
+        dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
     ) {
         Column(Modifier.fillMaxWidth().padding(top = 8.dp, start = 24.dp, end = 24.dp, bottom = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(text = "Añadir a mi despensa", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)

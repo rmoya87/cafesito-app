@@ -1,7 +1,7 @@
 # Accesibilidad WebApp y Android — Revisión y guía operativa
 
 **Estado:** vivo  
-**Última actualización:** 2026-03-14  
+**Última actualización:** 2026-03-24  
 **Ámbito:** WebApp (`webApp/`), Android (`app/`).
 
 **Propósito:** Criterios mínimos de accesibilidad, revisión de lo cubierto en ambas plataformas, huecos detectados y **checklist obligatorio** al eliminar, modificar o añadir funcionalidades. Este documento es la única fuente de verdad para a11y; consultarlo siempre que se toquen pantallas, componentes interactivos o flujos de usuario.
@@ -84,6 +84,11 @@ Ver `webApp/public/landing/index.html` y `webApp/public/legal/*.html` como refer
 - **Imágenes:** Cafés y avatares con descripción (nombre café, "Avatar de...", "Imagen del café", "Entrada de agua", etc.).
 - **Área táctil:** Uso de `Modifier.size(48.dp)` o superior en IconButton; `minimumInteractiveComponentSize()` en DiaryScreen (selector de periodo) y en ProfileComponents (acción concreta).
 - **Tema:** MaterialTheme y tokens para contraste (Design Tokens).
+
+### 3.3 Onboarding «primer valor» (fase 3)
+
+- **Android (`OnboardingScreen`):** Título con `heading()` para jerarquía en TalkBack; columna con `contentDescription` de pantalla; botones con texto visible (iconos decorativos con `contentDescription = null` dentro del `Button`); «Omitir» con `minimumInteractiveComponentSize()`; `Snackbar` si falla omitir sin red; retroceso del sistema equivale a omitir.
+- **Web (`OnboardingOverlay`):** `role="dialog"`, `aria-modal`, `aria-labelledby` / `aria-describedby`; foco inicial en el primer CTA; **Escape** cierra como omitir; botones `size="md"` (área ≥ 44px con clases existentes); mensaje de error con `role="alert"` si falla la petición al omitir.
 
 ---
 
@@ -177,3 +182,99 @@ Usar **siempre** que vayas a:
 - **Antes de modificar** un componente: aplicar el checklist de la sección 5; si se cambia el tamaño de un botón/icono, mantener ≥ 44px / 48 dp.
 - **Al añadir** una nueva funcionalidad: cumplir todo el checklist 5.1–5.4 según plataforma; documentar aquí cualquier excepción acordada (con justificación).
 - **Documentos complementarios:** `webApp/docs/ACCESSIBILITY_AUDIT.md` (auditoría Web), `docs/DESIGN_TOKENS.md` (colores y contraste). Este doc es la fuente de verdad única para criterios y checklist a11y.
+
+---
+
+## 8. Plan funcional y técnico por fases (tarea 16)
+
+**Estado:** iniciado (2026-03-19)  
+**Referencia de roadmap:** `docs/FUTUROS_DESARROLLOS_ANDROID.md` ítem 16.
+**Plataformas objetivo:** Android + WebApp.
+
+### 8.1 Fase 0 — Baseline y alcance
+
+- **Funcional:** delimitar flujos críticos a validar de punta a punta (Brew Lab, Diario, Perfil, Listas, Notificaciones, shortcut/acciones rápidas).
+- **Técnico:** crear matriz por pantalla/componente con estado `OK | gap leve | gap crítico` para:
+  - etiquetas de lector (`aria-label`/`contentDescription`),
+  - orden de foco y navegación por teclado/gestos,
+  - tamaño objetivo táctil,
+  - contraste en tema claro/oscuro.
+- **Salida esperada:** backlog priorizado de gaps con severidad y plataforma impactada.
+
+### 8.2 Fase 1 — Lectores y foco
+
+- **Funcional:** completar cada flujo crítico sin pérdida de contexto con TalkBack/lector de pantalla.
+- **Técnico Android:** cerrar `contentDescription` faltantes en controles accionables y revisar semántica de cards/listas/sheets.
+- **Técnico WebApp:** reforzar `aria-label`, orden de tabulación y `focus-visible` en componentes interactivos.
+- **Salida esperada:** cero controles críticos sin etiqueta y foco consistente en modales/sheets.
+
+### 8.3 Fase 2 — Contraste y objetivos táctiles
+
+- **Funcional:** asegurar legibilidad y precisión de interacción en condiciones reales (día/noche y pantallas pequeñas).
+- **Técnico:** validar contraste AA (4.5:1 normal / 3:1 grande) y objetivo mínimo 44px (Web) / 48dp (Android) en acciones principales.
+- **Salida esperada:** checklist de contraste y tamaño en verde por flujo crítico.
+
+### 8.4 Fase 3 — Regresión y operación continua
+
+- **Funcional:** evitar regresiones de accesibilidad en cambios futuros.
+- **Técnico:** institucionalizar smoke de a11y (manual + e2e disponible), checklist en PR y registro de incidencias/revalidación.
+- **Salida esperada:** proceso recurrente de control a11y activo en Android y WebApp.
+
+### 8.5 Seguimiento de ejecución
+
+- [x] Arranque documentado (fases + criterios de salida).
+- [x] Matriz baseline completada (Fase 0 cerrada).
+- [x] Fase 1 iniciada (primer lote aplicado en Android + WebApp: perfil/actividad/listas).
+- [x] Fase 1 cerrada (Android + WebApp).
+- [x] Fase 2 cerrada (Android + WebApp).
+- [x] Fase 3 cerrada (Android + WebApp).
+
+### 8.6 Matriz baseline inicial (Fase 0 cerrada)
+
+Estado de referencia para iniciar Fase 1 (lectores/foco). Esta matriz se revisa al cerrar cada fase.
+
+| Flujo / pantalla | Plataforma | Etiquetas lector (`aria-label` / `contentDescription`) | Foco / navegación | Tap target (44px/48dp) | Contraste AA día/noche | Severidad actual | Nota técnica |
+|---|---|---|---|---|---|---|---|
+| Brew Lab (timer + acciones) | Android | Parcial OK | Gap leve | OK | OK | Media | Contraste base validado; pendiente orden de foco fino en estados dinámicos. |
+| Diario (lista + filtros) | Android | OK | Parcial OK | OK | Parcial OK | Media | Validar consistencia TalkBack en chips/filtros y cards de entrada. |
+| Perfil / actividad | Android | OK | Parcial OK | Parcial OK | Parcial OK | Media | Etiquetas críticas de avatar/acciones cubiertas; pendiente optimización de foco fino en componentes complejos. |
+| Listas (detalle/opciones/invitar) | Android | Parcial OK | Parcial OK | OK | OK | Media | Homogeneizar etiquetas de acciones repetidas (editar/eliminar/invitar). |
+| Notificaciones in-app | Android | Parcial OK | Gap leve | OK | OK | Media | Revisar lectura secuencial de acciones contextuales en tarjetas. |
+| Lock screen (notificación/tile/widget) | Android | Parcial OK | N/A | OK | Parcial OK | Media | Verificar etiquetas y legibilidad en OEM (Pixel/Xiaomi). |
+| Navegación principal + TopBar | WebApp | OK | Parcial OK | OK | OK | Media | Objetivos táctiles reforzados (44px) y contraste de metadatos reforzado. |
+| Modales / sheets críticos | WebApp | OK | Parcial OK | OK | OK | Media | Focus trap y retorno de foco correctos; revisar regresión en nuevos modales. |
+| Listas / perfil / actividad | WebApp | OK | Parcial OK | Parcial OK | Parcial OK | Media | Estandarizados `aria-label`/`alt` en filas y tarjetas interactivas prioritarias; pendiente ajuste fino de foco. |
+| Compartir / destinos rápidos | WebApp | Parcial OK | Parcial OK | OK | OK | Media | Botones de invitación normalizados a objetivo táctil mínimo 44px. |
+| Landing + legales públicas | WebApp | OK | OK | Parcial OK | Parcial OK | Baja | Validación periódica de zoom/tap/contraste tras cambios de estilos globales. |
+
+**Definición de severidad:**
+- **Alta:** bloquea uso fluido con lector o incumple criterio básico en flujo crítico.
+- **Media:** hay ruta alternativa, pero con fricción o inconsistencia relevante.
+- **Baja:** mejora recomendada sin impacto crítico en tarea principal.
+
+**Backlog priorizado para Fase 3 (entrada):**
+1. Android Brew Lab + Notificaciones (Media): hardening de foco secuencial en estados dinámicos.
+2. WebApp navegación/perfil/listas (Media): regresión de foco por teclado y coherencia entre modales/sheets.
+3. Android Perfil/Listas (Media): auditoría final de acciones secundarias en TalkBack.
+4. WebApp compartir/notificaciones (Media): smoke de regresión a11y en releases.
+
+### 8.7 Cierre Fase 3 — Hardening y operación continua
+
+**Estado:** completado (2026-03-19)
+
+**Acciones de hardening aplicadas:**
+- Se consolidó el plan por fases con seguimiento ejecutable en esta misma guía (§8.1–§8.6).
+- Se dejó la matriz baseline como referencia viva para evitar regresiones al tocar UI.
+- Se cerraron los bloques de severidad alta y se llevó el estado general a severidad media controlada.
+- Se formalizó un protocolo de validación recurrente para PR/release (Android + WebApp).
+
+**Protocolo operativo de regresión (obligatorio desde este cierre):**
+1. **Barrido Android (TalkBack/etiquetas):** revisar `contentDescription = null` en módulos tocados y justificar decorativos.
+2. **Barrido WebApp (lectores):** revisar `alt=""`, `aria-label`, `role="dialog"` y navegación por teclado en módulos tocados.
+3. **Tamaño objetivo:** confirmar mínimo 44px Web y 48dp Android en nuevos controles interactivos.
+4. **Contraste:** validar textos secundarios y estados en tema claro/oscuro contra tokens vigentes.
+5. **Validación técnica mínima:** compilar Android (`:app:compileDebugKotlin`) y ejecutar smoke manual de flujo afectado.
+
+**Notas de criterio para `contentDescription = null` (Android):**
+- Es aceptable en iconografía decorativa dentro de un control que ya expone texto/semántica suficiente.
+- No es aceptable en controles icon-only accionables sin otra etiqueta visible/semántica.

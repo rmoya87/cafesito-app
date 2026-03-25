@@ -180,7 +180,7 @@ private fun ListMemberAvatarsStack(
                 if (!user.avatarUrl.isNullOrBlank()) {
                     AsyncImage(
                         model = user.avatarUrl,
-                        contentDescription = null,
+                        contentDescription = "Avatar de ${user.username}",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )

@@ -61,13 +61,27 @@ function toTimestamp(value: unknown): number {
 
 export function mapUserRow(input: unknown): UserRow {
   const row = (input ?? {}) as Record<string, unknown>;
+  const os = row.onboarding_status;
+  const onboardingStatus =
+    os === "pending" || os === "completed_value" || os === "skipped" ? os : null;
   return {
     id: toNumberOr(row.id, 0),
     username: toStringOrEmpty(row.username),
     full_name: toStringOrEmpty(row.full_name),
     avatar_url: toSafeImageUrl(row.avatar_url),
     email: toStringOrEmpty(row.email),
-    bio: toNullableString(row.bio)
+    bio: toNullableString(row.bio),
+    onboarding_status: onboardingStatus,
+    onboarding_completed_at:
+      row.onboarding_completed_at == null ? null : toNumberOr(row.onboarding_completed_at as number, 0),
+    onboarding_skipped_at:
+      row.onboarding_skipped_at == null ? null : toNumberOr(row.onboarding_skipped_at as number, 0),
+    app_tour_skipped_at:
+      row.app_tour_skipped_at == null ? null : toNumberOr(row.app_tour_skipped_at as number, 0),
+    app_tour_dismissed_steps:
+      row.app_tour_dismissed_steps == null
+        ? null
+        : toNullableString(row.app_tour_dismissed_steps)
   };
 }
 

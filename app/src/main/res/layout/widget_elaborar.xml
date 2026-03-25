@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_elaborar_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="12dp"
+    android:background="@android:color/black">
+
+    <TextView
+        android:id="@+id/widget_elaborar_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/widget_elaborar_title"
+        android:textColor="@android:color/white"
+        android:textStyle="bold"
+        android:textSize="14sp"
+        android:contentDescription="@string/widget_elaborar_title" />
+
+    <TextView
+        android:id="@+id/widget_elaborar_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:paddingLeft="12dp"
+        android:paddingTop="6dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="6dp"
+        android:text="@string/widget_elaborar_cta"
+        android:textColor="@android:color/white"
+        android:background="@android:color/darker_gray"
+        android:textSize="13sp"
+        android:contentDescription="@string/widget_elaborar_cta" />
+
+</LinearLayout>

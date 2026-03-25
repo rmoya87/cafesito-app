@@ -8,11 +8,26 @@ export function parseRoute(pathname: string) {
   const routeSegments = tabIdx >= 0 ? segments.slice(tabIdx) : segments;
   const first = routeSegments[0] ?? "";
   const second = routeSegments[1] ?? "";
+  const third = routeSegments[2] ?? "";
+  const fourth = routeSegments[3] ?? "";
 
   if (first === "search") {
+    // Rutas SEO (facetas) sin prerender HTML:
+    // - /search/origen/<valor>
+    // - /search/tueste/<valor>
+    // - /search/especialidad/<valor>
+    // - /search/formato/<valor>
+    // - /search/nota/<valor>
+    const facetType =
+      second === "origen" || second === "tueste" || second === "especialidad" || second === "formato" || second === "nota"
+        ? (second as "origen" | "tueste" | "especialidad" | "formato" | "nota")
+        : null;
+    const facetValue = facetType && third ? decodeURIComponent(third) : null;
     return {
       tab: "search" as TabId,
       searchMode: (second === "users" ? "users" : "coffees") as "coffees" | "users",
+      searchFacetType: facetType,
+      searchFacetValue: facetValue,
       profileUsername: null,
       coffeeSlug: null,
       profileSection: null,
@@ -25,8 +40,6 @@ export function parseRoute(pathname: string) {
     return { tab: "diary" as TabId, searchMode: "coffees" as const, profileUsername: null, coffeeSlug: null, profileSection: null, profileListId: undefined, diarySubView };
   }
   if (first === "profile") {
-    const third = routeSegments[2] ?? "";
-    const fourth = routeSegments[3] ?? "";
     const isListSection = second === "list" && third.length > 0;
     const listOptionsView = isListSection && fourth === "options";
     const profileSectionFromSecond = second === "historial" || second === "followers" || second === "following" || second === "favorites" ? second : isListSection ? "list" : null;
@@ -41,6 +54,8 @@ export function parseRoute(pathname: string) {
     return {
       tab: "profile" as TabId,
       searchMode: "coffees" as const,
+      searchFacetType: null,
+      searchFacetValue: null,
       profileUsername,
       coffeeSlug: null,
       profileSection: profileSection as "historial" | "followers" | "following" | "favorites" | "list" | null,
@@ -52,6 +67,8 @@ export function parseRoute(pathname: string) {
     return {
       tab: "coffee" as TabId,
       searchMode: "coffees" as const,
+      searchFacetType: null,
+      searchFacetValue: null,
       profileUsername: null,
       coffeeSlug: second ? decodeURIComponent(second) : null,
       profileSection: null,
@@ -62,6 +79,8 @@ export function parseRoute(pathname: string) {
     return {
       tab: "crear-cafe" as TabId,
       searchMode: "coffees" as const,
+      searchFacetType: null,
+      searchFacetValue: null,
       profileUsername: null,
       coffeeSlug: null,
       profileSection: null,
@@ -72,13 +91,15 @@ export function parseRoute(pathname: string) {
     return {
       tab: "selecciona-cafe" as TabId,
       searchMode: "coffees" as const,
+      searchFacetType: null,
+      searchFacetValue: null,
       profileUsername: null,
       coffeeSlug: null,
       profileSection: null,
       profileListId: undefined
     };
   }
-  return { tab: "home" as TabId, searchMode: "coffees" as const, profileUsername: null, coffeeSlug: null, profileSection: null, profileListId: undefined };
+  return { tab: "home" as TabId, searchMode: "coffees" as const, searchFacetType: null, searchFacetValue: null, profileUsername: null, coffeeSlug: null, profileSection: null, profileListId: undefined };
 }
 
 const TAB_SEGMENTS = ["home", "search", "brewlab", "diary", "profile", "coffee", "crear-cafe", "selecciona-cafe"];
@@ -105,7 +126,12 @@ export function isKnownRoute(pathname: string): boolean {
 
   if (first === "home" || first === "brewlab" || first === "crear-cafe" || first === "selecciona-cafe") return routeSegments.length === 1;
   if (first === "diary") return routeSegments.length === 1 || (routeSegments.length === 2 && second === "cafes-probados");
-  if (first === "search") return routeSegments.length <= 2 && (second === "" || second === "users");
+  if (first === "search") {
+    if (routeSegments.length <= 2 && (second === "" || second === "users")) return true;
+    const third = routeSegments[2] ?? "";
+    if (routeSegments.length === 3 && (second === "origen" || second === "tueste" || second === "especialidad" || second === "formato" || second === "nota") && third.length > 0) return true;
+    return false;
+  }
   if (first === "profile") {
     if (routeSegments.length === 1) return true;
     if (routeSegments.length === 2) return true;
@@ -156,9 +182,15 @@ export function buildRoute(
   profileSection?: ProfileSection,
   profileListId?: string | null,
   diarySubView?: DiarySubView,
-  listOptionsView?: boolean
+  listOptionsView?: boolean,
+  searchFacetType?: "origen" | "tueste" | "especialidad" | "formato" | "nota" | null,
+  searchFacetValue?: string | null
 ): string {
-  if (tab === "search") return searchMode === "users" ? "/search/users" : "/search";
+  if (tab === "search") {
+    if (searchMode === "users") return "/search/users";
+    if (searchFacetType && searchFacetValue) return `/search/${searchFacetType}/${encodeURIComponent(searchFacetValue)}`;
+    return "/search";
+  }
   if (tab === "brewlab") return "/brewlab";
   if (tab === "diary") return diarySubView === "cafes-probados" ? "/diary/cafes-probados" : "/diary";
   if (tab === "profile") {
@@ -170,7 +202,8 @@ export function buildRoute(
     if (profileSection === "following") return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}/following` : "/profile/following";
     return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}` : "/profile";
   }
-  if (tab === "coffee") return coffeeSlug ? `/coffee/${encodeURIComponent(coffeeSlug)}/` : "/home";
+  // Sin "/" final: canonicalización SEO (ver .htaccess).
+  if (tab === "coffee") return coffeeSlug ? `/coffee/${encodeURIComponent(coffeeSlug)}` : "/home";
   if (tab === "crear-cafe") return "/crear-cafe";
   if (tab === "selecciona-cafe") return "/selecciona-cafe";
   return "/home";

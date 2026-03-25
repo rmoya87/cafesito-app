@@ -118,7 +118,12 @@ private fun buildFallbackUser(
         fullName = username,
         avatarUrl = "",
         email = "",
-        bio = null
+        bio = null,
+        onboardingStatus = null,
+        onboardingCompletedAt = null,
+        onboardingSkippedAt = null,
+        appTourSkippedAt = null,
+        appTourDismissedSteps = null
     )
 }
 

@@ -1,7 +1,7 @@
 # Integraciones Android implementadas (Cafesito)
 
 **Estado:** vivo  
-**Última actualización:** 2026-03-19  
+**Última actualización:** 2026-03-24  
 **Ámbito:** Android (Kotlin, Jetpack Compose). Registro de integraciones nativas ya implementadas en la app.
 
 ---
@@ -23,9 +23,14 @@ Este documento es la **fuente de verdad** de las integraciones Android que ya es
 - **Persistencia:** SharedPreferences (`brew_timer_service`): `KEY_ELAPSED`, `KEY_TOTAL`, `KEY_METHOD`, `KEY_PAUSED`, `KEY_RUNNING`, `KEY_JUST_ENDED`.
 - **ViewModel / UI:** `BrewLabViewModel` inicia/controla el servicio; `BrewLabScreen` sincroniza estado desde SharedPreferences cada segundo cuando el paso es BREWING. En pantalla: "El paso: [nombre del paso]" y tiempo grande (restante del paso); la notificación muestra tiempo total restante.
 - **Restauración al reabrir app:** Si el usuario fuerza el cierre con el timer activo, el servicio sigue en primer plano. Al reabrir la app y entrar en Brew Lab, `BrewLabViewModel.restoreBrewingFromServiceIfNeeded()` restaura paso BREWING, método seleccionado y estado del timer desde SharedPreferences; `BrewLabScreen` muestra de nuevo la elaboración con tiempo y paso sincronizados.
-- **Manifest:** `<service>` con `foregroundServiceType="specialUse"` y `PROPERTY_SPECIAL_USE_FGS_SUBTYPE`; permiso `FOREGROUND_SERVICE_SPECIAL_USE`.
+- **Reanudación tras reinicio del dispositivo:** si `KEY_RUNNING` era true al arrancar el sistema, `BrewLabBootReceiver` (acciones `BOOT_COMPLETED` / `LOCKED_BOOT_COMPLETED`, permiso `RECEIVE_BOOT_COMPLETED`) reconcilia `elapsed` con `last_updated_at` y:
+  - Si queda tiempo: notificación «¿Continuar elaboración?» (`RESUME_AFTER_REBOOT_NOTIFICATION_ID`) con acciones **Continuar** / **Cancelar** (intents a `BrewLabTimerService`: `ACTION_CONTINUE_AFTER_REBOOT` / `ACTION_CANCEL_AFTER_REBOOT`). Continuar reactiva el FGS, reanuda el tick y abre `MainActivity` con `EXTRA_OPEN_BREWLAB` y `entry_source=post_reboot_resume`.
+  - Si el tiempo ya expiró durante el apagado: se marcan flags de fin y se muestra la notificación «¿Registrar elaboración?» hacia Consumo (`showRegisterAfterRebootNotification`), con el mismo `entry_source`.
+  - **Anti-duplicado OEM:** clave `KEY_LAST_BOOT_HANDLED_AT` + ventana 15 s para ignorar el segundo broadcast muy seguido.
+- **Persistencia ampliada:** además de las claves anteriores, `KEY_LAST_UPDATED_AT`, `KEY_LAST_BOOT_HANDLED_AT`.
+- **Manifest:** `<service>` con `foregroundServiceType="specialUse"` y `PROPERTY_SPECIAL_USE_FGS_SUBTYPE`; permiso `FOREGROUND_SERVICE_SPECIAL_USE`; `<receiver android:name="...BrewLabBootReceiver">` con intent-filters de boot.
 
-**Referencias:** `REGISTRO_DESARROLLO_E_INCIDENCIAS.md` §18; `FUTUROS_DESARROLLOS_ANDROID.md` (antes §2.3, ahora solo referencias).
+**Referencias:** `REGISTRO_DESARROLLO_E_INCIDENCIAS.md` §18, §22; `FUTUROS_DESARROLLOS_ANDROID.md` (checklist tarea 13); `docs/ANALITICAS.md` (eventos `lock_entry_*` con `entry_type=post_reboot_resume`).
 
 ---
 
@@ -97,7 +102,7 @@ Este documento es la **fuente de verdad** de las integraciones Android que ya es
 
 | Integración              | Archivos principales                                                                 | Notas |
 |--------------------------|---------------------------------------------------------------------------------------|-------|
-| Timer en primer plano    | `BrewLabTimerService.kt`, `BrewLabViewModel.kt`, `BrewLabScreen.kt`, `BrewLabComponents.kt` | FGS, notificación ongoing, abrir Consumo al terminar, restauración al reabrir |
+| Timer en primer plano    | `BrewLabTimerService.kt`, `BrewLabBootReceiver.kt`, `BrewLabViewModel.kt`, `BrewLabScreen.kt`, `BrewLabComponents.kt` | FGS, notificación ongoing, reanudar tras reinicio (boot receiver), abrir Consumo al terminar, restauración al reabrir |
 | Notificación Registrar  | `BrewLabTimerService.kt`, `AppNavigation.kt`, `strings.xml`                           | Texto y deep link a Consumo |
 | Quick Settings Tile     | `CafesitoTileService.kt`, `AndroidManifest.xml`, `strings.xml`                         | Etiqueta dinámica según FGS |
 | App Links                | `AndroidManifest.xml`, `MainActivity.kt`, `DeepLinkViewModel`, `AppNavigation.kt`     | Listas compartidas |
@@ -109,6 +114,6 @@ Este documento es la **fuente de verdad** de las integraciones Android que ya es
 
 ## 10. Referencias
 
-- **Registro de desarrollo:** `REGISTRO_DESARROLLO_E_INCIDENCIAS.md` (§18, §19, §20)
+- **Registro de desarrollo:** `REGISTRO_DESARROLLO_E_INCIDENCIAS.md` (§18, §19, §20, §22)
 - **Futuros desarrollos Android:** `FUTUROS_DESARROLLOS_ANDROID.md`
 - **Documento Maestro:** `MASTER_ARCHITECTURE_GOVERNANCE.md`

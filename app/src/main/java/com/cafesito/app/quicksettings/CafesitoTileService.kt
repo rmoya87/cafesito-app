@@ -28,6 +28,7 @@ class CafesitoTileService : TileService() {
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra(BrewLabTimerService.EXTRA_OPEN_BREWLAB, true)
+            putExtra(BrewLabTimerService.EXTRA_ENTRY_SOURCE, BrewLabTimerService.ENTRY_SOURCE_QUICK_TILE)
         }
 
         // startActivityAndCollapse(PendingIntent) solo existe en API 34+; en API 33 e inferiores

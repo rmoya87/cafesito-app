@@ -27,7 +27,7 @@ type Params = {
   setGlobalStatus: (value: string) => void;
 };
 
-export function useInitialDataLoader(params: Params): () => Promise<void> {
+export function useInitialDataLoader(params: Params): (forceRefresh?: boolean) => Promise<void> {
   const {
     authReady,
     setUsers,

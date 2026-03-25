@@ -3,7 +3,7 @@
 **Propósito:** Especificación funcional y técnica de los flujos principales de la app para desarrollo, pruebas y alineación entre plataformas (Android, WebApp). Fuente de verdad para criterios de aceptación y comportamiento esperado.
 
 **Estado:** vivo  
-**Última actualización:** 2026-03-17  
+**Última actualización:** 2026-03-24  
 **Ámbito:** Android, WebApp (paridad funcional).
 
 ---
@@ -99,6 +99,23 @@ Navegación: pestañas o drawer (Inicio, Explorar, Elabora, Diario, Perfil). Par
 
 - **Comportamiento:** Perfil con pestañas (p. ej. Actividad); actividad con estado de carga ("Recargando…") mientras se obtienen datos; listado de actividad cuando hay datos.
 - **Criterios de aceptación:** No se muestra "Tu actividad está vacía" mientras se está cargando; al terminar la carga se muestra vacío o listado según datos.
+
+---
+
+### 2.6 Onboarding «primer valor» (Android y WebApp)
+
+- **Estado en servidor:** `users_db.onboarding_status` = `pending` | `completed_value` | `skipped` (+ timestamps). Una cuenta: un estado; completar u omitir en una plataforma cierra el flujo en la otra.
+- **Cuándo se muestra:** Tras registro/perfil nuevo o si el servidor sigue en `pending`. **Migración legacy:** quien ya tenía diario, despensa, follows o posts pasa a `completed_value`; el resto de cuentas antiguas sin datos a `skipped` (`onboarding_users_db.sql`). Reparación one-off si antes todo quedó en `skipped`: `onboarding_legacy_repair_skipped_to_completed.sql`.
+- **Android:** Ruta `onboarding` con CTAs a elaboración y diario, omitir (persistencia remota), retroceso = omitir. **Web:** Overlay a pantalla completa con mismas acciones.
+- **Web en navegador (no exige PWA):** mismo overlay y mismas reglas de estado remoto. Tras **OAuth** (redirect a la raíz configurada con `?code=`), la app intercambia la sesión vía cliente Supabase y **sustituye** la URL por `{getAppRootPath}/home` para no dejar el código en la barra (`useAuthSession`). **One Tap** no usa redirect. Si el callback devuelve **error en el hash**, se muestra error y se normaliza a home (`authError` + `AppContainer`). **Deep link** a lista de perfil sin login: se guarda la ruta y se reaplica al autenticarse (`useRouteGuardSync`, `getReturnAfterLoginPath` en `AppContainer`). Detalle deploy/URLs: `webApp/DEPLOY-IONOS.md`.
+- **Completado automático (contrato):**
+  - **Elaboración (CTA «Ir a elaboración»):** cuenta como “iniciar elaboración” el **primer arranque del temporizador** en Brew con método definido y **duración total de fases > 0** (no basta abrir la pantalla ni elegir café). **Android:** `BrewLabViewModel.toggleTimer` (rama que arranca `BrewLabTimerService` la primera vez). **WebApp:** transición a `brewRunning === true` en paso `brewing` con `timerSeconds === 0` (`AppContainer`). Si el flujo no dispara temporizador (p. ej. timeline 0 s), el mismo flujo puede cerrar onboarding al **guardar en diario** desde Brew (entrada taza o agua).
+  - **Diario (fuera de Brew):** primera entrada taza o agua.
+  - **Despensa:** primer ítem añadido.
+  - **Social:** **≥2** seguimientos.
+- **Desactivar emergencia:** Android `ONBOARDING_V1_ENABLED=false` en Gradle; Web `VITE_ONBOARDING_V1_ENABLED=false` en `.env`.
+- **Analítica:** `docs/ANALITICAS.md` §14 (`onboarding_started`, CTAs, `onboarding_skipped`).
+- **Varios dispositivos o pestañas:** el estado remoto es la fuente de verdad; la última actualización en Supabase prevalece. **Web:** refresco al volver visibilidad si sigue `pending`; evento interno al completar/omitir en la misma ventana. **Android:** refresco del usuario desde Supabase al pasar a primer plano cuando local = `pending`; si ya no aplica onboarding, la navegación abandona la pantalla de onboarding.
 
 ---
 

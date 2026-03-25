@@ -14,10 +14,24 @@ ErrorDocument 404 /index.html
   RewriteRule ^assets/ - [L]
   RewriteRule ^registerSW\.js$ - [L]
   RewriteRule \.(js|css|png|svg|ico|webmanifest|woff2?)$ - [L]
-  # /landing sin barra final → redirigir a /landing/
-  RewriteRule ^landing$ /landing/ [R=301,L]
-  # /landing/ y contenido de landing: no enviar al SPA
+
+  # --- Canonical: sin "/" final (SEO) ---
+  # Nota: servimos rutas prerender como fichero index.html para evitar el auto-redirect de Apache a "/".
+
+  # /landing/ -> /landing (301) y servir la landing sin slash
+  RewriteRule ^landing/$ /landing [R=301,L]
+  RewriteRule ^landing$ /landing/index.html [L]
   RewriteRule ^landing/ - [L]
+
+  # /coffee/<slug>/ -> /coffee/<slug> (301) y servir prerender sin slash
+  RewriteRule ^coffee/([^/]+)/$ /coffee/$1 [R=301,L]
+  RewriteRule ^coffee/([^/]+)$ /coffee/$1/index.html [L]
+
+  # Quitar "/" final en el resto (excepto raíz). Solo si NO es fichero/directorio real.
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^(.+?)/$ /$1 [R=301,L]
+
   # No reescribir si existe un fichero o directorio
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
@@ -35,9 +49,35 @@ ErrorDocument 404 /index.html
 
 # Que el navegador no cachee index.html ni el service worker: cada deploy se ve al instante
 <IfModule mod_headers.c>
-  <FilesMatch "index\.html|sw\.js|registerSW\.js|workbox-.*\.js|workbox-.*\.mjs">
+  # SW y runtime críticos: no cache
+  <FilesMatch "sw\.js|registerSW\.js|workbox-.*\.js|workbox-.*\.mjs">
     Header set Cache-Control "no-cache, no-store, must-revalidate"
     Header set Pragma "no-cache"
+  </FilesMatch>
+
+  # App shell (index raíz): cache corto para revalidar rápido
+  <If "%{REQUEST_URI} == '/' || %{REQUEST_URI} == '/index.html'">
+    Header set Cache-Control "public, max-age=300, stale-while-revalidate=30"
+  </If>
+
+  # Rutas SEO indexables (coffee): cache largo + stale-while-revalidate
+  <If "%{REQUEST_URI} =~ m#^/coffee/[^/]+$#">
+    Header set Cache-Control "public, max-age=86400, stale-while-revalidate=604800"
+  </If>
+
+  # Rutas medias (search/login/facetas): cache medio
+  <If "%{REQUEST_URI} =~ m#^/(search|login)(/.*)?$#">
+    Header set Cache-Control "public, max-age=3600, stale-while-revalidate=86400"
+  </If>
+
+  # Assets compilados: muy largo
+  <FilesMatch "^assets/.*\.(js|css|woff2?)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # Cache fuerte para OG images (versionadas por deploy / por id)
+  <FilesMatch "^og/.*\.(jpg|jpeg|png|webp)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>
 </IfModule>
 

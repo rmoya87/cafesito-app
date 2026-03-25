@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -111,7 +110,6 @@ fun UserSuggestionCard(
         shape = Shapes.cardSmall,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         onClick = { onUserClick(user.id) }
     ) {
         Column(
@@ -157,13 +155,12 @@ fun UserSuggestionCard(
                     Text("Siguiendo", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
                 }
             } else {
-                OutlinedButton(
+                Button(
                     onClick = { onFollowClick(user.id) },
                     modifier = Modifier.fillMaxWidth().height(32.dp),
                     contentPadding = PaddingValues(0.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color.Transparent,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
                         contentColor = MaterialTheme.colorScheme.primary
                     ),
                     shape = Shapes.cardSmall
