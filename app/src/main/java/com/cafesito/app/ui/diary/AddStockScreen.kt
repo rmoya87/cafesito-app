@@ -31,6 +31,8 @@ import com.cafesito.app.R
 import com.cafesito.app.camera.NativeBarcodeScannerActivity
 import com.cafesito.app.ui.components.*
 import com.cafesito.app.ui.search.BarcodeActionIcon
+import com.cafesito.app.ui.utils.containsSearchQuery
+import com.cafesito.app.ui.utils.normalizeForSearch
 import android.os.Bundle
 import androidx.core.os.bundleOf
 import com.cafesito.app.ui.theme.*
@@ -58,9 +60,9 @@ fun AddStockScreen(
     val filteredSuggestions = remember(coffees, searchQuery) {
         coffees.filter { 
             !it.coffee.isCustom && (
-                it.coffee.nombre.contains(searchQuery, ignoreCase = true) || 
-                it.coffee.marca.contains(searchQuery, ignoreCase = true) ||
-                it.coffee.codigoBarras == searchQuery
+                it.coffee.nombre.containsSearchQuery(searchQuery) || 
+                it.coffee.marca.containsSearchQuery(searchQuery) ||
+                it.coffee.codigoBarras.normalizeForSearch() == searchQuery.normalizeForSearch()
             )
         }.sortedByDescending { it.isFavorite }
     }

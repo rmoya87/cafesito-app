@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useState, useMemo, useEffect } from "react";
 import { formatMonthYear, getMondayOfWeek, type DiaryPeriod } from "../../core/diaryAnalytics";
+import { normalizeLookupText } from "../../core/text";
 import { COFFEE_SIZE_OPTIONS, COFFEE_TIPO_OPTIONS } from "../../data/diaryBrewOptions";
 import type { CoffeeRow, DiaryEntryRow, PantryItemRow } from "../../types";
 import { UiIcon } from "../../ui/iconography";
@@ -312,20 +313,20 @@ function DiarySheets({
     [pantryCoffeeRows, activeUserId]
   );
   const filteredCoffeeSuggestions = useMemo(() => {
-    const q = coffeeSearchQuery.trim().toLowerCase();
+    const q = normalizeLookupText(coffeeSearchQuery);
     const filtered = q
       ? diaryCoffeeOptions.filter(
-          (c) => c.nombre.toLowerCase().includes(q) || (c.marca ?? "").toLowerCase().includes(q)
+          (c) => normalizeLookupText(c.nombre).includes(q) || normalizeLookupText(c.marca).includes(q)
         )
       : diaryCoffeeOptions;
     return filtered.slice(0, 10);
   }, [diaryCoffeeOptions, coffeeSearchQuery]);
 
   const filteredPantryCoffees = useMemo(() => {
-    const q = pantrySearchQuery.trim().toLowerCase();
+    const q = normalizeLookupText(pantrySearchQuery);
     return q
       ? diaryCoffeeOptions.filter(
-          (c) => c.nombre.toLowerCase().includes(q) || (c.marca ?? "").toLowerCase().includes(q)
+          (c) => normalizeLookupText(c.nombre).includes(q) || normalizeLookupText(c.marca).includes(q)
         )
       : diaryCoffeeOptions;
   }, [diaryCoffeeOptions, pantrySearchQuery]);

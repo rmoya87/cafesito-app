@@ -369,8 +369,8 @@ fun CoffeeSelectionStepPremium(
     val isDark = isSystemInDarkTheme()
     val filteredCatalog = allCoffees.filter { 
         !it.coffee.isCustom && (
-            it.coffee.nombre.contains(searchQuery, ignoreCase = true) || 
-            it.coffee.marca.contains(searchQuery, ignoreCase = true)
+            it.coffee.nombre.containsSearchQuery(searchQuery) || 
+            it.coffee.marca.containsSearchQuery(searchQuery)
         )
     }.take(10)
 

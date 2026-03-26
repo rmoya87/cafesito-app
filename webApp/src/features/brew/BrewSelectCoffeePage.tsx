@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { sendEvent } from "../../core/ga4";
+import { normalizeLookupText } from "../../core/text";
 import type { CoffeeRow, PantryItemRow } from "../../types";
 import { UiIcon } from "../../ui/iconography";
 import { Button, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
@@ -137,12 +138,12 @@ export function BrewSelectCoffeePage({
   const showSearchCancel = coffeeSearchQuery !== "" || coffeeSearchFocus;
   const pantryCoffeeIds = useMemo(() => new Set(pantryItems.map((r) => r.coffee.id)), [pantryItems]);
   const filteredSuggestions = useMemo(() => {
-    const q = coffeeSearchQuery.trim().toLowerCase();
+    const q = normalizeLookupText(coffeeSearchQuery);
     const filtered = q
       ? coffeeOptions.filter(
           (c) =>
             !pantryCoffeeIds.has(c.id) &&
-            (c.nombre.toLowerCase().includes(q) || (c.marca ?? "").toLowerCase().includes(q))
+            (normalizeLookupText(c.nombre).includes(q) || normalizeLookupText(c.marca).includes(q))
         )
       : coffeeOptions.filter((c) => !pantryCoffeeIds.has(c.id));
     return filtered.slice(0, 10);

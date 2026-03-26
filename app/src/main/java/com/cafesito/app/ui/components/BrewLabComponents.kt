@@ -109,6 +109,7 @@ import com.cafesito.app.ui.profile.ProfileUiState
 import com.cafesito.app.ui.profile.ProfileViewModel
 import com.cafesito.app.ui.search.BarcodeActionIcon
 import com.cafesito.app.ui.theme.*
+import com.cafesito.app.ui.utils.containsSearchQuery
 import com.cafesito.app.ui.timeline.CommentsViewModel
 import com.cafesito.app.ui.timeline.TimelineNotification
 import com.google.mlkit.vision.barcode.common.Barcode
@@ -483,10 +484,10 @@ fun ChooseCoffeeStep(
     onCoffeeSelected: (Coffee, Boolean, pantryItemId: String?) -> Unit
 ) {
     val filteredPantry = if (searchQuery.isBlank()) pantryItems else pantryItems.filter {
-        it.coffee.nombre.contains(searchQuery, true) || it.coffee.marca.contains(searchQuery, true)
+        it.coffee.nombre.containsSearchQuery(searchQuery) || it.coffee.marca.containsSearchQuery(searchQuery)
     }
     val filteredSuggestions = if (searchQuery.isBlank()) allCoffees.take(10) else allCoffees.filter {
-        it.coffee.nombre.contains(searchQuery, true) || it.coffee.marca.contains(searchQuery, true)
+        it.coffee.nombre.containsSearchQuery(searchQuery) || it.coffee.marca.containsSearchQuery(searchQuery)
     }.take(10)
 
     LazyColumn(
