@@ -62,7 +62,7 @@
   }
 
   .login-subtitle {
-    color: var(--pure-black);
+    color: var(--pure-white);
   }
 
   .login-feature-title {
@@ -71,6 +71,10 @@
 
   .login-feature-desc {
     color: rgba(26, 18, 11, 0.8);
+  }
+
+  .login-feature-icon {
+    color: var(--caramel-accent);
   }
 }
 
@@ -155,6 +159,16 @@
   justify-content: center;
   background: var(--pure-white);
   color: var(--caramel-accent);
+}
+
+@media (prefers-color-scheme: dark) {
+  .login-feature-icon {
+    color: #6f4e37;
+  }
+}
+
+html.theme-dark .login-feature-icon {
+  color: #6f4e37;
 }
 
 .login-feature-icon .ui-icon {

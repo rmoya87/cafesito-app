@@ -73,6 +73,8 @@ export type IconName =
   | "water"
   | "bottle"
   | "clock"
+  | "checklist"
+  | "explore-filled"
   | "share"
   | "person_add"
   | "link";
@@ -398,6 +400,28 @@ export function UiIcon({ name, className }: { name: IconName; className?: string
       <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
         <circle cx="12" cy="12" r="8.5" />
         <path d="M12 7.8v4.6l3 1.8" />
+      </svg>
+    );
+  }
+  if (name === "checklist") {
+    return (
+      <svg viewBox="0 -960 960 960" className={className} aria-hidden="true">
+        <path
+          d="M222-214 80-356l42-42 100 99 179-179 42 43-221 221Zm0-320L80-676l42-42 100 99 179-179 42 43-221 221Zm298 244v-60h360v60H520Zm0-320v-60h360v60H520Z"
+          fill="currentColor"
+          stroke="none"
+        />
+      </svg>
+    );
+  }
+  if (name === "explore-filled") {
+    return (
+      <svg viewBox="0 -960 960 960" className={className} aria-hidden="true">
+        <path
+          d="m303-303 270-83 83-270-270 83-83 270Zm177-137q-17 0-28.5-11.5T440-480q0-17 11.5-28.5T480-520q17 0 28.5 11.5T520-480q0 17-11.5 28.5T480-440Zm0 360q-82 0-155-31.5t-127.5-86Q143-252 111.5-325T80-480q0-83 31.5-156t86-127Q252-817 325-848.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 82-31.5 155T763-197.5q-54 54.5-127 86T480-80Z"
+          fill="currentColor"
+          stroke="none"
+        />
       </svg>
     );
   }

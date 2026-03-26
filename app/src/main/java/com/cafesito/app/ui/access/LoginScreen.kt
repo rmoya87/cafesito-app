@@ -6,6 +6,7 @@ import android.util.Log
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -14,7 +15,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -52,11 +55,10 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoGraph
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Science
-import androidx.compose.ui.graphics.vector.ImageVector
 import com.cafesito.app.ui.theme.CafesitoModalSheetDefaults
+import com.cafesito.app.ui.theme.CaramelAccent
 import com.cafesito.app.ui.theme.LocalCaramelAccent
 import com.cafesito.app.ui.theme.PureBlack
 import com.cafesito.app.ui.theme.PureWhite
@@ -167,10 +169,26 @@ fun LoginScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                FeatureRowUnified(icon = Icons.Default.CameraAlt, title = stringResource(R.string.login_feature_share_title), desc = stringResource(R.string.login_feature_share_desc))
-                FeatureRowUnified(icon = Icons.Default.Coffee, title = stringResource(R.string.login_feature_explore_title), desc = stringResource(R.string.login_feature_explore_desc))
-                FeatureRowUnified(icon = Icons.Default.Science, title = stringResource(R.string.login_feature_brew_title), desc = stringResource(R.string.login_feature_brew_desc))
-                FeatureRowUnified(icon = Icons.Default.AutoGraph, title = stringResource(R.string.login_feature_track_title), desc = stringResource(R.string.login_feature_track_desc))
+                FeatureRowUnified(
+                    icon = painterResource(id = R.drawable.login_checklist),
+                    title = stringResource(R.string.login_feature_share_title),
+                    desc = stringResource(R.string.login_feature_share_desc)
+                )
+                FeatureRowUnified(
+                    icon = painterResource(id = R.drawable.login_explore),
+                    title = stringResource(R.string.login_feature_explore_title),
+                    desc = stringResource(R.string.login_feature_explore_desc)
+                )
+                FeatureRowUnified(
+                    icon = androidx.compose.ui.graphics.vector.rememberVectorPainter(Icons.Default.Coffee),
+                    title = stringResource(R.string.login_feature_brew_title),
+                    desc = stringResource(R.string.login_feature_brew_desc)
+                )
+                FeatureRowUnified(
+                    icon = androidx.compose.ui.graphics.vector.rememberVectorPainter(Icons.Default.AutoGraph),
+                    title = stringResource(R.string.login_feature_track_title),
+                    desc = stringResource(R.string.login_feature_track_desc)
+                )
             }
 
             Spacer(modifier = Modifier.height(40.dp))
@@ -349,15 +367,21 @@ fun LoginScreen(
 }
 
 @Composable
-private fun FeatureRowUnified(icon: ImageVector, title: String, desc: String) {
+private fun FeatureRowUnified(icon: Painter, title: String, desc: String) {
+    val isDark = isSystemInDarkTheme()
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         Surface(
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+            color = if (isDark) PureWhite else MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
             shape = Shapes.cardSmall,
             modifier = Modifier.size(44.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = title, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                Icon(
+                    painter = icon,
+                    contentDescription = title,
+                    tint = if (isDark) CaramelAccent else MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp)
+                )
             }
         }
         Spacer(modifier = Modifier.width(16.dp))

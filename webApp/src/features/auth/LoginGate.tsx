@@ -117,11 +117,20 @@ export function LoginGate({
             <section className="login-feature-list" aria-label="Beneficios">
               <article className="login-feature-row">
                 <span className="login-feature-icon" aria-hidden="true">
-                  <UiIcon name="camera-filled" className="ui-icon" />
+                  <UiIcon name="checklist" className="ui-icon" />
                 </span>
                 <div className="login-feature-copy">
-                  <p className="login-feature-title">Comparte</p>
-                  <p className="login-feature-desc">Publica tus momentos cafeteros.</p>
+                  <p className="login-feature-title">Gestiona</p>
+                  <p className="login-feature-desc">Organiza tu café en casa y ten control total de tu despensa.</p>
+                </div>
+              </article>
+              <article className="login-feature-row">
+                <span className="login-feature-icon" aria-hidden="true">
+                  <UiIcon name="explore-filled" className="ui-icon" />
+                </span>
+                <div className="login-feature-copy">
+                  <p className="login-feature-title">Explora</p>
+                  <p className="login-feature-desc">Descubre cafés, tostadores y perfiles que encajan contigo.</p>
                 </div>
               </article>
               <article className="login-feature-row">
@@ -129,17 +138,8 @@ export function LoginGate({
                   <UiIcon name="coffee-filled" className="ui-icon" />
                 </span>
                 <div className="login-feature-copy">
-                  <p className="login-feature-title">Explora</p>
-                  <p className="login-feature-desc">Descubre nuevos granos y baristas.</p>
-                </div>
-              </article>
-              <article className="login-feature-row">
-                <span className="login-feature-icon" aria-hidden="true">
-                  <UiIcon name="nav-add-circle-filled" className="ui-icon" />
-                </span>
-                <div className="login-feature-copy">
                   <p className="login-feature-title">Elabora</p>
-                  <p className="login-feature-desc">Prepara recetas como un profesional.</p>
+                  <p className="login-feature-desc">Convierte cada preparación en una experiencia de barista en casa.</p>
                 </div>
               </article>
               <article className="login-feature-row">
@@ -148,7 +148,7 @@ export function LoginGate({
                 </span>
                 <div className="login-feature-copy">
                   <p className="login-feature-title">Registra</p>
-                  <p className="login-feature-desc">Crea tu propio perfil sensorial.</p>
+                  <p className="login-feature-desc">Guarda tus catas y descubre cómo evoluciona tu paladar.</p>
                 </div>
               </article>
             </section>

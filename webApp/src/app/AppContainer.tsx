@@ -2175,7 +2175,7 @@ export function AppContainer() {
             />
           </Suspense>
         </main>
-        {mode === "mobile" ? <footer className="bottom-tabs">{nav}</footer> : null}
+        {typeof document !== "undefined" ? createPortal(<footer className="bottom-tabs">{nav}</footer>, document.body) : null}
         <AuthPromptOverlay
           open={showAuthPrompt}
           authBusy={authBusy}
@@ -3252,7 +3252,14 @@ export function AppContainer() {
         </aside>
       ) : null}
 
-      {mode === "mobile" && guardedActiveTab !== "crear-cafe" && guardedActiveTab !== "selecciona-cafe" && !(guardedActiveTab === "brewlab" && showCreateCoffeeComposer) && !isSearchUsersPage && !detailCoffeeId ? <footer className="bottom-tabs">{nav}</footer> : null}
+      {guardedActiveTab !== "crear-cafe" &&
+      guardedActiveTab !== "selecciona-cafe" &&
+      !(guardedActiveTab === "brewlab" && showCreateCoffeeComposer) &&
+      !isSearchUsersPage &&
+      guardedActiveTab !== "coffee" &&
+      typeof document !== "undefined"
+        ? createPortal(<footer className="bottom-tabs">{nav}</footer>, document.body)
+        : null}
 
       {showEditListSheet && profileListId && (() => {
         const list = userLists.find((l) => l.id === profileListId);

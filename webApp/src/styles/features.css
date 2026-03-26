@@ -594,12 +594,25 @@ html.theme-light .layout.is-coffee .coffee-detail.is-full-page .coffee-detail-se
 }
 
 @media (max-width: 899px) {
+  .topbar {
+    /* En web móvil debe permanecer fijo al hacer scroll */
+    position: fixed;
+    left: 0;
+    right: 0;
+  }
+
+  .cookie-consent-banner {
+    /* Evita tapar la navegación inferior en móvil/PWA */
+    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  }
+
   .main-shell {
     --app-shell-gutter: var(--space-3);
   }
 
   .main-shell-scroll {
-    padding: 2px 0 calc(72px + env(safe-area-inset-bottom, 0px));
+    /* El contenido pasa por debajo del menú fijo inferior (sin reservar hueco grande) */
+    padding: 2px 0 calc(12px + env(safe-area-inset-bottom, 0px));
   }
 
   .main-shell-scroll.is-coffee {
@@ -15812,7 +15825,7 @@ html.theme-dark .app-range.app-range--time {
   transform: translateX(-50%);
   width: min(860px, calc(100% - 32px));
   bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-  z-index: 20;
+  z-index: 120;
   border: none;
   border-radius: 32px;
   background: var(--surface);
@@ -15820,6 +15833,12 @@ html.theme-dark .app-range.app-range--time {
   /* Sombra pegada al menú para que no se corte por abajo */
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.38);
   padding: 0 8px;
+}
+
+@media (min-width: 900px) {
+  .bottom-tabs {
+    display: none;
+  }
 }
 
 .sheet-title {
@@ -15914,7 +15933,8 @@ html.theme-dark .app-range.app-range--time {
 }
 
 .notifications-list {
-  padding: 0 0 22px;
+  /* Evita que la primera tarjeta quede pisada bajo la cabecera sticky */
+  padding: 12px 0 22px;
   gap: 12px;
 }
 
@@ -20224,5 +20244,14 @@ html.theme-dark .app-range.app-range--time {
   }
   .dev-safe-area-sim .topbar-search {
     padding: calc(7px + 47px) var(--app-shell-gutter) 9px;
+  }
+}
+
+@media (max-width: 899px) {
+  .topbar {
+    position: fixed !important;
+    left: 0;
+    right: 0;
+    z-index: 100;
   }
 }
