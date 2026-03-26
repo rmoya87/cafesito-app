@@ -1,7 +1,7 @@
 # Registro de desarrollo e incidencias
 
 **Propósito:** Documentar cambios, correcciones y decisiones recientes para tenerlos en cuenta en próximos desarrollos o incidencias.  
-**Última actualización:** 2026-03-25 (§24 Web estáticos + login SPA + SEO)
+**Última actualización:** 2026-03-26 (§25 búsqueda unificada Web/Android)
 
 ---
 
@@ -46,6 +46,7 @@ Consultar este documento antes de tocar ramas, deploy, TypeScript/CI o flujos ya
 22. [Brew Lab: reanudar timer tras reinicio (24 mar 2026)](#22-brew-lab-reanudar-timer-tras-reinicio-24-mar-2026)
 23. [Onboarding «primer valor» — estado en servidor, Android y WebApp (24 mar 2026)](#23-onboarding-primer-valor--estado-en-servidor-android-y-webapp-24-mar-2026)
 24. [Web: landing, legales, login SPA — rutas, CSS y SEO (25 mar 2026)](#24-web-landing-legales-login-spa--rutas-css-y-seo-25-mar-2026)
+25. [Búsqueda unificada Web/Android — normalización y pantallas impactadas (26 mar 2026)](#25-búsqueda-unificada-webandroid--normalización-y-pantallas-impactadas-26-mar-2026)
 
 ---
 
@@ -821,6 +822,21 @@ Misma semántica Web y Android para quién ve listas en el modal y cuándo el ic
 **Solución:** `pathnameForSeo` en `AppContainer` para mapear raíz de app a `/login` cuando corresponde la puerta de login; `LoginGate` importa `features.css`; landing `index.html` usa rutas absolutas `/landing/...`; legales `href="/logo.png"` para favicon.
 
 **Fuente de verdad:** `webApp/docs/ESTATICOS_LANDING_LEGAL_LOGIN_WEB.md` (checklist + archivos). Enlace desde `webApp/docs/SEO_WEBAPP_AVANZADO_2026-03.md` §3.2.b.
+
+---
+
+## 25. Búsqueda unificada Web/Android — normalización y pantallas impactadas (26 mar 2026)
+
+**Problema:** coexistían lógicas distintas de búsqueda según pantalla (normalización completa en unas, `toLowerCase`/`contains` simple en otras), generando diferencias con marcas como `L'Or` (`Lor`, `L´or`, etc.).
+
+**Solución aplicada:** normalización homogénea en flujos de búsqueda de café/marca:
+
+- **WebApp:** uso de `normalizeLookupText()` en `Search`, `Selecciona café` y sheets de añadir/despensa.
+- **Android:** uso de `containsSearchQuery()` / `normalizeForSearch()` en `Search`, `Brew` (selección), `AddDiaryEntry` y `AddStock`.
+
+**Alcance adicional:** ajuste en WebApp para que el campo de `Selecciona café` responda como buscador de catálogo (misma semántica que Search) y corrección de cabecera de Notificaciones en PWA para que el contenido no quede pisado.
+
+**Fuente de verdad:** `webApp/docs/SEARCH_NORMALIZATION_WEBAPP_ANDROID.md` (reglas, mapa de archivos, checklist de regresión y antipatrones).
 
 ---
 
