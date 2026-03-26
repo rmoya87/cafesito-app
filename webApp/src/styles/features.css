@@ -20140,6 +20140,15 @@ html.theme-dark .app-range.app-range--time {
   padding: calc(var(--space-2) + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) var(--space-2);
   padding-left: var(--app-shell-gutter);
   padding-right: var(--app-shell-gutter);
+  position: sticky;
+  top: 0;
+  left: auto;
+  right: auto;
+  transform: none;
+}
+.pwa-standalone .notifications-overlay .notifications-header::before,
+.pwa-standalone .notifications-page .notifications-header::before {
+  content: none;
 }
 .pwa-standalone .main-shell-scroll {
   overflow-x: hidden;
@@ -20180,6 +20189,11 @@ html.theme-dark .app-range.app-range--time {
   .pwa-standalone .notifications-page .notifications-header {
     min-height: calc(56px + env(safe-area-inset-top, 44px));
     padding: calc(7px + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) var(--space-2);
+    position: sticky;
+    top: 0;
+    left: auto;
+    right: auto;
+    transform: none;
   }
   .pwa-standalone .topbar-search {
     padding: calc(7px + env(safe-area-inset-top, 44px)) var(--app-shell-gutter) 9px;

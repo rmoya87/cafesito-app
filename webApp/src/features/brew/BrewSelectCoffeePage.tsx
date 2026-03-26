@@ -136,18 +136,15 @@ export function BrewSelectCoffeePage({
     onUpdatePantryStock != null || onRemovePantryItem != null || onMarkPantryCoffeeFinished != null;
 
   const showSearchCancel = coffeeSearchQuery !== "" || coffeeSearchFocus;
-  const pantryCoffeeIds = useMemo(() => new Set(pantryItems.map((r) => r.coffee.id)), [pantryItems]);
   const filteredSuggestions = useMemo(() => {
     const q = normalizeLookupText(coffeeSearchQuery);
     const filtered = q
       ? coffeeOptions.filter(
-          (c) =>
-            !pantryCoffeeIds.has(c.id) &&
-            (normalizeLookupText(c.nombre).includes(q) || normalizeLookupText(c.marca).includes(q))
+          (c) => normalizeLookupText(c.nombre).includes(q) || normalizeLookupText(c.marca).includes(q)
         )
-      : coffeeOptions.filter((c) => !pantryCoffeeIds.has(c.id));
+      : coffeeOptions;
     return filtered.slice(0, 10);
-  }, [coffeeOptions, coffeeSearchQuery, pantryCoffeeIds]);
+  }, [coffeeOptions, coffeeSearchQuery]);
 
   return (
     <div className="brew-select-coffee-page">
