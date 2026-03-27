@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const createQueryBuilder = () => {
   const builder: any = {
@@ -28,20 +28,37 @@ vi.mock("./supabase", () => ({
   })
 }));
 
+import { I18nProvider } from "./i18n";
 import { App } from "./App";
 
+function renderApp() {
+  return render(
+    <I18nProvider>
+      <App />
+    </I18nProvider>
+  );
+}
+
 describe("App", () => {
+  beforeEach(() => {
+    // Locale fija en tests: en CI suele resolverse a inglés y cambian aria-label de la navegación.
+    try {
+      window.localStorage.setItem("cafesito.locale", "es");
+    } catch {
+      /* ignore */
+    }
+  });
   afterEach(() => {
     document.body.innerHTML = "";
   });
   it("renderiza cabecera", async () => {
-    const { unmount } = render(<App />);
+    const { unmount } = renderApp();
     expect((await screen.findAllByText("CAFESITO")).length).toBeGreaterThan(0);
     unmount();
   });
 
   it("renderiza navegacion principal", async () => {
-    const { unmount } = render(<App />);
+    const { unmount } = renderApp();
     expect((await screen.findAllByRole("button", { name: "Inicio" })).length).toBeGreaterThan(0);
     expect((await screen.findAllByRole("button", { name: "Explorar" })).length).toBeGreaterThan(0);
     expect((await screen.findAllByRole("button", { name: "Elabora" })).length).toBeGreaterThan(0);
@@ -51,7 +68,7 @@ describe("App", () => {
   });
 
   it("muestra vista de diario al navegar a Diario (humo)", async () => {
-    const { unmount } = render(<App />);
+    const { unmount } = renderApp();
     const diarioButtons = await screen.findAllByRole("button", { name: "Diario" });
     expect(diarioButtons.length).toBeGreaterThan(0);
     fireEvent.click(diarioButtons[0]);
@@ -60,7 +77,7 @@ describe("App", () => {
   });
 
   it("muestra vista de explorar al navegar a Explorar (humo)", async () => {
-    const { unmount } = render(<App />);
+    const { unmount } = renderApp();
     const explorarButtons = await screen.findAllByRole("button", { name: "Explorar" });
     expect(explorarButtons.length).toBeGreaterThan(0);
     fireEvent.click(explorarButtons[0]);
