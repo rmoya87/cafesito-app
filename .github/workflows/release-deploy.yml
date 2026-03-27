@@ -503,7 +503,19 @@ jobs:
           echo "APP_VERSION=${DATE_PART}-${VV}" >> $GITHUB_ENV
           echo "App version: ${DATE_PART}-${VV}"
 
-      - name: Build
+      - name: Build web app (full prerender on push/manual)
+        if: github.event_name != 'schedule'
+        run: npm run build:full
+        env:
+          APP_VERSION: ${{ env.APP_VERSION }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://cafesitoapp.com' }}
+          VITE_GTM_CONTAINER_ID: ${{ vars.VITE_GTM_CONTAINER_ID || secrets.VITE_GTM_CONTAINER_ID || 'GTM-WLXN93VK' }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID || vars.VITE_GOOGLE_CLIENT_ID || '' }}
+
+      - name: Build web app (base build for nightly delta)
+        if: github.event_name == 'schedule'
         run: npm run build
         env:
           APP_VERSION: ${{ env.APP_VERSION }}
@@ -515,6 +527,7 @@ jobs:
 
       # Sitemap + robots en dist/ (npm run build no los genera; antes solo el job nocturno y mal ubicados → 404 en /sitemap.xml.gz)
       - name: Sitemap y robots.txt en dist
+        if: github.event_name == 'schedule'
         run: node scripts/update-sitemap-from-supabase.mjs
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
