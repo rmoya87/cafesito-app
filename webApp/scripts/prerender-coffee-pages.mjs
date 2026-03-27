@@ -158,11 +158,22 @@ async function main() {
 
     const jsonLd = {
       "@context": "https://schema.org",
-      "@type": "Product",
-      name: coffee.nombre,
-      brand: coffee.marca || undefined,
-      image: coffee.image_url || undefined,
-      description
+      "@type": "WebPage",
+      "@id": `${canonical}#webpage`,
+      name: title,
+      url: canonical,
+      description,
+      isPartOf: {
+        "@type": "WebSite",
+        name: "Cafesito",
+        url: siteUrl
+      },
+      about: {
+        "@type": "Thing",
+        name: coffee.nombre,
+        brand: coffee.marca || undefined,
+        image: coffee.image_url || undefined
+      }
     };
     html = html.replace("</head>", `  <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>\n  </head>`);
 
