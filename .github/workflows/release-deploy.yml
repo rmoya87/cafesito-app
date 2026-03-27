@@ -469,6 +469,16 @@ jobs:
           cache: 'npm'
           cache-dependency-path: webApp/package-lock.json
 
+      - name: Restore OG image cache
+        if: github.event_name != 'schedule'
+        uses: actions/cache/restore@v4
+        with:
+          path: webApp/.cache/og-images
+          key: og-images-v1-${{ env.TARGET_BRANCH }}-${{ github.run_id }}
+          restore-keys: |
+            og-images-v1-${{ env.TARGET_BRANCH }}-
+            og-images-v1-
+
       - name: Install
         run: npm ci
 
@@ -524,6 +534,13 @@ jobs:
           VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://cafesitoapp.com' }}
           VITE_GTM_CONTAINER_ID: ${{ vars.VITE_GTM_CONTAINER_ID || secrets.VITE_GTM_CONTAINER_ID || 'GTM-WLXN93VK' }}
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID || vars.VITE_GOOGLE_CLIENT_ID || '' }}
+
+      - name: Save OG image cache
+        if: github.event_name != 'schedule' && success()
+        uses: actions/cache/save@v4
+        with:
+          path: webApp/.cache/og-images
+          key: og-images-v1-${{ env.TARGET_BRANCH }}-${{ github.run_id }}
 
       # Sitemap + robots en dist/ (npm run build no los genera; antes solo el job nocturno y mal ubicados → 404 en /sitemap.xml.gz)
       - name: Sitemap y robots.txt en dist
