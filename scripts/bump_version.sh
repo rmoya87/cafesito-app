@@ -15,16 +15,33 @@ if [[ -z "${current_code}" ]]; then
 fi
 
 # No usar un versionCode ya desplegado en Play (evita "Version code X has already been used")
+# Fuente 1: scripts/last_deployed_version.txt
+# Fuente 2: tags deploy/android/* (si existen en el clone; en CI se hace checkout con fetch-tags)
 last_deployed_file="scripts/last_deployed_version.txt"
 last_deployed=0
 if [[ -f "${last_deployed_file}" ]]; then
   last_deployed=$(grep -E '^[0-9]+' "${last_deployed_file}" | head -n1 | tr -d '\r' || true)
   last_deployed=${last_deployed:-0}
 fi
+
+max_tag_deployed=0
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  tag_codes=$(git tag -l 'deploy/android/*/*' \
+    | sed -E 's#^deploy/android/[^/]+/([0-9]+)$#\1#' \
+    | grep -E '^[0-9]+$' || true)
+  if [[ -n "${tag_codes}" ]]; then
+    max_tag_deployed=$(printf '%s\n' "${tag_codes}" | sort -nr | head -n1)
+  fi
+fi
+
+if [[ "${max_tag_deployed}" -gt "${last_deployed}" ]]; then
+  last_deployed="${max_tag_deployed}"
+fi
+
 new_code=$((current_code + 1))
 if [[ "${new_code}" -le "${last_deployed}" ]]; then
   new_code=$((last_deployed + 1))
-  echo "Ajustado versionCode a ${new_code} (last_deployed=${last_deployed})"
+  echo "Ajustado versionCode a ${new_code} (max deployed=${last_deployed})"
 fi
 
 year=$(date -u +%Y)
