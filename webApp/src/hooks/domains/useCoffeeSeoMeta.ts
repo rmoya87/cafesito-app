@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import type { CoffeeRow } from "../../types";
+import type { Locale } from "../../i18n/messages";
+import { SUPPORTED_LOCALES } from "../../i18n";
 
 const ROBOTS_INDEX_FOLLOW = "index, follow";
 const ROBOTS_NOINDEX_FOLLOW = "noindex, follow";
@@ -18,13 +20,36 @@ const SEARCH_OG_IMAGE = "https://cafesitoapp.com/og/search.jpg";
 const LOGIN_OG_IMAGE = "https://cafesitoapp.com/og/login.jpg";
 const OG_IMAGE_WIDTH = "1200";
 const OG_IMAGE_HEIGHT = "630";
-const OG_LOCALE = "es_ES";
+const LOCALE_TO_OG: Record<Locale, string> = {
+  es: "es_ES",
+  en: "en_US",
+  fr: "fr_FR",
+  pt: "pt_PT",
+  de: "de_DE"
+};
 const TWITTER_SITE = "@cafesitoapp";
 const TWITTER_CREATOR = "@cafesitoapp";
 
 function stripTrailingSlash(pathname: string): string {
   const p = (pathname ?? "").replace(/\/+$/, "") || "/";
   return p === "" ? "/" : p;
+}
+
+function stripLocalePrefix(pathname: string): string {
+  const normalized = stripTrailingSlash(pathname);
+  const segments = normalized.split("/").filter(Boolean);
+  const maybeLocale = segments[0]?.toLowerCase() ?? "";
+  if (SUPPORTED_LOCALES.includes(maybeLocale as Locale)) {
+    const rest = segments.slice(1).join("/");
+    return rest ? `/${rest}` : "/";
+  }
+  return normalized;
+}
+
+function withLocalePrefix(pathname: string, locale: Locale): string {
+  const base = stripLocalePrefix(pathname);
+  if (base === "/") return `/${locale}`;
+  return `/${locale}${base}`;
 }
 
 function upsertWebSiteSearchActionJsonLd(doc: Document, siteUrl: string) {
@@ -80,6 +105,25 @@ function setOrCreateLink(doc: Document, rel: string, href: string): void {
   el.href = href;
 }
 
+function upsertHreflangAlternates(doc: Document, siteUrl: string, pathname: string): void {
+  const baseUrl = siteUrl.replace(/\/+$/, "");
+  doc.querySelectorAll("link[data-i18n-hreflang='true']").forEach((el) => el.remove());
+  SUPPORTED_LOCALES.forEach((locale) => {
+    const link = doc.createElement("link");
+    link.rel = "alternate";
+    link.hreflang = locale;
+    link.href = `${baseUrl}${withLocalePrefix(pathname, locale)}`;
+    link.setAttribute("data-i18n-hreflang", "true");
+    doc.head.appendChild(link);
+  });
+  const xDefault = doc.createElement("link");
+  xDefault.rel = "alternate";
+  xDefault.hreflang = "x-default";
+  xDefault.href = `${baseUrl}${withLocalePrefix(pathname, "en")}`;
+  xDefault.setAttribute("data-i18n-hreflang", "true");
+  doc.head.appendChild(xDefault);
+}
+
 function removeJsonLd(doc: Document, id: string): void {
   const el = doc.getElementById(id);
   if (el) el.remove();
@@ -104,25 +148,34 @@ function setOgImageMeta(doc: Document, url: string) {
 export function useCoffeeSeoMeta(
   detailCoffee: CoffeeRow | null,
   options?: { avgRating?: number; reviewCount?: number },
-  pathnameOverride?: string
+  pathnameOverride?: string,
+  locale: Locale = "en"
 ) {
   useEffect(() => {
     const doc = document;
     const rawPathname = pathnameOverride ?? (typeof window !== "undefined" ? window.location.pathname : "");
     const pathname = stripTrailingSlash(rawPathname);
-    const isCoffeeRoute = pathname.includes("/coffee/");
-    const isSearchRoute = /\/search(\/|$)/.test(pathname);
-    const isSearchCoffeesOnly = isSearchRoute && !/\/search\/users/.test(pathname);
-    const isLoginRoute = /\/login(\/|$)/.test(pathname);
-    const isSearchFacetRoute = /\/search\/(origen|tueste|especialidad|formato|nota)\/[^/]+$/.test(pathname);
+    const routePathNoLocale = stripLocalePrefix(pathname);
+    const isCoffeeRoute = routePathNoLocale.includes("/coffee/");
+    const isSearchRoute = /\/search(\/|$)/.test(routePathNoLocale);
+    const isSearchCoffeesOnly = isSearchRoute && !/\/search\/users/.test(routePathNoLocale);
+    const isLoginRoute = /\/login(\/|$)/.test(routePathNoLocale) || routePathNoLocale === "/";
+    const isSearchFacetRoute = /\/search\/(origen|tueste|especialidad|formato|nota)\/[^/]+$/.test(routePathNoLocale);
+    const isPublicLocalizedRoute = isLoginRoute || isSearchRoute;
     const siteUrl = (import.meta.env.VITE_SITE_URL as string | undefined) ?? (typeof window !== "undefined" ? window.location.origin : "");
-    const canonicalHref = `${siteUrl.replace(/\/+$/, "")}${pathname}`;
+    const canonicalPath = isPublicLocalizedRoute ? withLocalePrefix(routePathNoLocale, locale) : routePathNoLocale;
+    const canonicalHref = `${siteUrl.replace(/\/+$/, "")}${canonicalPath}`;
 
     setOrCreateLink(doc, "canonical", canonicalHref);
     upsertWebSiteSearchActionJsonLd(doc, siteUrl);
-    setOrCreateMeta(doc, "meta", "property", "og:locale", OG_LOCALE);
+    setOrCreateMeta(doc, "meta", "property", "og:locale", LOCALE_TO_OG[locale]);
     setOrCreateMeta(doc, "meta", "name", "twitter:site", TWITTER_SITE);
     setOrCreateMeta(doc, "meta", "name", "twitter:creator", TWITTER_CREATOR);
+    if (isPublicLocalizedRoute) {
+      upsertHreflangAlternates(doc, siteUrl, routePathNoLocale);
+    } else {
+      doc.querySelectorAll("link[data-i18n-hreflang='true']").forEach((el) => el.remove());
+    }
 
     let descriptionMeta = doc.querySelector("meta[name='description']") as HTMLMetaElement | null;
     if (!descriptionMeta) {
@@ -132,7 +185,7 @@ export function useCoffeeSeoMeta(
     }
 
     if (isSearchCoffeesOnly || isSearchFacetRoute) {
-      const facetMatch = pathname.match(/\/search\/(origen|tueste|especialidad|formato|nota)\/([^/]+)$/);
+      const facetMatch = routePathNoLocale.match(/\/search\/(origen|tueste|especialidad|formato|nota)\/([^/]+)$/);
       const facetType = facetMatch?.[1] ?? null;
       const facetValue = facetMatch?.[2] ? decodeURIComponent(facetMatch[2]) : null;
       const title = SEARCH_COFFEES_TITLE;
@@ -278,5 +331,5 @@ export function useCoffeeSeoMeta(
 
     removeJsonLd(doc, "coffee-product-ld");
     removeJsonLd(doc, "coffee-detail-page-ld");
-  }, [detailCoffee, options?.avgRating, options?.reviewCount, pathnameOverride]);
+  }, [detailCoffee, options?.avgRating, options?.reviewCount, pathnameOverride, locale]);
 }

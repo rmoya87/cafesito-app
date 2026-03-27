@@ -7,8 +7,47 @@ import { getConsent } from "./core/consent";
 import { registerSW } from "virtual:pwa-register";
 import { applyThemeToDocument, getThemeMode } from "./core/theme";
 import { I18nProvider } from "./i18n";
+import { MESSAGES, type Locale } from "./i18n/messages";
 import "./fonts-material-symbols.css";
 import "./styles.css";
+
+const LOCALE_KEY = "cafesito.locale";
+const LEGACY_LOCALE_KEY = "cafesito.locale.value";
+const LOCALE_USER_SELECTED_KEY = "cafesito.locale.user_selected";
+const LOCALE_REDIRECT_DONE_KEY = "cafesito.locale.redirect_done";
+const SUPPORTED_LOCALES = ["es", "en", "fr", "pt", "de"] as const;
+type AppLocale = (typeof SUPPORTED_LOCALES)[number];
+
+function detectPreferredLocale(): AppLocale {
+  if (typeof window === "undefined") return "en";
+  const wasUserSelected = window.localStorage.getItem(LOCALE_USER_SELECTED_KEY) === "1";
+  const saved = window.localStorage.getItem(LOCALE_KEY) ?? window.localStorage.getItem(LEGACY_LOCALE_KEY);
+  if (wasUserSelected && saved && saved !== "system" && SUPPORTED_LOCALES.includes(saved as AppLocale)) return saved as AppLocale;
+  const browser = window.navigator.language.toLowerCase();
+  const detected = SUPPORTED_LOCALES.find((l) => browser.startsWith(l));
+  return detected ?? "en";
+}
+
+function hasLocalePrefix(pathname: string): boolean {
+  const first = pathname.split("/").filter(Boolean)[0]?.toLowerCase() ?? "";
+  return SUPPORTED_LOCALES.includes(first as AppLocale);
+}
+
+function isLikelyBotUserAgent(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /bot|crawler|spider|crawling|slurp|bingpreview|googlebot|duckduckbot|baiduspider|yandex/i.test(navigator.userAgent);
+}
+
+function maybeRedirectRootToLocalizedPath(): void {
+  if (typeof window === "undefined") return;
+  if (isLikelyBotUserAgent()) return;
+  if (window.localStorage.getItem(LOCALE_REDIRECT_DONE_KEY) === "1") return;
+  const pathname = window.location.pathname;
+  if (pathname !== "/" || hasLocalePrefix(pathname)) return;
+  const locale = detectPreferredLocale();
+  window.localStorage.setItem(LOCALE_REDIRECT_DONE_KEY, "1");
+  window.location.replace(`/${locale}${window.location.search}${window.location.hash}`);
+}
 
 function appendHeadHint(rel: "preconnect" | "dns-prefetch", href: string, crossOrigin = false): void {
   if (typeof document === "undefined") return;
@@ -110,12 +149,15 @@ class RootErrorBoundary extends React.Component<
 
   render() {
     if (!this.state.hasError) return this.props.children;
+    const htmlLang = (typeof document !== "undefined" ? document.documentElement.lang : "").toLowerCase();
+    const baseLang = (htmlLang.split("-")[0] || "en") as Locale;
+    const locale: Locale = (["es", "en", "fr", "pt", "de"] as const).includes(baseLang) ? baseLang : "en";
     return (
       <div className="coffee-detail-empty coffee-detail-empty-full is-full-viewport">
-        <h1 className="title">Se produjo un error</h1>
-        <p className="coffee-sub">{this.state.message || "No se pudo renderizar la aplicación."}</p>
+        <h1 className="title">{MESSAGES[locale]["root.errorTitle"]}</h1>
+        <p className="coffee-sub">{this.state.message || MESSAGES[locale]["root.renderError"]}</p>
         <Button variant="primary" onClick={() => window.location.reload()}>
-          Recargar
+          {MESSAGES[locale]["common.reload"]}
         </Button>
       </div>
     );
@@ -153,6 +195,8 @@ if (import.meta.env.DEV && "serviceWorker" in navigator) {
     });
   }
 }
+
+maybeRedirectRootToLocalizedPath();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

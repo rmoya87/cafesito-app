@@ -2142,7 +2142,8 @@ export function AppContainer() {
       avgRating: detailCoffeeAverageRating,
       reviewCount: detailCoffeeReviews.length
     },
-    pathnameForSeo
+    pathnameForSeo,
+    locale
   );
 
   const showingLogin = (!authReady && !guestCanAccessCurrentTab) || (!sessionEmail && !guestCanAccessCurrentTab);

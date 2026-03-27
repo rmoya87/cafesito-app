@@ -57,6 +57,7 @@ private val LightColorScheme = lightColorScheme(
     onSurface = EspressoDeep,
     onSurfaceVariant = EspressoMedium,
     outline = BorderLight,
+    outlineVariant = BorderLight,
     surfaceTint = Color.Transparent // Desactiva la elevación tonal que añade gris/tinte
 )
 
@@ -78,6 +79,7 @@ private val DarkColorScheme = darkColorScheme(
     onSurface = Color.White,
     onSurfaceVariant = MutedCream,
     outline = SeparatorDark, // Gris oscuro para líneas de separación y bordes en modo noche
+    outlineVariant = SeparatorDark,
     surfaceTint = Color.Transparent // Desactiva la elevación tonal para mantener negro puro
 )
 
@@ -95,11 +97,12 @@ fun CafesitoTheme(
     }
     // Cards sólidas por tema: blanco en día y negro en noche.
     val surfaceForCards = if (darkTheme) PureBlack else PureWhite
+    val separatorColor = if (darkTheme) SeparatorDark else BorderLight
     val colorScheme = baseColorScheme.copy(
         surface = surfaceForCards,
         surfaceVariant = surfaceForCards,
-        outline = Color.Transparent,
-        outlineVariant = Color.Transparent
+        outline = separatorColor,
+        outlineVariant = separatorColor
     )
 
     val caramelAccent = if (darkTheme) CaramelSoft else CaramelAccent

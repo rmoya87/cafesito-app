@@ -11,9 +11,9 @@
   <!-- End Google Tag Manager -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cafesito - Encuentra más de 300 cafés de calidad y descúbrelos</title>
+  <title>Cafesito - La app para descubrir, elaborar y registrar tu café</title>
   <meta name="description"
-    content="La app definitiva para amantes del café. Descubre más de 300 cafés de calidad, lleva tu diario de catas y mejora tus elaboraciones. Acceso anticipado en Android.">
+    content="Explora más de 700 cafés, guarda tu despensa, elabora con precisión y registra tus catas. Cafesito, gratis en web y Android.">
   <link rel="canonical" href="https://cafesitoapp.com/landing">
   <link rel="alternate" hreflang="es" href="https://cafesitoapp.com/landing">
   <link rel="alternate" hreflang="en" href="https://cafesitoapp.com/landing">
@@ -95,12 +95,6 @@
         <span class="title-large hidden-mobile" style="margin-left: 12px; font-weight: 800;">Cafesito</span>
       </a>
 
-      <!-- 3. Desktop Nav (Hidden on Mobile) -->
-      <nav class="flex items-center gap-4 hidden-mobile" aria-label="Navegación principal">
-        <a href="#features" class="nav-link">Características</a>
-        <a href="#faq" class="nav-link">FAQ</a>
-      </nav>
-
       <!-- 4. Store Buttons (Web + Google Play) -->
       <div class="flex gap-2 store-buttons-container">
         <a href="https://cafesitoapp.com" class="btn-store btn-store-web" target="_blank" rel="noopener noreferrer" aria-label="Abrir Cafesito en el navegador">
@@ -126,6 +120,27 @@
 
       <!-- Mobile Menu Overlay -->
       <div class="mobile-menu" id="mobile-menu-panel" role="dialog" aria-label="Menú de navegación" aria-modal="true">
+        <div class="mobile-menu-top">
+          <div class="mobile-menu-brand">
+            <img src="/landing/assets/logo.png" alt="Cafesito" width="44" height="44" style="border-radius: 10px;">
+            <div>
+              <h3 class="headline-medium">Cafesito</h3>
+              <p class="body-medium">Tu compañero de café</p>
+            </div>
+          </div>
+          <div class="mobile-menu-cta">
+            <a href="https://cafesitoapp.com" class="btn-store btn-store-web" target="_blank" rel="noopener noreferrer" aria-label="Abrir Cafesito en el navegador">
+              <svg class="icon-globe" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              <span>Web</span>
+            </a>
+            <a href="https://play.google.com/store/apps/details?id=com.cafesito.app" class="btn-store" target="_blank" rel="noopener noreferrer" aria-label="Descargar en Google Play">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.5,12.92 20.16,13.19L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z" />
+              </svg>
+              <span>Google Play</span>
+            </a>
+          </div>
+        </div>
         <div class="mobile-menu-links">
           <div class="footer-col" style="color: #000;">
             <h4>Legal</h4>
@@ -140,13 +155,6 @@
             <ul>
               <li><a href="mailto:u0197599922@gmail.com">Soporte por email</a></li>
             </ul>
-          </div>
-        </div>
-        <div class="flex items-center gap-3" style="margin-bottom: 32px; padding-top: 20px;">
-          <img src="/landing/assets/logo.png" alt="Cafesito" width="60" height="60" style="border-radius: 12px;">
-          <div>
-            <h3 class="headline-medium">Cafesito</h3>
-            <p class="body-medium">Tu compañero de café</p>
           </div>
         </div>
       </div>
@@ -164,11 +172,11 @@
             Tu café perfecto,<br>cada mañana.
           </h1>
           <p class="body-large" style="margin-bottom: 32px; max-width: 600px; margin-inline: auto;">
-            Descubre nuevos orígenes, perfecciona tus recetas y lleva un diario de tus mejores tazas con Cafesito.
+            Todo lo que necesitas en una sola app: descubre cafés, controla tu despensa y mejora cada preparación con guías prácticas.
           </p>
 
-          <div class="flex justify-center items-center gap-2">
-            <div class="flex gap-2">
+          <div class="store-cta-group" role="group" aria-label="Opciones de descarga">
+            <div class="store-cta-main-row">
               <a href="https://cafesitoapp.com" class="btn-store btn-store-web" target="_blank" rel="noopener noreferrer" aria-label="Abrir Cafesito en el navegador">
                 <svg class="icon-globe" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                 <span>Web</span>
@@ -180,7 +188,9 @@
                 </svg>
                 <span>Google Play</span>
               </a>
-              <span class="btn-store" style="background: #e0e0e0; color: #888; cursor: default;" role="status" aria-label="Próximamente en App Store">
+            </div>
+            <div class="store-cta-secondary-row">
+              <span class="btn-store btn-store-disabled" role="status" aria-label="Próximamente en App Store">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     d="M18.71,19.5C17.88,20.74 17,21.95 15.66,21.97C14.32,22 13.89,21.18 12.37,21.18C10.84,21.18 10.37,21.95 9.1,21.97C7.79,22 6.8,20.68 5.96,19.47C4.25,17 2.94,13.4 4.7,10.37C5.58,8.87 7.12,7.83 8.88,7.8C10.16,7.8 11.23,8.68 12.03,8.68C12.83,8.68 14.15,7.66 15.71,7.66C16.36,7.68 18.23,7.9 19.4,9.62C19.32,9.67 17.56,10.68 17.58,13.3C17.6,15.42 19.38,16.86 19.38,16.86C19.38,16.86 18.86,18.3 18.17,19.31L18.71,19.5M13,3.5C13.73,2.67 14.94,2.04 15.96,2C16.07,3.17 15.6,4.35 14.9,5.19C14.21,6.04 13.07,6.7 11.95,6.61C11.8,5.37 12.36,4.26 13,3.5Z" />
@@ -232,10 +242,10 @@
         <!-- Row 2: Text Left, Image Right -->
         <div class="feature-row reverse reveal-on-scroll">
           <div class="feature-text text-left">
-            <h3 class="display-large" style="font-size: 32px;">Demuestra tu barista interior</h3>
+            <h3 class="display-large" style="font-size: 32px;">Tu café, bajo control desde el inicio</h3>
             <p class="body-large">
-              Publica tus experiencias y opiniones sobre los cafés que disfrutas.
-              Sigue a tus amigos y baristas profesionales para saber qué hacer y qué cafés premium probar.
+              En una sola pantalla ves tus métodos favoritos, el stock real de tu despensa y recomendaciones para elegir
+              tu próximo café sin perder tiempo.
             </p>
           </div>
           <div class="feature-visual">
@@ -253,11 +263,10 @@
             </div>
           </div>
           <div class="feature-text text-left">
-            <h3 class="display-large" style="font-size: 32px;">Descubre y Explora</h3>
+            <h3 class="display-large" style="font-size: 32px;">Encuentra justo el café que buscas</h3>
             <p class="body-large">
-              Accede a una extensa base de datos con cientos de cafés de especialidad.
-              Filtra por país de origen, especialidad, tueste, formato o notas de cata para encontrar tu próximo café
-              favorito.
+              Filtra por origen, especialidad, tueste, formato y nota para pasar de "no sé cuál elegir" a "este es
+              para mí".
             </p>
           </div>
         </div>
@@ -267,8 +276,8 @@
           <div class="feature-text text-left">
             <h3 class="display-large" style="font-size: 32px;">Elabora con precisión</h3>
             <p class="body-large">
-              Selecciona el método de elaboración de tu café y sigue todos los pasos para hacer el café perfecto.
-              Registra el resultado al final y así sabrás cómo mejorar la próxima vez.
+              Ajusta agua y café, revisa el ratio y sigue consejos claros para repetir resultados y perfeccionar tu
+              receta favorita.
             </p>
           </div>
           <div class="feature-visual">
@@ -286,10 +295,10 @@
             </div>
           </div>
           <div class="feature-text text-left">
-            <h3 class="display-large" style="font-size: 32px;">Tu Diario Personal</h3>
+            <h3 class="display-large" style="font-size: 32px;">Cada café, con su historia</h3>
             <p class="body-large">
-              Registra cada preparación con detalle. Anota el método, ratio, tiempo y tus impresiones.
-              Con el tiempo, Cafesito te ayudará a entender qué variables hacen que tu café sea perfecto.
+              Consulta historia, origen y detalles técnicos para tomar mejores decisiones y elegir el perfil que
+              realmente te gusta.
             </p>
           </div>
         </div>
@@ -378,13 +387,13 @@
         <div class="app-showcase reveal-on-scroll">
           <div class="text-left">
             <img src="/landing/assets/logo.png" alt="Icono de la app Cafesito" class="app-icon-large">
-            <h2 id="download-title" class="display-large" style="margin-bottom: 24px;">Descarga la App</h2>
+            <h2 id="download-title" class="display-large" style="margin-bottom: 24px;">Empieza hoy con Cafesito</h2>
             <p class="body-large" style="margin-bottom: 32px;">
-              Únete a la comunidad de amantes del café y empieza a mejorar tus mañanas hoy mismo. Disponible en Acceso
-              Anticipado.
+              Únete a miles de amantes del café y mejora tus preparaciones desde el primer día. Gratis en Web y
+              Android.
             </p>
-            <div class="flex items-center gap-3">
-              <div class="flex gap-2">
+            <div class="store-cta-group" role="group" aria-label="Opciones de descarga">
+              <div class="store-cta-main-row">
                 <a href="https://cafesitoapp.com" class="btn-store btn-store-web" target="_blank" rel="noopener noreferrer" aria-label="Abrir Cafesito en el navegador">
                   <svg class="icon-globe" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                   <span>Web</span>
@@ -396,7 +405,9 @@
                   </svg>
                   <span>Google Play</span>
                 </a>
-                <span class="btn-store" style="background: #e0e0e0; color: #888; cursor: default;" role="status" aria-label="Próximamente en App Store">
+              </div>
+              <div class="store-cta-secondary-row">
+                <span class="btn-store btn-store-disabled" role="status" aria-label="Próximamente en App Store">
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path
                       d="M18.71,19.5C17.88,20.74 17,21.95 15.66,21.97C14.32,22 13.89,21.18 12.37,21.18C10.84,21.18 10.37,21.95 9.1,21.97C7.79,22 6.8,20.68 5.96,19.47C4.25,17 2.94,13.4 4.7,10.37C5.58,8.87 7.12,7.83 8.88,7.8C10.16,7.8 11.23,8.68 12.03,8.68C12.83,8.68 14.15,7.66 15.71,7.66C16.36,7.68 18.23,7.9 19.4,9.62C19.32,9.67 17.56,10.68 17.58,13.3C17.6,15.42 19.38,16.86 19.38,16.86C19.38,16.86 18.86,18.3 18.17,19.31L18.71,19.5M13,3.5C13.73,2.67 14.94,2.04 15.96,2C16.07,3.17 15.6,4.35 14.9,5.19C14.21,6.04 13.07,6.7 11.95,6.61C11.8,5.37 12.36,4.26 13,3.5Z" />

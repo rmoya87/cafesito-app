@@ -215,6 +215,51 @@ h6 {
   flex-shrink: 0;
 }
 
+/* Grupos de CTA en body (Hero + Descarga) */
+.store-cta-group {
+    --store-badge-width: 208px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.store-cta-main-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+}
+
+.store-cta-secondary-row {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.store-cta-group .btn-store {
+    min-height: 44px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    justify-content: center;
+    width: var(--store-badge-width);
+}
+
+.store-cta-group .btn-store span {
+    white-space: nowrap;
+}
+
+.store-cta-secondary-row .btn-store {
+    width: var(--store-badge-width);
+}
+
+.btn-store.btn-store-disabled {
+    background: #e0e0e0;
+    color: #7f7f7f;
+    cursor: default;
+}
+
 .phone-mockup img {
     width: 100%;
     height: 100%;
@@ -354,25 +399,74 @@ h6 {
     transform: translateX(0);
 }
 
+.mobile-menu-top {
+    border-bottom: 1px solid #ececec;
+    padding-bottom: 18px;
+    margin-bottom: 10px;
+}
+
+.mobile-menu-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mobile-menu-brand .headline-medium {
+    font-size: 20px;
+    margin-bottom: 0;
+}
+
+.mobile-menu-brand .body-medium {
+    margin: 0;
+    color: #5f5f5f;
+}
+
+.mobile-menu-cta {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+}
+
+.mobile-menu-cta .btn-store {
+    min-height: 42px;
+    padding: 8px 12px;
+    border-radius: 10px;
+}
+
 .mobile-menu-links {
-    margin-top: 32px;
+    margin-top: 12px;
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 18px;
 }
 
 .mobile-menu-links h4 {
-    margin-bottom: 12px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #6a6a6a;
 }
 
 .mobile-menu-links ul li {
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     display: block;
 }
 
 .mobile-menu-links ul li a {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 500;
+    display: block;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #f7f7f7;
+}
+
+.mobile-menu-links ul li a:hover,
+.mobile-menu-links ul li a:focus-visible {
+    background: #efefef;
+    outline: none;
 }
 
 @media (max-width: 768px) {
@@ -394,7 +488,62 @@ h6 {
         /* Restore radius */
     }
 
-    /* Removed rule hiding span to show full text */
+    /* Header móvil: compactar acciones para que no se pisen con logo/hamburguesa */
+    .header .container {
+        gap: 8px !important;
+    }
+
+    .header .store-buttons-container {
+        margin-left: auto;
+        gap: 6px;
+        flex-wrap: nowrap;
+        align-items: center;
+    }
+
+    .header .store-buttons-container .btn-store {
+        padding: 6px;
+        min-width: 34px;
+        min-height: 34px;
+        justify-content: center;
+        border-radius: 10px;
+    }
+
+    .header .store-buttons-container .btn-store span {
+        display: none;
+    }
+
+    .header .store-buttons-container .btn-store svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    /* El estado "Próximamente" ocupa mucho en cabecera; se mantiene en Hero/Descarga */
+    .header .store-buttons-container .btn-store[role="status"] {
+        display: none;
+    }
+
+    .mobile-menu {
+        padding: 88px 20px 24px;
+    }
+
+    .mobile-menu-cta .btn-store {
+        flex: 1 1 140px;
+        justify-content: center;
+    }
+
+    .store-cta-group {
+        width: 100%;
+    }
+
+    .store-cta-main-row .btn-store {
+        flex: 1 1 160px;
+        max-width: 220px;
+        width: auto;
+    }
+
+    .store-cta-secondary-row .btn-store {
+        width: min(220px, 100%);
+    }
 }
 
 /* MARQUEE ANIMATION */
@@ -810,6 +959,12 @@ h6 {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
+}
+
+.accordion-header span:first-child {
+    min-width: 0;
+    flex: 1;
 }
 
 .accordion-body {
@@ -826,10 +981,29 @@ h6 {
 .icon-plus {
     font-size: 24px;
     transition: transform 0.3s;
+    flex-shrink: 0;
 }
 
 .accordion-header[aria-expanded="true"] .icon-plus {
     transform: rotate(45deg);
+}
+
+@media (max-width: 768px) {
+    #faq .container {
+        padding-inline: 16px;
+    }
+
+    .accordion {
+        max-width: 100%;
+    }
+
+    .accordion-header {
+        padding: 14px 16px;
+    }
+
+    .accordion-body p {
+        padding-inline: 16px;
+    }
 }
 
 /* DOWNLOAD / APP SHOWCASE */

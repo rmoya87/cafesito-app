@@ -172,6 +172,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    const closeMobileMenu = () => {
+        const menu = document.querySelector('.mobile-menu');
+        const btn = document.querySelector('.hamburger-btn');
+        if (!menu || !btn) return;
+        menu.classList.remove('open');
+        btn.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+    };
+
+    document.querySelectorAll('.mobile-menu a').forEach((link) => {
+        link.addEventListener('click', () => {
+            closeMobileMenu();
+        });
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeMobileMenu();
+        }
+    });
+
     // Number Animation
     const statsObserver = new IntersectionObserver((entries, observer) => {
         entries.forEach(entry => {

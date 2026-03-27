@@ -11,7 +11,7 @@ val PureWhite = Color(0xFFFFFFFF)
 val ScreenLightBackground = Color(0xFFF7F7F7)
 val CreamLight = Color(0xFFF9F5F2)
 val SoftOffWhite = Color(0xFFFDFDFD)
-val BorderLight = Color(0xFFE0E0E0).copy(alpha = 0.4f)
+val BorderLight = Color(0xFFE0E0E0)
 
 // Dark Palette: Night Roast (marrón claro como en web)
 val PureBlack = Color(0xFF000000)
@@ -25,7 +25,7 @@ val CaramelLight = Color(0xFFE8C9A8)
 val DarkBorder = Color(0xFF3E322B)
 val DarkOutline = Color(0xFF1A1A1A) // Negro algo más claro para bordes
 /** Gris oscuro para líneas de separación y divisores en modo noche. */
-val SeparatorDark = Color(0xFF212121)
+val SeparatorDark = Color(0xFF3A3A3A)
 val MutedCream = Color(0xFFBDB7B2)
 
 /** Gris oscuro para fechas/timestamps en modo día. */

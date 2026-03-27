@@ -108,9 +108,9 @@ export function LoginGate({
       <p className="login-sheet-terms">
         {t("login.termsPrefix")}{" "}
         <a href={assetBase + "legal/privacidad.html"} target="_blank" rel="noopener noreferrer" className="login-legal-link">{t("login.privacy")}</a>
-        , las{" "}
+        {" · "}
         <a href={assetBase + "legal/condiciones.html"} target="_blank" rel="noopener noreferrer" className="login-legal-link">{t("login.terms")}</a>
-        {" "}y{" "}
+        {" · "}
         <a href={assetBase + "legal/eliminacion-cuenta.html"} target="_blank" rel="noopener noreferrer" className="login-legal-link">{t("login.dataDeletion")}</a>.
       </p>
       {message ? <p className="login-hint">{message}</p> : null}

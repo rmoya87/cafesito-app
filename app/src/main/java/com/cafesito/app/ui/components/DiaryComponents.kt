@@ -242,7 +242,7 @@ private fun DiaryStatsRow(label: String, value: String, showTopDivider: Boolean 
     Column(modifier = Modifier.fillMaxWidth()) {
         if (showTopDivider) {
             HorizontalDivider(
-                color = MaterialTheme.colorScheme.background,
+                color = MaterialTheme.colorScheme.outline,
                 thickness = 1.dp,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -316,7 +316,7 @@ private val FLAG_CDN_BASE = "https://flagcdn.com/w40/"
 private fun originFavoriteRow(countryName: String) {
     Column(modifier = Modifier.fillMaxWidth()) {
         HorizontalDivider(
-            color = MaterialTheme.colorScheme.background,
+            color = MaterialTheme.colorScheme.outline,
             thickness = 1.dp,
             modifier = Modifier.fillMaxWidth()
         )
