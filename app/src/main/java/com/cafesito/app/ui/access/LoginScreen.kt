@@ -16,8 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -55,8 +55,9 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoGraph
+import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Coffee
-import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.Explore
 import com.cafesito.app.ui.theme.CafesitoModalSheetDefaults
 import com.cafesito.app.ui.theme.CaramelAccent
 import com.cafesito.app.ui.theme.LocalCaramelAccent
@@ -170,22 +171,22 @@ fun LoginScreen(
 
             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 FeatureRowUnified(
-                    icon = painterResource(id = R.drawable.login_checklist),
+                    icon = rememberVectorPainter(Icons.Default.Checklist),
                     title = stringResource(R.string.login_feature_share_title),
                     desc = stringResource(R.string.login_feature_share_desc)
                 )
                 FeatureRowUnified(
-                    icon = painterResource(id = R.drawable.login_explore),
+                    icon = rememberVectorPainter(Icons.Default.Explore),
                     title = stringResource(R.string.login_feature_explore_title),
                     desc = stringResource(R.string.login_feature_explore_desc)
                 )
                 FeatureRowUnified(
-                    icon = androidx.compose.ui.graphics.vector.rememberVectorPainter(Icons.Default.Coffee),
+                    icon = rememberVectorPainter(Icons.Default.Coffee),
                     title = stringResource(R.string.login_feature_brew_title),
                     desc = stringResource(R.string.login_feature_brew_desc)
                 )
                 FeatureRowUnified(
-                    icon = androidx.compose.ui.graphics.vector.rememberVectorPainter(Icons.Default.AutoGraph),
+                    icon = rememberVectorPainter(Icons.Default.AutoGraph),
                     title = stringResource(R.string.login_feature_track_title),
                     desc = stringResource(R.string.login_feature_track_desc)
                 )
