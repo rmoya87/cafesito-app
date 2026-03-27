@@ -510,7 +510,7 @@ private fun DetailContent(
                                                     if (isDragging) {
                                                         Icon(
                                                             imageVector = Icons.Default.Delete,
-                                                            contentDescription = "Borrar",
+                                                            contentDescription = stringResource(id = R.string.notifications_delete),
                                                             tint = if (isSystemInDarkTheme()) PureBlack else PureWhite,
                                                             modifier = Modifier
                                                                 .padding(end = 24.dp)
@@ -712,7 +712,7 @@ fun DetailReviewPremiumItem(
                                 color = MaterialTheme.colorScheme.primaryContainer,
                                 shape = CircleShape
                             ) {
-                                Text("TÚ", modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
+                                Text(stringResource(id = R.string.detail_you_badge), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

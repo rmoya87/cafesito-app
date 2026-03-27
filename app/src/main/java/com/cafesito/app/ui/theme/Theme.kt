@@ -11,7 +11,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 
 /** En modo noche es marrón claro (CaramelSoft), en modo claro es marrón café (CaramelAccent). */
 val LocalCaramelAccent = staticCompositionLocalOf { CaramelAccent }
@@ -94,16 +93,8 @@ fun CafesitoTheme(
     } else {
         if (darkTheme) DarkColorScheme else LightColorScheme
     }
-    // Unificación global:
-    // - Sin líneas de borde en cajas (outline/outlineVariant transparentes).
-    // - Modo día + Material You: superficie casi blanca con tinte mínimo del primary dinámico (lerp 0.99 hacia blanco).
-    // - Sin dinámico o estático: AdviceCardBg* como antes.
-    val surfaceForCards = when {
-        darkTheme -> AdviceCardBgDark
-        dynamicColorEnabled && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S ->
-            lerp(baseColorScheme.primary, PureWhite, 0.99f)
-        else -> AdviceCardBgLight
-    }
+    // Cards sólidas por tema: blanco en día y negro en noche.
+    val surfaceForCards = if (darkTheme) PureBlack else PureWhite
     val colorScheme = baseColorScheme.copy(
         surface = surfaceForCards,
         surfaceVariant = surfaceForCards,

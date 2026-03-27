@@ -10,8 +10,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.cafesito.app.R
 
 @Composable
 fun RatingBar(
@@ -27,7 +29,12 @@ fun RatingBar(
             val icon = if (isSelected) Icons.Filled.Star else Icons.Outlined.Star
             val tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
             val modifier = if (isInteractive && onRatingChanged != null) Modifier.clickable { onRatingChanged(i.toFloat()) } else Modifier
-            Icon(icon, contentDescription = "Estrella $i de $starCount", tint = tint, modifier = modifier.size(starSize))
+            Icon(
+                icon,
+                contentDescription = stringResource(id = R.string.common_star_of_pattern, i, starCount),
+                tint = tint,
+                modifier = modifier.size(starSize)
+            )
         }
     }
 }

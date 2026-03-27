@@ -302,6 +302,16 @@ export type I18nKey =
   | "profile.tabLists"
   | "profile.activityOfThisUser"
   | "profile.activityMineAndFollowing"
+  | "profile.activity.review.other"
+  | "profile.activity.review.own"
+  | "profile.activity.diary.other"
+  | "profile.activity.diary.own"
+  | "profile.activity.favorite.other"
+  | "profile.activity.favorite.own"
+  | "profile.activity.listFallback"
+  | "profile.activity.viewListAria"
+  | "profile.activity.ratingAndReviewAria"
+  | "profile.activity.coffeeImageAlt"
   | "profile.preferenceAnalysis"
   | "diary.habit"
   | "diary.consumption"
@@ -687,6 +697,16 @@ export const MESSAGES: MessageTable = {
     "profile.tabLists": "Listas",
     "profile.activityOfThisUser": "Actividad de este usuario",
     "profile.activityMineAndFollowing": "Tu actividad y la de personas que sigues",
+    "profile.activity.review.other": "opinó sobre un café",
+    "profile.activity.review.own": "opinaste sobre un café",
+    "profile.activity.diary.other": "probó por primera vez",
+    "profile.activity.diary.own": "probaste por primera vez",
+    "profile.activity.favorite.other": "añadió a su lista",
+    "profile.activity.favorite.own": "añadiste a tu lista",
+    "profile.activity.listFallback": "Lista",
+    "profile.activity.viewListAria": "Ver lista {listName}",
+    "profile.activity.ratingAndReviewAria": "Valoración y opinión",
+    "profile.activity.coffeeImageAlt": "Imagen de {coffeeName}",
     "profile.preferenceAnalysis": "Análisis de preferencia",
     "diary.habit": "Hábito",
     "diary.consumption": "Consumo",
@@ -1041,6 +1061,16 @@ const en: Messages = {
   "profile.tabLists": "Lists",
   "profile.activityOfThisUser": "This user's activity",
   "profile.activityMineAndFollowing": "Your activity and people you follow",
+  "profile.activity.review.other": "reviewed a coffee",
+  "profile.activity.review.own": "reviewed a coffee",
+  "profile.activity.diary.other": "tried for the first time",
+  "profile.activity.diary.own": "tried for the first time",
+  "profile.activity.favorite.other": "added to their list",
+  "profile.activity.favorite.own": "added to your list",
+  "profile.activity.listFallback": "List",
+  "profile.activity.viewListAria": "Open list {listName}",
+  "profile.activity.ratingAndReviewAria": "Rating and review",
+  "profile.activity.coffeeImageAlt": "Image of {coffeeName}",
   "profile.preferenceAnalysis": "Preference analysis",
   "diary.habit": "Habit",
   "diary.consumption": "Consumption",
@@ -1142,7 +1172,17 @@ const fr: Messages = {
   "brew.coffeeType": "Type de cafe",
   "profile.tabActivity": "Activite",
   "profile.tabAdn": "ADN",
-  "profile.tabLists": "Listes"
+  "profile.tabLists": "Listes",
+  "profile.activity.review.other": "a donne son avis sur un cafe",
+  "profile.activity.review.own": "as donne ton avis sur un cafe",
+  "profile.activity.diary.other": "a essaye pour la premiere fois",
+  "profile.activity.diary.own": "as essaye pour la premiere fois",
+  "profile.activity.favorite.other": "a ajoute a sa liste",
+  "profile.activity.favorite.own": "as ajoute a ta liste",
+  "profile.activity.listFallback": "Liste",
+  "profile.activity.viewListAria": "Voir la liste {listName}",
+  "profile.activity.ratingAndReviewAria": "Note et avis",
+  "profile.activity.coffeeImageAlt": "Image de {coffeeName}"
 };
 const pt: Messages = {
   ...en,
@@ -1165,7 +1205,17 @@ const pt: Messages = {
   "brew.coffeeType": "Tipo de cafe",
   "profile.tabActivity": "Atividade",
   "profile.tabAdn": "DNA",
-  "profile.tabLists": "Listas"
+  "profile.tabLists": "Listas",
+  "profile.activity.review.other": "avaliou um cafe",
+  "profile.activity.review.own": "avaliou um cafe",
+  "profile.activity.diary.other": "provou pela primeira vez",
+  "profile.activity.diary.own": "provou pela primeira vez",
+  "profile.activity.favorite.other": "adicionou a sua lista",
+  "profile.activity.favorite.own": "adicionou a sua lista",
+  "profile.activity.listFallback": "Lista",
+  "profile.activity.viewListAria": "Ver lista {listName}",
+  "profile.activity.ratingAndReviewAria": "Avaliacao e opiniao",
+  "profile.activity.coffeeImageAlt": "Imagem de {coffeeName}"
 };
 const de: Messages = {
   ...en,
@@ -1188,7 +1238,17 @@ const de: Messages = {
   "brew.coffeeType": "Kaffeeart",
   "profile.tabActivity": "Aktivitat",
   "profile.tabAdn": "DNA",
-  "profile.tabLists": "Listen"
+  "profile.tabLists": "Listen",
+  "profile.activity.review.other": "hat einen Kaffee bewertet",
+  "profile.activity.review.own": "hast einen Kaffee bewertet",
+  "profile.activity.diary.other": "hat zum ersten Mal probiert",
+  "profile.activity.diary.own": "hast zum ersten Mal probiert",
+  "profile.activity.favorite.other": "hat zur Liste hinzugefugt",
+  "profile.activity.favorite.own": "hast zu deiner Liste hinzugefugt",
+  "profile.activity.listFallback": "Liste",
+  "profile.activity.viewListAria": "Liste {listName} ansehen",
+  "profile.activity.ratingAndReviewAria": "Bewertung und Rezension",
+  "profile.activity.coffeeImageAlt": "Bild von {coffeeName}"
 };
 
 MESSAGES.en = en;

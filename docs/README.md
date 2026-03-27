@@ -1,7 +1,7 @@
 # Documentación Cafesito — Índice y gobernanza
 
 **Estado:** vivo  
-**Última actualización:** 2026-03-26 (selector de idioma WebApp/Android)  
+**Última actualización:** 2026-03-27 (documento i18n Web/Android)  
 **Objetivo:** documentación como fuente de verdad, sin incompatibilidades y con menor tasa de errores.
 
 ---
@@ -101,6 +101,7 @@ flowchart TB
 | `SMOKE_TESTS.md` | Flujo de humo crítico (login → diario → detalle/añadir) y dónde añadir tests en Web y Android. |
 | `TESTING_PRE_POST_DESARROLLO.md` | **Testing pre y post:** qué validar antes de codear (docs, criterios, flujos) y después (build, tests, smoke, checklist manual). |
 | `ACCESIBILIDAD_WEBAPP_ANDROID.md` | **Accesibilidad (fuente única):** criterios mínimos (aria-label/contentDescription, 44px/48dp, contraste WCAG), revisión WebApp y Android, huecos, checklist al eliminar/modificar/añadir UI. |
+| `I18N_WEBAPP_ANDROID.md` | **Internacionalización:** idiomas soportados, `messages.ts` / `I18nKey` en WebApp, `strings.xml` y `AppLanguageManager` en Android, preferencia «Sistema», reglas para no hardcodear y checklist al añadir textos. |
 | `DEVELOPMENT_WORKFLOW_AI_CURSOR.md` | Flujo para desarrollo con IA: consultar docs antes de código; avisar antes de modificar docs. |
 | `ANALITICAS.md` | **Analíticas (fuente de verdad):** qué se recoge en WebApp y Android, GTM, GA4, archivos implicados, checklists y guías paso a paso (enlazadas en `docs/gtm/`). Consultar siempre antes de tocar rutas o pantallas. |
 | `MULTIPLATFORM_EXECUTION_PLAN.md` | Plan de ejecución multiplataforma (Android, iOS, Web); decisión web y auditoría. |

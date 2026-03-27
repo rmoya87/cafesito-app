@@ -22,7 +22,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.cafesito.app.R
 import com.cafesito.app.ui.theme.Shapes
 
 @Composable
@@ -33,7 +35,11 @@ fun AppTabTourOverlay(
     onSkipAll: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val scrimDesc = "Tour de la aplicación"
+    val scrimDesc = stringResource(id = R.string.tour_overlay_cd)
+    val skipAllCd = stringResource(id = R.string.tour_skip_all_cd)
+    val skipAllLabel = stringResource(id = R.string.tour_skip_all)
+    val understoodCd = stringResource(id = R.string.tour_understood_cd)
+    val understoodLabel = stringResource(id = R.string.tour_understood)
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -76,17 +82,17 @@ fun AppTabTourOverlay(
                 ) {
                     TextButton(
                         onClick = onSkipAll,
-                        modifier = Modifier.semantics { contentDescription = "Omitir todo el tour" }
+                        modifier = Modifier.semantics { contentDescription = skipAllCd }
                     ) {
-                        Text("Omitir todo")
+                        Text(skipAllLabel)
                     }
                     Button(
                         onClick = onDismissStep,
                         modifier = Modifier
                             .padding(start = 8.dp)
-                            .semantics { contentDescription = "Entendido, cerrar mensaje del tour" }
+                            .semantics { contentDescription = understoodCd }
                     ) {
-                        Text("Entendido")
+                        Text(understoodLabel)
                     }
                 }
             }

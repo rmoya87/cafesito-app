@@ -1,7 +1,7 @@
 # Registro de desarrollo e incidencias
 
 **Propósito:** Documentar cambios, correcciones y decisiones recientes para tenerlos en cuenta en próximos desarrollos o incidencias.  
-**Última actualización:** 2026-03-26 (§26 selector de idioma Web/Android)
+**Última actualización:** 2026-03-27 (§27 documentación i18n)
 
 ---
 
@@ -48,6 +48,7 @@ Consultar este documento antes de tocar ramas, deploy, TypeScript/CI o flujos ya
 24. [Web: landing, legales, login SPA — rutas, CSS y SEO (25 mar 2026)](#24-web-landing-legales-login-spa--rutas-css-y-seo-25-mar-2026)
 25. [Búsqueda unificada Web/Android — normalización y pantallas impactadas (26 mar 2026)](#25-búsqueda-unificada-webandroid--normalización-y-pantallas-impactadas-26-mar-2026)
 26. [Selector de idioma en perfil — WebApp y Android (26 mar 2026)](#26-selector-de-idioma-en-perfil--webapp-y-android-26-mar-2026)
+27. [Documentación unificada i18n Web/Android (27 mar 2026)](#27-documentación-unificada-i18n-webandroid-27-mar-2026)
 
 ---
 
@@ -871,7 +872,15 @@ Misma semántica Web y Android para quién ve listas en el modal y cuándo el ic
 ### 26.3 Recursos y documentación
 
 - Nuevas cadenas de idioma en `values`, `values-en`, `values-fr`, `values-pt`, `values-de`.
-- Fuente de verdad técnica: `docs/I18N_IDIOMA_WEBAPP_ANDROID.md`.
+- Fuente de verdad técnica: `docs/I18N_WEBAPP_ANDROID.md`.
+
+---
+
+## 27. Documentación unificada i18n Web/Android (27 mar 2026)
+
+**Objetivo:** un solo documento canónico para idiomas soportados, implementación técnica (WebApp `messages.ts` / Android `strings.xml` + `AppLanguageManager`), reglas para evitar hardcodeo y checklist al añadir textos o idiomas.
+
+**Archivo:** `docs/I18N_WEBAPP_ANDROID.md` (índice enlazado desde `docs/README.md` §4.1).
 
 ---
 

@@ -36,7 +36,7 @@ export function ProfileLanguageView() {
               <span>{row.label}</span>
               {row.description ? <small className="profile-list-row-subtext">{row.description}</small> : null}
             </span>
-            {localePreference === row.value ? <UiIcon name="check-circle-filled" className="ui-icon" /> : <UiIcon name="chevron-right" className="ui-icon" />}
+            {localePreference === row.value ? <UiIcon name="check-circle-filled" className="ui-icon" /> : null}
           </button>
         ))}
       </div>

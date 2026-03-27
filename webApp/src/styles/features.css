@@ -15898,7 +15898,7 @@ html.theme-dark .app-range.app-range--time {
   background: var(--screen-dark-background);
   backdrop-filter: none;
   align-items: flex-start;
-  justify-content: center;
+  justify-content: flex-start;
   min-height: 100dvh;
 }
 
@@ -15980,6 +15980,7 @@ html.theme-dark .app-range.app-range--time {
   /* Evita que la primera tarjeta quede pisada bajo la cabecera sticky */
   padding: 12px 0 22px;
   gap: 12px;
+  align-content: start;
 }
 
 .notifications-group-heading {

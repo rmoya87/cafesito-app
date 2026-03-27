@@ -82,7 +82,7 @@ fun UserReviewCard(
             if (info.review.imageUrl != null) {
                 AsyncImage(
                     model = info.review.imageUrl,
-                    contentDescription = "Imagen de la reseña",
+                    contentDescription = stringResource(id = R.string.common_review_image),
                     modifier = Modifier
                         .fillMaxWidth()
                         .wrapContentHeight(),
@@ -126,7 +126,7 @@ fun UserReviewCard(
                             )
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Star, contentDescription = "Valoración", tint = OrangeYellow, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.Star, contentDescription = stringResource(id = R.string.common_rating), tint = OrangeYellow, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
                             Text(
                                 text = "${info.review.rating.toInt()}",

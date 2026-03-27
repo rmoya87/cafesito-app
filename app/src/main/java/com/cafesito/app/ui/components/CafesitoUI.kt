@@ -59,6 +59,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -144,7 +145,7 @@ fun ModernAvatar(
         
         AsyncImage(
             model = imageUrl,
-            contentDescription = "Avatar",
+            contentDescription = stringResource(id = R.string.common_avatar),
             modifier = Modifier
                 .size(size - 8.dp)
                 .clip(CircleShape)
@@ -204,7 +205,7 @@ fun GlassyTopBar(
                 IconButton(onClick = onBackClick) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back", 
+                        contentDescription = stringResource(id = R.string.common_back),
                         modifier = Modifier.size(24.dp)
                     )
                 }

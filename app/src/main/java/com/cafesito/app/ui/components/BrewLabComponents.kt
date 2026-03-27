@@ -62,6 +62,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
@@ -147,6 +148,7 @@ fun ChooseMethodStep(methods: List<BrewMethod>, onSelect: (BrewMethod) -> Unit) 
 
 @Composable
 fun MethodCard(method: BrewMethod, modifier: Modifier = Modifier, selected: Boolean = false, onClick: () -> Unit) {
+    val methodLabel = localizedBrewMethodName(method.name)
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
     val resId = remember(method.iconResName) {
@@ -173,7 +175,7 @@ fun MethodCard(method: BrewMethod, modifier: Modifier = Modifier, selected: Bool
             if (resId != 0) {
                 Image(
                     painter = painterResource(id = resId),
-                    contentDescription = method.name,
+                    contentDescription = methodLabel,
                     modifier = Modifier.size(48.dp),
                     contentScale = ContentScale.Fit
                 )
@@ -182,7 +184,7 @@ fun MethodCard(method: BrewMethod, modifier: Modifier = Modifier, selected: Bool
             }
             Spacer(Modifier.height(Spacing.space3))
             Text(
-                text = method.name.uppercase(),
+                text = methodLabel.uppercase(),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -197,6 +199,7 @@ fun MethodCard(method: BrewMethod, modifier: Modifier = Modifier, selected: Bool
 /** Método en elaboración: rectángulo con imagen a la izquierda y texto a la derecha (dos líneas si son dos palabras); mismo ancho para todos. */
 @Composable
 fun BrewMethodRowCard(method: BrewMethod, modifier: Modifier = Modifier, selected: Boolean = false, onClick: () -> Unit) {
+    val methodLabel = localizedBrewMethodName(method.name)
     val context = LocalContext.current
     val resId = remember(method.iconResName) {
         context.resources.getIdentifier(method.iconResName, "drawable", context.packageName)
@@ -228,12 +231,12 @@ fun BrewMethodRowCard(method: BrewMethod, modifier: Modifier = Modifier, selecte
                 if (resId != 0) {
                     Image(
                         painter = painterResource(id = resId),
-                        contentDescription = method.name,
+                        contentDescription = methodLabel,
                         modifier = Modifier.size(28.dp),
                         contentScale = ContentScale.Fit
                     )
                 } else {
-                    Icon(Icons.Default.CoffeeMaker, contentDescription = method.name, tint = contentColor, modifier = Modifier.size(24.dp))
+                    Icon(Icons.Default.CoffeeMaker, contentDescription = methodLabel, tint = contentColor, modifier = Modifier.size(24.dp))
                 }
             }
             Column(
@@ -241,7 +244,7 @@ fun BrewMethodRowCard(method: BrewMethod, modifier: Modifier = Modifier, selecte
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.Start
             ) {
-                method.name.split(Regex("\\s+")).forEach { word ->
+                methodLabel.split(Regex("\\s+")).forEach { word ->
                     Text(
                         text = word,
                         style = MaterialTheme.typography.labelMedium,
@@ -955,6 +958,16 @@ fun PreparationStep(
     recommendation: String?,
     viewModel: BrewLabViewModel
 ) {
+    val configuration = LocalConfiguration.current
+    val appLanguage = remember(configuration) {
+        val localeFromConfig = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            configuration.locales.get(0)
+        } else {
+            @Suppress("DEPRECATION")
+            configuration.locale
+        }
+        (localeFromConfig?.language ?: Locale.getDefault().language).lowercase(Locale.ROOT)
+    }
     val haptic = LocalHapticFeedback.current
     val currentPhase = timeline.getOrNull(currentPhaseIndex) ?: BrewPhaseInfo(stringResource(id = R.string.brew_ready), stringResource(id = R.string.brew_process_completed), 0)
     val nextPhase = timeline.getOrNull(currentPhaseIndex + 1)
@@ -966,14 +979,10 @@ fun PreparationStep(
             .map { it.trim() }
             .filter { it.isNotBlank() }
     }
-    val isSpanish = remember { Locale.getDefault().language.startsWith("es") }
-    val timerTipsGeneric = stringResource(id = R.string.brew_timer_tips_generic)
-    val adviceCards = remember(currentPhase.instruction, adviceLines, isSpanish, timerTipsGeneric) {
-        if (isSpanish) {
-            listOf(currentPhase.instruction) + adviceLines.map { "$it." }
-        } else {
-            listOf(timerTipsGeneric)
-        }
+    val language = appLanguage
+    val adviceCards = remember(currentPhase.instruction, adviceLines, language) {
+        listOf(translatePhaseInstructionByLanguage(currentPhase.instruction, language)) +
+            adviceLines.map { "${translateProcessAdviceLineByLanguage(it, language)}." }
     }
     val advicePages = remember(adviceCards) { adviceCards.chunked(3) }
 
@@ -1759,6 +1768,23 @@ private fun baristaTipIcon(iconKey: String): ImageVector {
 
 @Composable
 fun BaristaTipPill(tip: BaristaTip, modifier: Modifier = Modifier) {
+    val configuration = LocalConfiguration.current
+    val appLanguage = remember(configuration) {
+        val localeFromConfig = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            configuration.locales.get(0)
+        } else {
+            @Suppress("DEPRECATION")
+            configuration.locale
+        }
+        (localeFromConfig?.language ?: Locale.getDefault().language).lowercase(Locale.ROOT)
+    }
+    val isSpanish = appLanguage.startsWith("es")
+    val localizedTipLabel = remember(tip.label, appLanguage, isSpanish) {
+        if (isSpanish) tip.label else translateBaristaTipLabelByLanguage(tip.label, appLanguage)
+    }
+    val localizedTipValue = remember(tip.value, appLanguage, isSpanish) {
+        if (isSpanish) tip.value else translateBaristaTipValueByLanguage(tip.value, appLanguage)
+    }
     val icon = baristaTipIcon(tip.iconKey)
     val useDrawable = tip.iconKey == "water" || tip.iconKey == "bolt"
     val drawableId = when (tip.iconKey) {
@@ -1779,21 +1805,21 @@ fun BaristaTipPill(tip: BaristaTip, modifier: Modifier = Modifier) {
                 if (useDrawable && drawableId != null) {
                     Image(
                         painter = painterResource(id = drawableId),
-                        contentDescription = tip.label,
+                        contentDescription = localizedTipLabel,
                         modifier = Modifier.size(14.dp),
                         contentScale = ContentScale.Fit
                     )
                 } else {
-                    Icon(icon, contentDescription = tip.label, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                    Icon(icon, contentDescription = localizedTipLabel, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
                 }
             }
             Spacer(Modifier.width(10.dp))
             Column {
                 @Suppress("DEPRECATION")
-                Text(text = tip.label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 8.sp)
+                Text(text = localizedTipLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 8.sp)
                 @Suppress("DEPRECATION")
                 Text(
-                    text = tip.value,
+                    text = localizedTipValue,
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Normal,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -1801,6 +1827,457 @@ fun BaristaTipPill(tip: BaristaTip, modifier: Modifier = Modifier) {
                 )
             }
         }
+    }
+}
+
+private fun translateBaristaTipLabelByLanguage(label: String, language: String): String {
+    val key = normalizeText(label)
+    return when {
+        language.startsWith("fr") -> when (key) {
+            "perfil actual" -> "PROFIL ACTUEL"
+            "volumen" -> "VOLUME"
+            "tiempo actual" -> "TEMPS ACTUEL"
+            "dosis" -> "DOSE"
+            "base" -> "BASE"
+            "proceso" -> "PROCESSUS"
+            "ajuste" -> "AJUSTEMENT"
+            "detalle" -> "DETAIL"
+            else -> label
+        }
+        language.startsWith("pt") -> when (key) {
+            "perfil actual" -> "PERFIL ATUAL"
+            "volumen" -> "VOLUME"
+            "tiempo actual" -> "TEMPO ATUAL"
+            "dosis" -> "DOSE"
+            "base" -> "BASE"
+            "proceso" -> "PROCESSO"
+            "ajuste" -> "AJUSTE"
+            "detalle" -> "DETALHE"
+            else -> label
+        }
+        language.startsWith("de") -> when (key) {
+            "perfil actual" -> "AKTUELLES PROFIL"
+            "volumen" -> "VOLUMEN"
+            "tiempo actual" -> "AKTUELLE ZEIT"
+            "dosis" -> "DOSIS"
+            "base" -> "BASIS"
+            "proceso" -> "PROZESS"
+            "ajuste" -> "ANPASSUNG"
+            "detalle" -> "DETAIL"
+            else -> label
+        }
+        else -> when (key) {
+            "perfil actual" -> "CURRENT PROFILE"
+            "volumen" -> "VOLUME"
+            "tiempo actual" -> "CURRENT TIME"
+            "dosis" -> "DOSE"
+            "base" -> "BASE"
+            "proceso" -> "PROCESS"
+            "ajuste" -> "ADJUSTMENT"
+            "detalle" -> "DETAIL"
+            else -> label
+        }
+    }
+}
+
+private fun translateBaristaTipValueByLanguage(value: String, language: String): String {
+    var text = value
+    val replacements = when {
+        language.startsWith("fr") -> listOf(
+            "Equilibrado" to "Équilibré",
+            "Mas intenso" to "Plus intense",
+            "Más intenso" to "Plus intense",
+            "Tramo medio" to "Segment moyen",
+            "buen balance entre cuerpo y claridad" to "bon équilibre entre corps et clarté",
+            "manten ritmo y" to "maintiens le rythme et une",
+            "mantén ritmo y" to "maintiens le rythme et une",
+            "constantes" to "constants",
+            "vierte suave para mantener dulzor" to "verse doucement pour préserver la douceur",
+            "INFUSION" to "INFUSION",
+            "PRESION" to "PRESSION",
+            "REMOVIDO" to "AGITATION",
+            "Suave y constante" to "Douce et constante",
+            "1-2 agitaciones suaves" to "1-2 agitations douces",
+            "Fina-media" to "Fine-moyenne",
+            "PAPEL" to "PAPIER",
+            "METAL" to "MÉTAL",
+            "Mas limpieza en taza" to "Plus de netteté en tasse",
+            "Más limpieza en taza" to "Plus de netteté en tasse",
+            "Mas cuerpo y textura" to "Plus de corps et de texture",
+            "Más cuerpo y textura" to "Plus de corps et de texture",
+            "Más concentrado" to "Plus concentré",
+            "Mas concentrado" to "Plus concentré",
+            "si amarga" to "si c'est amer",
+            "abre punto de molienda" to "ouvre un peu la mouture",
+            "Tramo corto del método" to "Segment court de la méthode",
+            "Tramo corto del metodo" to "Segment court de la méthode",
+            "prioriza control y uniformidad" to "privilégie contrôle et uniformité",
+            "En ventana ideal" to "Dans la fenêtre idéale",
+            "busca flujo continuo y crema uniforme" to "cherche un flux continu et une crema uniforme",
+            "Dentro de rango clasico para espresso" to "Dans la plage classique pour espresso",
+            "MOLIENDA" to "MOUTURE",
+            "TEMPERATURA" to "TEMPÉRATURE",
+            "RATIO" to "RATIO",
+            "TIEMPO" to "TEMPS",
+            "PREINFUSION" to "PRÉ-INFUSION",
+            "Suave para evitar canalizacion" to "Douce pour éviter la canalisation",
+            "AJUSTE RAPIDO" to "AJUSTEMENT RAPIDE",
+            "Si corre rapido, mas fino" to "Si ça coule vite, mouture plus fine",
+            "AJUSTE LENTO" to "AJUSTEMENT LENT",
+            "Si se ahoga, mas grueso" to "Si ça s'étouffe, mouture plus grossière",
+            "DISTRIBUCION" to "DISTRIBUTION",
+            "Nivela antes del tamp" to "Nivelle avant le tassage"
+        )
+        language.startsWith("pt") -> listOf(
+            "Equilibrado" to "Equilibrado",
+            "Mas intenso" to "Mais intenso",
+            "Más intenso" to "Mais intenso",
+            "Tramo medio" to "Faixa média",
+            "buen balance entre cuerpo y claridad" to "bom equilíbrio entre corpo e clareza",
+            "manten ritmo y" to "mantenha ritmo e",
+            "mantén ritmo y" to "mantenha ritmo e",
+            "constantes" to "constantes",
+            "vierte suave para mantener dulzor" to "despeje suavemente para manter a doçura",
+            "INFUSION" to "INFUSÃO",
+            "PRESION" to "PRESSÃO",
+            "REMOVIDO" to "AGITAÇÃO",
+            "Suave y constante" to "Suave e constante",
+            "1-2 agitaciones suaves" to "1-2 agitações suaves",
+            "Fina-media" to "Fina-média",
+            "PAPEL" to "PAPEL",
+            "METAL" to "METAL",
+            "Mas limpieza en taza" to "Mais limpeza na xícara",
+            "Más limpieza en taza" to "Mais limpeza na xícara",
+            "Mas cuerpo y textura" to "Mais corpo e textura",
+            "Más cuerpo y textura" to "Mais corpo e textura",
+            "Más concentrado" to "Mais concentrado",
+            "Mas concentrado" to "Mais concentrado",
+            "si amarga" to "se amargar",
+            "abre punto de molienda" to "abra um pouco a moagem",
+            "Tramo corto del método" to "Trecho curto do método",
+            "Tramo corto del metodo" to "Trecho curto do método",
+            "prioriza control y uniformidad" to "priorize controle e uniformidade",
+            "En ventana ideal" to "Na faixa ideal",
+            "busca flujo continuo y crema uniforme" to "busque fluxo contínuo e crema uniforme",
+            "Dentro de rango clasico para espresso" to "Dentro da faixa clássica para espresso",
+            "MOLIENDA" to "MOAGEM",
+            "TEMPERATURA" to "TEMPERATURA",
+            "RATIO" to "RÁCIO",
+            "TIEMPO" to "TEMPO",
+            "PREINFUSION" to "PRÉ-INFUSÃO",
+            "Suave para evitar canalizacion" to "Suave para evitar canalização",
+            "AJUSTE RAPIDO" to "AJUSTE RÁPIDO",
+            "Si corre rapido, mas fino" to "Se correr rápido, moa mais fino",
+            "AJUSTE LENTO" to "AJUSTE LENTO",
+            "Si se ahoga, mas grueso" to "Se afogar, moa mais grosso",
+            "DISTRIBUCION" to "DISTRIBUIÇÃO",
+            "Nivela antes del tamp" to "Nivele antes do tamper"
+        )
+        language.startsWith("de") -> listOf(
+            "Equilibrado" to "Ausgewogen",
+            "Mas intenso" to "Intensiver",
+            "Más intenso" to "Intensiver",
+            "Tramo medio" to "Mittlerer Abschnitt",
+            "buen balance entre cuerpo y claridad" to "gute Balance zwischen Körper und Klarheit",
+            "manten ritmo y" to "halte den Rhythmus und eine",
+            "mantén ritmo y" to "halte den Rhythmus und eine",
+            "constantes" to "konstante",
+            "vierte suave para mantener dulzor" to "gieße sanft, um die Süße zu erhalten",
+            "INFUSION" to "INFUSION",
+            "PRESION" to "DRUCK",
+            "REMOVIDO" to "RÜHREN",
+            "Suave y constante" to "Sanft und konstant",
+            "1-2 agitaciones suaves" to "1-2 sanfte Bewegungen",
+            "Fina-media" to "Fein-mittel",
+            "PAPEL" to "PAPIER",
+            "METAL" to "METALL",
+            "Mas limpieza en taza" to "Mehr Klarheit in der Tasse",
+            "Más limpieza en taza" to "Mehr Klarheit in der Tasse",
+            "Mas cuerpo y textura" to "Mehr Körper und Textur",
+            "Más cuerpo y textura" to "Mehr Körper und Textur",
+            "Más concentrado" to "Konzentrierter",
+            "Mas concentrado" to "Konzentrierter",
+            "si amarga" to "wenn bitter",
+            "abre punto de molienda" to "Mahlgrad etwas gröber stellen",
+            "Tramo corto del método" to "Kurzer Methodenabschnitt",
+            "Tramo corto del metodo" to "Kurzer Methodenabschnitt",
+            "prioriza control y uniformidad" to "Kontrolle und Gleichmäßigkeit priorisieren",
+            "En ventana ideal" to "Im idealen Bereich",
+            "busca flujo continuo y crema uniforme" to "gleichmäßigen Fluss und uniforme Crema anstreben",
+            "Dentro de rango clasico para espresso" to "Im klassischen Espresso-Bereich",
+            "MOLIENDA" to "MAHLGRAD",
+            "TEMPERATURA" to "TEMPERATUR",
+            "RATIO" to "VERHÄLTNIS",
+            "TIEMPO" to "ZEIT",
+            "PREINFUSION" to "PRÄINFUSION",
+            "Suave para evitar canalizacion" to "Sanft, um Channeling zu vermeiden",
+            "AJUSTE RAPIDO" to "SCHNELLE ANPASSUNG",
+            "Si corre rapido, mas fino" to "Wenn es zu schnell läuft, feiner mahlen",
+            "AJUSTE LENTO" to "LANGSAME ANPASSUNG",
+            "Si se ahoga, mas grueso" to "Wenn es stockt, gröber mahlen",
+            "DISTRIBUCION" to "VERTEILUNG",
+            "Nivela antes del tamp" to "Vor dem Tampen nivellieren"
+        )
+        else -> listOf(
+            "Equilibrado" to "Balanced",
+            "Mas intenso" to "More intense",
+            "Más intenso" to "More intense",
+            "Tramo medio" to "Mid segment",
+            "buen balance entre cuerpo y claridad" to "good balance between body and clarity",
+            "manten ritmo y" to "keep pace and",
+            "mantén ritmo y" to "keep pace and",
+            "constantes" to "consistent",
+            "vierte suave para mantener dulzor" to "pour gently to keep sweetness",
+            "INFUSION" to "INFUSION",
+            "PRESION" to "PRESSURE",
+            "REMOVIDO" to "STIR",
+            "Suave y constante" to "Gentle and steady",
+            "1-2 agitaciones suaves" to "1-2 gentle stirs",
+            "Fina-media" to "Medium-fine",
+            "PAPEL" to "PAPER",
+            "METAL" to "METAL",
+            "Mas limpieza en taza" to "More cup clarity",
+            "Más limpieza en taza" to "More cup clarity",
+            "Mas cuerpo y textura" to "More body and texture",
+            "Más cuerpo y textura" to "More body and texture",
+            "Más concentrado" to "More concentrated",
+            "Mas concentrado" to "More concentrated",
+            "si amarga" to "if bitter",
+            "abre punto de molienda" to "coarsen the grind a bit",
+            "Tramo corto del método" to "Short method segment",
+            "Tramo corto del metodo" to "Short method segment",
+            "prioriza control y uniformidad" to "prioritize control and uniformity",
+            "En ventana ideal" to "In ideal range",
+            "busca flujo continuo y crema uniforme" to "aim for steady flow and even crema",
+            "Dentro de rango clasico para espresso" to "Within classic espresso range",
+            "MOLIENDA" to "GRIND",
+            "TEMPERATURA" to "TEMPERATURE",
+            "RATIO" to "RATIO",
+            "TIEMPO" to "TIME",
+            "PREINFUSION" to "PRE-INFUSION",
+            "Suave para evitar canalizacion" to "Gentle to avoid channeling",
+            "AJUSTE RAPIDO" to "QUICK ADJUSTMENT",
+            "Si corre rapido, mas fino" to "If it runs fast, grind finer",
+            "AJUSTE LENTO" to "SLOW ADJUSTMENT",
+            "Si se ahoga, mas grueso" to "If it chokes, grind coarser",
+            "DISTRIBUCION" to "DISTRIBUTION",
+            "Nivela antes del tamp" to "Level before tamp"
+        )
+    }
+    replacements.forEach { (from, to) -> text = text.replace(from, to, ignoreCase = true) }
+    return text
+}
+
+private fun normalizeText(value: String): String {
+    val normalized = java.text.Normalizer.normalize(value.trim(), java.text.Normalizer.Form.NFD)
+    return normalized.replace("\\p{M}+".toRegex(), "").lowercase(Locale.ROOT)
+}
+
+private fun translatePhaseInstructionByLanguage(instruction: String, language: String): String {
+    if (language.startsWith("es")) return instruction
+    val key = normalizeText(instruction)
+    return when {
+        key.contains("vierte unos") && key.contains("humedecer") -> when {
+            language.startsWith("fr") -> "Verse environ 50 ml d'eau pour humidifier tout le lit. Remue doucement 3 fois pour une extraction homogène."
+            language.startsWith("pt") -> "Despeja cerca de 50 ml de água para umedecer todo o leito. Mexa suavemente 3 vezes para extração uniforme."
+            language.startsWith("de") -> "Gieße etwa 50 ml Wasser, um das gesamte Bett zu benetzen. Rühre 3-mal sanft für eine gleichmäßige Extraktion."
+            else -> "Pour about 50ml of water to wet the whole bed. Stir gently 3 times for even extraction."
+        }
+        key.contains("fuego medio-bajo") -> when {
+            language.startsWith("fr") -> "Maintiens un feu moyen-doux. L'eau de la base crée la pression qui remonte par la cheminée."
+            language.startsWith("pt") -> "Mantenha fogo médio-baixo. A água na base cria pressão e sobe pela chaminé."
+            language.startsWith("de") -> "Halte mittlere bis niedrige Hitze. Das Wasser unten baut Druck auf und steigt durch den Trichter."
+            else -> "Keep medium-low heat. Water in the lower chamber builds pressure up the funnel."
+        }
+        key.contains("empiece a salir") -> when {
+            language.startsWith("fr") -> "Quand le café commence à sortir, baisse le feu ou retire du feu avant le bouillonnement final."
+            language.startsWith("pt") -> "Quando o café começar a sair, reduza o fogo ou retire antes do borbulhar final."
+            language.startsWith("de") -> "Wenn der Kaffee zu fließen beginnt, Hitze reduzieren oder vor dem letzten Sprudeln vom Herd nehmen."
+            else -> "When coffee starts flowing, lower heat or remove from stove before the final sputter."
+        }
+        key.contains("presion constante") -> when {
+            language.startsWith("fr") -> "Garde une pression constante et un débit régulier, comme un filet de miel."
+            language.startsWith("pt") -> "Mantenha pressão constante e fluxo regular, como fio de mel."
+            language.startsWith("de") -> "Halte gleichmäßigen Druck und einen stetigen Fluss wie Honigfaden."
+            else -> "Keep steady pressure and a honey-like flow."
+        }
+        key.contains("humedece el cafe") -> when {
+            language.startsWith("fr") -> "Pré-infuse le lit et laisse le CO2 s'échapper avant de continuer."
+            language.startsWith("pt") -> "Faça a pré-infusão e deixe o CO2 sair antes de continuar."
+            language.startsWith("de") -> "Bette das Kaffeebett an und lass CO2 entweichen, bevor du fortfährst."
+            else -> "Bloom the bed and let trapped CO2 release before continuing."
+        }
+        key.contains("deja que el lecho termine de drenar") -> when {
+            language.startsWith("fr") -> "Laisse le lit finir de s'égoutter pour compléter l'extraction."
+            language.startsWith("pt") -> "Deixe o leito terminar de drenar para concluir a extração."
+            language.startsWith("de") -> "Lass das Bett vollständig ablaufen, um die Extraktion abzuschließen."
+            else -> "Let the bed finish draining to complete extraction."
+        }
+        else -> instruction
+    }
+}
+
+private fun translateProcessAdviceLineByLanguage(line: String, language: String): String {
+    if (language.startsWith("es")) return line
+    val key = normalizeText(line)
+    return when {
+        key.contains("asegura saturacion completa del lecho") -> when {
+            language.startsWith("fr") -> "Assure une saturation complète du lit avant de continuer."
+            language.startsWith("pt") -> "Garanta saturação completa do leito antes de continuar."
+            language.startsWith("de") -> "Sorge für eine vollständige Sättigung des Kaffeebetts, bevor du weitermachst."
+            else -> "Ensure the coffee bed is fully saturated before moving on."
+        }
+        key.contains("mantiene altura corta de vertido") -> when {
+            language.startsWith("fr") -> "Garde une faible hauteur de versement pour éviter la canalisation."
+            language.startsWith("pt") -> "Mantenha baixa altura de despejo para evitar canalização."
+            language.startsWith("de") -> "Halte die Gießhöhe niedrig, um Channeling zu vermeiden."
+            else -> "Keep a low pour height to avoid channeling."
+        }
+        key.contains("controla el flujo") -> when {
+            language.startsWith("fr") -> "Contrôle le débit : s'il accélère trop, affine la mouture."
+            language.startsWith("pt") -> "Controle o fluxo: se acelerar demais, moa mais fino."
+            language.startsWith("de") -> "Kontrolliere den Fluss: Wird er zu schnell, feiner mahlen."
+            else -> "Control the flow: if it speeds up too much, grind finer."
+        }
+        key.contains("mantiene temperatura estable") -> when {
+            language.startsWith("fr") -> "Maintiens une température stable et évite d'agiter excessivement."
+            language.startsWith("pt") -> "Mantenha a temperatura estável e evite agitação excessiva."
+            language.startsWith("de") -> "Halte die Temperatur stabil und vermeide übermäßige Bewegung."
+            else -> "Keep temperature stable and avoid excessive agitation."
+        }
+        key.contains("busca consistencia de flujo") -> when {
+            language.startsWith("fr") -> "Recherche un débit régulier et un lit uniforme."
+            language.startsWith("pt") -> "Busque consistência de fluxo e leito uniforme."
+            language.startsWith("de") -> "Achte auf gleichmäßigen Fluss und ein gleichmäßiges Kaffeebett."
+            else -> "Keep flow consistency and an even coffee bed."
+        }
+        key.contains("cierra esta fase en") -> when {
+            language.startsWith("fr") -> line.replace(Regex("(?i)cierra esta fase en\\s*"), "Termine cette phase en ").replace(Regex("(?i)\\s*s y prepara la transicion"), " s et prépare la transition.")
+            language.startsWith("pt") -> line.replace(Regex("(?i)cierra esta fase en\\s*"), "Feche esta fase em ").replace(Regex("(?i)\\s*s y prepara la transicion"), " s e prepare a transição.")
+            language.startsWith("de") -> line.replace(Regex("(?i)cierra esta fase en\\s*"), "Schließe diese Phase in ").replace(Regex("(?i)\\s*s y prepara la transicion"), " s ab und bereite den Übergang vor.")
+            else -> line.replace(Regex("(?i)cierra esta fase en\\s*"), "Close this phase in ").replace(Regex("(?i)\\s*s y prepara la transicion"), "s and prepare the transition.")
+        }
+        key.contains("queda poco de fase") -> when {
+            language.startsWith("fr") -> "La phase se termine bientôt : privilégie la précision à la vitesse."
+            language.startsWith("pt") -> "A fase está no fim: priorize precisão sobre velocidade."
+            language.startsWith("de") -> "Die Phase endet bald: Präzision vor Geschwindigkeit."
+            else -> "This phase is almost done: prioritize precision over speed."
+        }
+        key.contains("mantiene el patron actual") -> when {
+            language.startsWith("fr") -> "Garde le schéma actuel pour maintenir la cohérence d'extraction."
+            language.startsWith("pt") -> "Mantenha o padrão atual para preservar a consistência da extração."
+            language.startsWith("de") -> "Behalte das aktuelle Muster bei, um die Extraktionskonsistenz zu halten."
+            else -> "Keep the current pattern to maintain extraction consistency."
+        }
+        key.contains("tiempo corto para espresso") -> when {
+            language.startsWith("fr") -> "Temps espresso court : tendance à plus d'acidité."
+            language.startsWith("pt") -> "Tempo curto de espresso: tende a aumentar a acidez."
+            language.startsWith("de") -> "Kurze Espressozeit: tendenziell mehr Säure."
+            else -> "Short espresso time: tends to increase acidity."
+        }
+        key.contains("tiempo largo para espresso") -> when {
+            language.startsWith("fr") -> "Temps espresso long : plus de corps et risque d'amertume."
+            language.startsWith("pt") -> "Tempo longo de espresso: mais corpo e risco de amargor."
+            language.startsWith("de") -> "Lange Espressozeit: mehr Körper und Bitterkeitsrisiko."
+            else -> "Long espresso time: increases body and bitterness risk."
+        }
+        key.contains("tiempo de espresso en ventana recomendada") -> when {
+            language.startsWith("fr") -> "Le temps espresso est dans la fenêtre recommandée."
+            language.startsWith("pt") -> "O tempo de espresso está na faixa recomendada."
+            language.startsWith("de") -> "Die Espressozeit liegt im empfohlenen Bereich."
+            else -> "Espresso time is within the recommended window."
+        }
+        key.contains("en espresso, corta al rubio claro") -> when {
+            language.startsWith("fr") -> "En espresso, arrête à blond clair pour éviter l'amertume finale."
+            language.startsWith("pt") -> "No espresso, pare no loiro claro para evitar amargor final."
+            language.startsWith("de") -> "Beim Espresso bei heller Blondierung stoppen, um späte Bitterkeit zu vermeiden."
+            else -> "For espresso, stop at light blonding to avoid late bitterness."
+        }
+        key.contains("en italiana, retira al primer burbujeo fuerte") -> when {
+            language.startsWith("fr") -> "En moka, retire au premier bouillonnement fort pour éviter les notes brûlées."
+            language.startsWith("pt") -> "Na moka, retire no primeiro borbulhar forte para evitar notas queimadas."
+            language.startsWith("de") -> "Bei Moka beim ersten starken Blubbern vom Herd nehmen, um verbrannte Noten zu vermeiden."
+            else -> "For moka, remove at the first strong sputter to avoid burnt notes."
+        }
+        key.contains("en prensa, rompe costra suave") -> when {
+            language.startsWith("fr") -> "En presse, casse la croûte doucement et décante immédiatement."
+            language.startsWith("pt") -> "Na prensa, quebre a crosta suavemente e decante imediatamente."
+            language.startsWith("de") -> "Bei French Press die Kruste sanft brechen und sofort dekantieren."
+            else -> "For French press, break crust gently and decant immediately."
+        }
+        key.contains("en aeropress, presion constante") -> when {
+            language.startsWith("fr") -> "En Aeropress, maintiens une pression fluide et constante."
+            language.startsWith("pt") -> "Na Aeropress, mantenha pressão suave e constante."
+            language.startsWith("de") -> "Bei Aeropress gleichmäßigen und sanften Druck halten."
+            else -> "For Aeropress, keep pressure smooth and steady."
+        }
+        key.contains("cuida temperatura y distribucion") -> when {
+            language.startsWith("fr") -> "Surveille température et distribution pour une tasse plus propre."
+            language.startsWith("pt") -> "Cuide da temperatura e da distribuição para uma xícara mais limpa."
+            language.startsWith("de") -> "Achte auf Temperatur und Verteilung für eine sauberere Tasse."
+            else -> "Watch temperature and distribution for a cleaner cup."
+        }
+        key.contains("receta larga") -> when {
+            language.startsWith("fr") -> "Recette longue : évite de trop diluer la tasse."
+            language.startsWith("pt") -> "Receita longa: evite diluir demais a xícara."
+            language.startsWith("de") -> "Langes Rezept: die Tasse nicht überverdünnen."
+            else -> "Long recipe: avoid over-diluting the cup."
+        }
+        key.contains("receta corta") -> when {
+            language.startsWith("fr") -> "Recette courte : évite la surextraction par contact excessif."
+            language.startsWith("pt") -> "Receita curta: evite superextração por contato excessivo."
+            language.startsWith("de") -> "Kurzes Rezept: Überextraktion durch zu lange Kontaktzeit vermeiden."
+            else -> "Short recipe: avoid over-extraction from excessive contact time."
+        }
+        key.contains("volumen dentro de rango recomendado") -> when {
+            language.startsWith("fr") -> "Le volume est dans la plage recommandée pour cette méthode."
+            language.startsWith("pt") -> "O volume está na faixa recomendada para este método."
+            language.startsWith("de") -> "Das Volumen liegt im empfohlenen Bereich für diese Methode."
+            else -> "Volume is within the recommended range for this method."
+        }
+        key.contains("perfil concentrado") -> when {
+            language.startsWith("fr") -> "Profil concentré : verse doucement et évite l'agitation excessive."
+            language.startsWith("pt") -> "Perfil concentrado: despeje com suavidade e evite agitação excessiva."
+            language.startsWith("de") -> "Konzentriertes Profil: sanft gießen und übermäßige Bewegung vermeiden."
+            else -> "Concentrated profile: pour gently and avoid excessive agitation."
+        }
+        key.contains("perfil ligero") -> when {
+            language.startsWith("fr") -> "Profil léger : pour plus de corps, augmente le contact ou affine un peu la mouture."
+            language.startsWith("pt") -> "Perfil leve: para mais corpo, aumente o contato ou moa um pouco mais fino."
+            language.startsWith("de") -> "Leichtes Profil: Für mehr Körper Kontaktzeit erhöhen oder etwas feiner mahlen."
+            else -> "Lighter profile: for more body, increase contact or grind slightly finer."
+        }
+        key.contains("perfil equilibrado") -> when {
+            language.startsWith("fr") -> "Profil équilibré : garde un rythme et un débit constants."
+            language.startsWith("pt") -> "Perfil equilibrado: mantenha ritmo e fluxo consistentes."
+            language.startsWith("de") -> "Ausgewogenes Profil: Rhythmus und Fluss konstant halten."
+            else -> "Balanced profile: keep rhythm and flow consistent."
+        }
+        else -> line
+    }
+}
+
+@Composable
+private fun localizedBrewMethodName(name: String): String {
+    val configuration = LocalConfiguration.current
+    val appLanguage = remember(configuration) {
+        val localeFromConfig = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            configuration.locales.get(0)
+        } else {
+            @Suppress("DEPRECATION")
+            configuration.locale
+        }
+        (localeFromConfig?.language ?: Locale.getDefault().language).lowercase(Locale.ROOT)
+    }
+    val isSpanish = appLanguage.startsWith("es")
+    if (isSpanish) return name
+    return when (name.trim().lowercase(Locale.ROOT)) {
+        "goteo" -> "Drip"
+        "prensa francesa" -> "French press"
+        "italiana" -> "Moka"
+        "otros" -> "Other"
+        "agua" -> "Water"
+        else -> name
     }
 }
 

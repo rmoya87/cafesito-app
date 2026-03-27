@@ -102,6 +102,21 @@ export function HomeView({
   onMarkPantryCoffeeFinished?: (pantryItemId: string) => Promise<void>;
 }) {
   const { t, locale } = useI18n();
+  const localizedMethodName = useCallback(
+    (name: string) => {
+      if (locale === "es") return name;
+      const key = name.trim().toLowerCase();
+      const map: Record<string, string> = {
+        "goteo": "Drip",
+        "prensa francesa": "French press",
+        "italiana": "Moka",
+        "otros": "Other",
+        "agua": "Water"
+      };
+      return map[key] ?? name;
+    },
+    [locale]
+  );
   const [pantryOptionsCoffeeId, setPantryOptionsCoffeeId] = useState<string | null>(null);
   const [pantryDeleteConfirmCoffeeId, setPantryDeleteConfirmCoffeeId] = useState<string | null>(null);
   const [pantryFinishedConfirmCoffeeId, setPantryFinishedConfirmCoffeeId] = useState<string | null>(null);
@@ -343,14 +358,16 @@ export function HomeView({
           onPointerLeave={handleHomeCarouselPointerUp}
           onPointerCancel={handleHomeCarouselPointerUp}
         >
-          {elaborationMethodsToShow.map((method) => (
+          {elaborationMethodsToShow.map((method) => {
+            const methodLabel = localizedMethodName(method.name);
+            return (
             <Button
               key={method.name}
               variant="plain"
               type="button"
               className="home-elaboration-method-circle"
               onClick={() => onOpenBrewToMethod(method.name)}
-              aria-label={locale === "es" ? `Elaborar con ${method.name}` : `Brew with ${method.name}`}
+              aria-label={locale === "es" ? `Elaborar con ${methodLabel}` : `Brew with ${methodLabel}`}
             >
               <span className="home-elaboration-method-circle-inner">
                 {method.icon === "bolt" ? (
@@ -361,9 +378,9 @@ export function HomeView({
                   <img src={method.icon} alt="" loading="lazy" decoding="async" />
                 )}
               </span>
-              <span className="home-elaboration-method-label">{method.name}</span>
+              <span className="home-elaboration-method-label">{methodLabel}</span>
             </Button>
-          ))}
+          );})}
         </div>
         {carouselHasScroll.elaboration ? (
           <div className="home-carousel-nav">

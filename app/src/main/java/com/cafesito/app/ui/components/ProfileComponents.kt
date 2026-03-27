@@ -361,7 +361,7 @@ fun ProfileActivityCard(
                 if (!item.avatarUrl.isNullOrBlank()) {
                     AsyncImage(
                         model = item.avatarUrl,
-                        contentDescription = "Avatar de $displayName",
+                        contentDescription = stringResource(id = R.string.profile_avatar_cd, displayName),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
@@ -417,13 +417,13 @@ fun ProfileActivityCard(
                             ) {
                                 Icon(
                                     imageVector = if (isFavoritesList) Icons.Default.Favorite else Icons.AutoMirrored.Filled.FormatListBulleted,
-                                    contentDescription = if (isFavoritesList) "Favoritos" else "Lista",
+                                    contentDescription = if (isFavoritesList) stringResource(id = R.string.profile_favorites_title) else stringResource(id = R.string.profile_tab_lists),
                                     modifier = Modifier.size(18.dp),
                                     tint = if (isFavoritesList) ElectricRed else MaterialTheme.colorScheme.onSurface
                                 )
                                 Spacer(Modifier.width(Spacing.space2))
                                 Text(
-                                    text = listName?.ifBlank { "Lista" } ?: "Lista",
+                                    text = listName?.ifBlank { stringResource(id = R.string.profile_tab_lists) } ?: stringResource(id = R.string.profile_tab_lists),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onSurface,
@@ -451,7 +451,7 @@ fun ProfileActivityCard(
                                             modifier = Modifier.padding(horizontal = 10.dp, vertical = Spacing.space1),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Icon(Icons.Default.Star, contentDescription = "Nota", modifier = Modifier.size(Spacing.space3), tint = noteTextColor)
+                                            Icon(Icons.Default.Star, contentDescription = stringResource(id = R.string.common_rating), modifier = Modifier.size(Spacing.space3), tint = noteTextColor)
                                             Spacer(Modifier.width(Spacing.space1))
                                             Text(
                                                 text = "${rating.toInt()}/5",
@@ -526,7 +526,7 @@ fun ProfileActivityCard(
                                     overflow = TextOverflow.Ellipsis
                                 )
                             }
-                            Icon(Icons.Default.ChevronRight, contentDescription = "Ver café", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.ChevronRight, contentDescription = stringResource(id = R.string.common_open_coffee), tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
                         }
                     }
                 }
@@ -1175,7 +1175,7 @@ fun CoffeeFavoritePremiumItem(
                 Text(text = coffeeDetails.coffee.marca.uppercase(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
             }
             IconButton(onClick = onFavoriteClick) {
-                Icon(painter = rememberListAltCheckSvgPainter(), contentDescription = "Listas", tint = ElectricGreen, modifier = Modifier.size(20.dp))
+                Icon(painter = rememberListAltCheckSvgPainter(), contentDescription = stringResource(id = R.string.profile_tab_lists), tint = ElectricGreen, modifier = Modifier.size(20.dp))
             }
         }
     }
@@ -1240,7 +1240,7 @@ fun CoffeeFavoriteListItem(
                 ) {
                     Icon(
                         painter = rememberListAltCheckSvgPainter(),
-                        contentDescription = "Quitar de listas",
+                        contentDescription = stringResource(id = R.string.common_remove_from_lists),
                         tint = ElectricGreen,
                         modifier = Modifier.size(20.dp)
                     )
@@ -1296,7 +1296,7 @@ fun CoffeeListRowWithChevron(
             }
             Icon(
                 imageVector = Icons.Default.ChevronRight,
-                contentDescription = "Abrir",
+                contentDescription = stringResource(id = R.string.common_open),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(Spacing.space6)
             )
@@ -1342,7 +1342,7 @@ fun SwipeableFavoriteItem(
             ) {
                 Icon(
                     Icons.Default.Delete,
-                    contentDescription = "Quitar de favoritos",
+                    contentDescription = stringResource(id = R.string.common_remove_from_favorites),
                     tint = if (isSystemInDarkTheme()) PureBlack else PureWhite,
                     modifier = Modifier.padding(end = Spacing.space4)
                 )

@@ -57,12 +57,12 @@ fun formatWeekRange(mondayMs: Long): String {
 
 /** Formato "marzo 2025" para el mes (primer día del mes en ms). */
 fun formatMonthYear(monthStartMs: Long): String {
-    return java.text.SimpleDateFormat("MMMM yyyy", java.util.Locale.forLanguageTag("es-ES")).format(java.util.Date(monthStartMs))
+    return java.text.SimpleDateFormat("MMMM yyyy", java.util.Locale.getDefault()).format(java.util.Date(monthStartMs))
 }
 
 /** Solo nombre del mes (para selector en topbar cuando periodo es MES). */
 fun formatMonthOnly(monthStartMs: Long): String {
-    return java.text.SimpleDateFormat("MMMM", java.util.Locale.forLanguageTag("es-ES")).format(java.util.Date(monthStartMs))
+    return java.text.SimpleDateFormat("MMMM", java.util.Locale.getDefault()).format(java.util.Date(monthStartMs))
 }
 
 enum class DiaryPeriod { HOY, SEMANA, MES }
@@ -431,12 +431,40 @@ class DiaryViewModel @Inject constructor(
         )
     }
 
-    private val dayNames = listOf("Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado")
+    private val dayNames: List<String>
+        get() {
+            val weekdays = java.text.DateFormatSymbols.getInstance(Locale.getDefault()).weekdays
+            return listOf(
+                weekdays[Calendar.SUNDAY],
+                weekdays[Calendar.MONDAY],
+                weekdays[Calendar.TUESDAY],
+                weekdays[Calendar.WEDNESDAY],
+                weekdays[Calendar.THURSDAY],
+                weekdays[Calendar.FRIDAY],
+                weekdays[Calendar.SATURDAY]
+            )
+        }
     private val sinMetodo = "—"
 
     private fun stripLabPrefix(prep: String): String {
         val raw = if (prep.contains("|")) prep.substringBefore("|").trim() else prep
-        return raw.replace(Regex("^(?:lab:\\s*|elaboracion:\\s*)", RegexOption.IGNORE_CASE), "").trim().ifEmpty { sinMetodo }
+        val cleaned = raw.replace(Regex("^(?:lab:\\s*|elaboracion:\\s*)", RegexOption.IGNORE_CASE), "").trim().ifEmpty { sinMetodo }
+        val isSpanish = Locale.getDefault().language.startsWith("es")
+        if (isSpanish) return cleaned
+        return cleaned
+            .replace("Equilibrado", "Balanced", ignoreCase = true)
+            .replace("Amargo", "Bitter", ignoreCase = true)
+            .replace("Ácido", "Acidic", ignoreCase = true)
+            .replace("Acido", "Acidic", ignoreCase = true)
+            .replace("Salado", "Salty", ignoreCase = true)
+            .replace("Acuoso", "Watery", ignoreCase = true)
+            .replace("Áspero", "Rough", ignoreCase = true)
+            .replace("Aspero", "Rough", ignoreCase = true)
+            .replace("Dulce", "Sweet", ignoreCase = true)
+            .replace("Goteo", "Drip", ignoreCase = true)
+            .replace("Italiana", "Moka", ignoreCase = true)
+            .replace("Prensa francesa", "French press", ignoreCase = true)
+            .replace("Otros", "Other", ignoreCase = true)
     }
 
     val habitStats: StateFlow<DiaryHabitStats> = combine(diaryEntries, _selectedPeriod, _selectedDiaryDateMs) { entries, period, selectedMs ->

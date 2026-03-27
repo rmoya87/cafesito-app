@@ -553,11 +553,47 @@ export function BrewLabView({
     (instruction: string) => {
       if (locale === "es") return instruction;
       const key = normalizeLookupText(instruction);
+      if (key.includes("vierte unos") && key.includes("humedecer")) return "Pour about 50ml of water to wet the whole bed. Stir gently 3 times for even extraction.";
       if (key.includes("fuego medio-bajo")) return "Keep medium-low heat. Water in the lower chamber builds pressure up the funnel.";
       if (key.includes("empiece a salir")) return "When coffee starts flowing, lower heat or remove from stove before the final sputter.";
       if (key.includes("presion constante")) return "Keep steady pressure and a honey-like flow.";
       if (key.includes("humedece el cafe")) return "Bloom the bed and let trapped CO2 release before continuing.";
+      if (key.includes("deja que el lecho termine de drenar")) return "Let the bed finish draining to complete extraction.";
       return instruction;
+    },
+    [locale]
+  );
+  const translateProcessAdviceLine = useCallback(
+    (line: string) => {
+      if (locale === "es") return line;
+      const key = normalizeLookupText(line);
+      if (key.includes("asegura saturacion completa del lecho")) return "Ensure the coffee bed is fully saturated before moving on.";
+      if (key.includes("mantiene altura corta de vertido")) return "Keep a low pour height to avoid channeling.";
+      if (key.includes("controla el flujo")) return "Control the flow: if it speeds up too much, grind finer.";
+      if (key.includes("mantiene temperatura estable")) return "Keep temperature stable and avoid excessive agitation.";
+      if (key.includes("busca consistencia de flujo")) return "Keep flow consistency and an even coffee bed.";
+      if (key.includes("cierra esta fase en")) return line.replace(/Cierra esta fase en\s*/i, "Close this phase in ").replace(/\s*s y prepara la transicion/i, "s and prepare the transition.");
+      if (key.includes("queda poco de fase")) return "This phase is almost done: prioritize precision over speed.";
+      if (key.includes("mantiene el patron actual")) return "Keep the current pattern to maintain extraction consistency.";
+      if (key.includes("tiempo corto para espresso")) return "Short espresso time: tends to increase acidity.";
+      if (key.includes("tiempo largo para espresso")) return "Long espresso time: increases body and bitterness risk.";
+      if (key.includes("tiempo de espresso en ventana recomendada")) return "Espresso time is within the recommended window.";
+      if (key.includes("en espresso, corta al rubio claro")) return "For espresso, stop at light blonding to avoid late bitterness.";
+      if (key.includes("en italiana, retira al primer burbujeo fuerte")) return "For moka, remove at the first strong sputter to avoid burnt notes.";
+      if (key.includes("en prensa, rompe costra suave")) return "For French press, break crust gently and decant immediately.";
+      if (key.includes("en aeropress, presion constante")) return "For Aeropress, keep pressure smooth and steady.";
+      if (key.includes("cuida temperatura y distribucion")) return "Watch temperature and distribution for a cleaner cup.";
+      if (key.includes("receta larga")) return "Long recipe: avoid over-diluting the cup.";
+      if (key.includes("receta corta")) return "Short recipe: avoid over-extraction from excessive contact time.";
+      if (key.includes("volumen dentro de rango recomendado")) return "Volume is within the recommended range for this method.";
+      if (key.includes("perfil concentrado")) return "Concentrated profile: pour gently and avoid excessive agitation.";
+      if (key.includes("perfil ligero")) return "Lighter profile: for more body, increase contact or grind slightly finer.";
+      if (key.includes("perfil equilibrado")) return "Balanced profile: keep rhythm and flow consistent.";
+      return line
+        .replace(/mas/g, "more")
+        .replace(/metodo/g, "method")
+        .replace(/temperatura/g, "temperature")
+        .replace(/extraccion/g, "extraction");
     },
     [locale]
   );
@@ -590,15 +626,10 @@ export function BrewLabView({
         .filter(Boolean),
     [brewingProcessAdvice]
   );
-  const processAdviceCards = useMemo(() => {
-    if (locale !== "es") {
-      return [
-        currentPhaseInstruction,
-        "Keep a steady flow and avoid abrupt changes in temperature or pour speed."
-      ];
-    }
-    return [currentPhaseInstruction, ...brewingAdviceLines.map((line) => `${line}.`)];
-  }, [brewingAdviceLines, currentPhaseInstruction, locale]);
+  const processAdviceCards = useMemo(
+    () => [currentPhaseInstruction, ...brewingAdviceLines.map((line) => `${translateProcessAdviceLine(line)}.`)],
+    [brewingAdviceLines, currentPhaseInstruction, translateProcessAdviceLine]
+  );
   const resultRecommendation = useMemo(() => {
     if (locale === "es") return getBrewDialRecommendation(resultTaste);
     const key = normalizeLookupText(resultTaste);
@@ -753,15 +784,32 @@ export function BrewLabView({
   const translateBaristaValue = useCallback(
     (value: string) => {
       if (locale === "es") return value;
-      const text = normalizeLookupText(value);
-      if (text.includes("mas concentrado")) return "More concentrated profile; if bitter, grind one notch coarser.";
-      if (text.includes("tramo medio")) return "Mid-volume range: good balance between body and clarity.";
-      if (text.includes("ventana ideal")) return "Within ideal window: keep steady flow and consistent crema.";
-      if (text.includes("dentro de rango clasico")) return "Within classic espresso dose range.";
-      if (text.includes("molienda fina")) return "Fine grind";
-      if (text.includes("si corre rapido")) return "Fast flow: grind finer. Slow choke: grind coarser.";
-      if (text.includes("distribucion")) return "Distribution: level the bed before tamping.";
-      return value;
+      const translateSegment = (segment: string): string => {
+        const text = normalizeLookupText(segment);
+        if (text.includes("mas concentrado")) return "More concentrated profile; if bitter, grind one notch coarser.";
+        if (text.includes("tramo medio")) return "Mid-volume range: good balance between body and clarity.";
+        if (text.includes("mas intenso")) return "More intense: pour gently to preserve sweetness.";
+        if (text.includes("ventana ideal")) return "Within ideal window: keep steady flow and consistent crema.";
+        if (text.includes("dentro de rango clasico")) return "Within classic espresso dose range.";
+        if (text.includes("molienda fina-media")) return "GRIND: MEDIUM-FINE";
+        if (text.includes("temperatura: 85-92")) return "TEMPERATURE: 85-92°C";
+        if (text.includes("infusion: 1:30-2:00")) return "INFUSION: 1:30-2:00";
+        if (text.includes("presion: suave y constante")) return "PRESSURE: smooth and steady";
+        if (text.includes("removido: 1-2 agitaciones suaves")) return "STIRRING: 1-2 gentle stirs";
+        if (text.includes("papel: mas limpieza en taza")) return "PAPER: cleaner cup";
+        if (text.includes("metal: mas cuerpo y textura")) return "METAL: more body and texture";
+        if (text.includes("distribucion: nivela antes del tamp")) return "DISTRIBUTION: level the bed before tamping.";
+        return segment
+          .replace(/MOLIENDA/gi, "GRIND")
+          .replace(/TEMPERATURA/gi, "TEMPERATURE")
+          .replace(/INFUSIÓN|INFUSION/gi, "INFUSION")
+          .replace(/PRESION/gi, "PRESSURE")
+          .replace(/REMOVIDO/gi, "STIRRING")
+          .replace(/PAPEL/gi, "PAPER")
+          .replace(/METAL/gi, "METAL")
+          .replace(/DISTRIBUCIÓN|DISTRIBUCION/gi, "DISTRIBUTION");
+      };
+      return value.split(" · ").map((segment) => translateSegment(segment)).join(" · ");
     },
     [locale]
   );

@@ -15,7 +15,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.cafesito.app.R
 import com.cafesito.app.ui.theme.OrangeYellow
 
 @Composable
@@ -45,7 +47,7 @@ fun SemicircleRatingBar(
             
             Icon(
                 imageVector = if (isFilled) Icons.Filled.Star else Icons.Outlined.StarOutline,
-                contentDescription = "Valoración $i de 5",
+                contentDescription = stringResource(id = R.string.common_rating_of_five_pattern, i),
                 modifier = Modifier
                     .size(48.dp)
                     .clickableWithoutRipple { onRatingChanged(i.toFloat()) },

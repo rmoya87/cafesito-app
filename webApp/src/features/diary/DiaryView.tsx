@@ -599,6 +599,140 @@ export function DiaryView({
     : "";
   const stripDoseFromPreparation = (value: string) =>
     value.replace(/\s*(?:\(?\d+(?:[.,]\d+)?\s*g\)?)\s*$/i, "").trim();
+  const localizedDiaryMethodChip = useCallback((name: string) => {
+    if (locale === "es") return name;
+    const key = normalizeLookupText(name);
+    const en: Record<string, string> = {
+      espresso: "Espresso",
+      agua: "Water",
+      italiana: "Moka",
+      aeropress: "Aeropress",
+      chemex: "Chemex",
+      goteo: "Drip",
+      "hario v60": "Hario V60"
+    };
+    const fr: Record<string, string> = {
+      espresso: "Espresso",
+      agua: "Eau",
+      italiana: "Moka",
+      aeropress: "Aeropress",
+      chemex: "Chemex",
+      goteo: "Filtre",
+      "hario v60": "Hario V60"
+    };
+    const pt: Record<string, string> = {
+      espresso: "Espresso",
+      agua: "Agua",
+      italiana: "Moka",
+      aeropress: "Aeropress",
+      chemex: "Chemex",
+      goteo: "Coado",
+      "hario v60": "Hario V60"
+    };
+    const de: Record<string, string> = {
+      espresso: "Espresso",
+      agua: "Wasser",
+      italiana: "Moka",
+      aeropress: "Aeropress",
+      chemex: "Chemex",
+      goteo: "Filter",
+      "hario v60": "Hario V60"
+    };
+    const dictionary = locale === "fr" ? fr : locale === "pt" ? pt : locale === "de" ? de : en;
+    return dictionary[key] ?? name;
+  }, [locale]);
+  const localizedDiaryPreparationChip = useCallback((name: string) => {
+    if (locale === "es") return name;
+    const key = normalizeLookupText(name);
+    const en: Record<string, string> = {
+      espresso: "Espresso",
+      americano: "Americano",
+      capuchino: "Cappuccino",
+      latte: "Latte",
+      macchiato: "Macchiato",
+      moca: "Mocha",
+      vienes: "Viennese",
+      irlandes: "Irish",
+      frappuccino: "Frappuccino",
+      "caramelo macchiato": "Caramel macchiato",
+      corretto: "Corretto",
+      freddo: "Freddo",
+      "latte macchiato": "Latte macchiato",
+      "leche con chocolate": "Hot chocolate milk",
+      marroqui: "Moroccan",
+      romano: "Romano",
+      descafeinado: "Decaf"
+    };
+    const fr: Record<string, string> = {
+      espresso: "Espresso",
+      americano: "Americano",
+      capuchino: "Cappuccino",
+      latte: "Latte",
+      macchiato: "Macchiato",
+      moca: "Moka",
+      vienes: "Viennois",
+      irlandes: "Irlandais",
+      frappuccino: "Frappuccino",
+      "caramelo macchiato": "Macchiato caramel",
+      corretto: "Corretto",
+      freddo: "Freddo",
+      "latte macchiato": "Latte macchiato",
+      "leche con chocolate": "Lait au chocolat",
+      marroqui: "Marocain",
+      romano: "Romano",
+      descafeinado: "Decafeine"
+    };
+    const pt: Record<string, string> = {
+      espresso: "Espresso",
+      americano: "Americano",
+      capuchino: "Cappuccino",
+      latte: "Latte",
+      macchiato: "Macchiato",
+      moca: "Moca",
+      vienes: "Vienense",
+      irlandes: "Irlandes",
+      frappuccino: "Frappuccino",
+      "caramelo macchiato": "Macchiato de caramelo",
+      corretto: "Corretto",
+      freddo: "Freddo",
+      "latte macchiato": "Latte macchiato",
+      "leche con chocolate": "Leite com chocolate",
+      marroqui: "Marroquino",
+      romano: "Romano",
+      descafeinado: "Descafeinado"
+    };
+    const de: Record<string, string> = {
+      espresso: "Espresso",
+      americano: "Americano",
+      capuchino: "Cappuccino",
+      latte: "Latte",
+      macchiato: "Macchiato",
+      moca: "Mokka",
+      vienes: "Wiener",
+      irlandes: "Irisch",
+      frappuccino: "Frappuccino",
+      "caramelo macchiato": "Karamell-Macchiato",
+      corretto: "Corretto",
+      freddo: "Freddo",
+      "latte macchiato": "Latte macchiato",
+      "leche con chocolate": "Milch mit Schokolade",
+      marroqui: "Marokkanisch",
+      romano: "Romano",
+      descafeinado: "Entkoffeiniert"
+    };
+    const dictionary = locale === "fr" ? fr : locale === "pt" ? pt : locale === "de" ? de : en;
+    return dictionary[key] ?? name;
+  }, [locale]);
+  const localizedDiarySizeChip = useCallback((name: string) => {
+    if (locale === "es") return name;
+    const key = normalizeLookupText(name);
+    const en: Record<string, string> = { espresso: "Espresso", pequeno: "Small", mediano: "Medium", grande: "Large", "tazon xl": "XL mug" };
+    const fr: Record<string, string> = { espresso: "Espresso", pequeno: "Petit", mediano: "Moyen", grande: "Grand", "tazon xl": "Tasse XL" };
+    const pt: Record<string, string> = { espresso: "Espresso", pequeno: "Pequeno", mediano: "Medio", grande: "Grande", "tazon xl": "Caneca XL" };
+    const de: Record<string, string> = { espresso: "Espresso", pequeno: "Klein", mediano: "Mittel", grande: "Gross", "tazon xl": "XL-Tasse" };
+    const dictionary = locale === "fr" ? fr : locale === "pt" ? pt : locale === "de" ? de : en;
+    return dictionary[key] ?? name;
+  }, [locale]);
   const editMethodOptions = [
     { label: "Espresso", drawable: "espresso.png" },
     { label: "Americano", drawable: "americano.png" },
@@ -831,7 +965,7 @@ export function DiaryView({
               setEditAmountMl(String(Math.max(1, entry.amount_ml || 1)));
               setEditCaffeineMg(String(Math.max(0, entry.caffeine_mg || 0)));
               setEditDoseGrams((grams > 0 ? String(grams) : (doseMatch || "15")).replace(".", ","));
-              setEditTimeText(new Date(entry.timestamp).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }));
+              setEditTimeText(new Date(entry.timestamp).toLocaleTimeString(localeTag, { hour: "2-digit", minute: "2-digit" }));
               const labMatch = methodPart.match(/^Lab:\s*([^(]+?)\s*\(([^)]*)\)\s*$/);
               if (labMatch) {
                 setEditBrewMethod(labMatch[1].trim());
@@ -1449,7 +1583,7 @@ export function DiaryView({
                             ) : (
                               <img src={method.icon} alt="" aria-hidden="true" />
                             )}
-                            <span>{method.name}</span>
+                            <span>{localizedDiaryMethodChip(method.name)}</span>
                           </Button>
                         ))}
                       </div>
@@ -1479,7 +1613,7 @@ export function DiaryView({
                               <img src={`/android-drawable/${method.drawable}`} alt="" aria-hidden="true" loading="lazy" decoding="async" />
                             </span>
                             <span className="brew-tipo-card-copy">
-                              <span className="brew-tipo-card-label">{method.label}</span>
+                              <span className="brew-tipo-card-label">{localizedDiaryPreparationChip(method.label)}</span>
                             </span>
                           </Button>
                         );
@@ -1536,7 +1670,7 @@ export function DiaryView({
                           onClick={() => setEditAmountMl(String(size.ml))}
                         >
                           <img src={`/android-drawable/${size.drawable}`} alt="" aria-hidden="true" />
-                          <span>{size.label}</span>
+                          <span>{localizedDiarySizeChip(size.label)}</span>
                           <small>{size.range}</small>
                         </Button>
                       ))}
@@ -1583,7 +1717,38 @@ function DiaryActivityRow({
   onOpenEdit: () => void;
   onDelete: () => Promise<void>;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const localeTag = locale === "en" ? "en-US" : locale === "fr" ? "fr-FR" : locale === "pt" ? "pt-PT" : locale === "de" ? "de-DE" : "es-ES";
+  const localizeMethodName = (value: string) => {
+    if (locale === "es") return value;
+    const key = normalizeLookupText(value);
+    const en: Record<string, string> = { espresso: "Espresso", agua: "Water", italiana: "Moka", aeropress: "Aeropress", chemex: "Chemex", goteo: "Drip", "hario v60": "Hario V60" };
+    const fr: Record<string, string> = { espresso: "Espresso", agua: "Eau", italiana: "Moka", aeropress: "Aeropress", chemex: "Chemex", goteo: "Filtre", "hario v60": "Hario V60" };
+    const pt: Record<string, string> = { espresso: "Espresso", agua: "Agua", italiana: "Moka", aeropress: "Aeropress", chemex: "Chemex", goteo: "Coado", "hario v60": "Hario V60" };
+    const de: Record<string, string> = { espresso: "Espresso", agua: "Wasser", italiana: "Moka", aeropress: "Aeropress", chemex: "Chemex", goteo: "Filter", "hario v60": "Hario V60" };
+    const dict = locale === "fr" ? fr : locale === "pt" ? pt : locale === "de" ? de : en;
+    return dict[key] ?? value;
+  };
+  const localizePrepName = (value: string) => {
+    if (locale === "es") return value;
+    const key = normalizeLookupText(value);
+    const en: Record<string, string> = { espresso: "Espresso", americano: "Americano", capuchino: "Cappuccino", latte: "Latte", macchiato: "Macchiato", moca: "Mocha", vienes: "Viennese", irlandes: "Irish", frappuccino: "Frappuccino", "caramelo macchiato": "Caramel macchiato", corretto: "Corretto", freddo: "Freddo", "latte macchiato": "Latte macchiato", "leche con chocolate": "Hot chocolate milk", marroqui: "Moroccan", romano: "Romano", descafeinado: "Decaf" };
+    const fr: Record<string, string> = { espresso: "Espresso", americano: "Americano", capuchino: "Cappuccino", latte: "Latte", macchiato: "Macchiato", moca: "Moka", vienes: "Viennois", irlandes: "Irlandais", frappuccino: "Frappuccino", "caramelo macchiato": "Macchiato caramel", corretto: "Corretto", freddo: "Freddo", "latte macchiato": "Latte macchiato", "leche con chocolate": "Lait au chocolat", marroqui: "Marocain", romano: "Romano", descafeinado: "Decafeine" };
+    const pt: Record<string, string> = { espresso: "Espresso", americano: "Americano", capuchino: "Cappuccino", latte: "Latte", macchiato: "Macchiato", moca: "Moca", vienes: "Vienense", irlandes: "Irlandes", frappuccino: "Frappuccino", "caramelo macchiato": "Macchiato de caramelo", corretto: "Corretto", freddo: "Freddo", "latte macchiato": "Latte macchiato", "leche con chocolate": "Leite com chocolate", marroqui: "Marroquino", romano: "Romano", descafeinado: "Descafeinado" };
+    const de: Record<string, string> = { espresso: "Espresso", americano: "Americano", capuchino: "Cappuccino", latte: "Latte", macchiato: "Macchiato", moca: "Mokka", vienes: "Wiener", irlandes: "Irisch", frappuccino: "Frappuccino", "caramelo macchiato": "Karamell-Macchiato", corretto: "Corretto", freddo: "Freddo", "latte macchiato": "Latte macchiato", "leche con chocolate": "Milch mit Schokolade", marroqui: "Marokkanisch", romano: "Romano", descafeinado: "Entkoffeiniert" };
+    const dict = locale === "fr" ? fr : locale === "pt" ? pt : locale === "de" ? de : en;
+    return dict[key] ?? value;
+  };
+  const localizeSizeName = (value: string) => {
+    if (locale === "es") return value;
+    const key = normalizeLookupText(value);
+    const en: Record<string, string> = { espresso: "Espresso", pequeno: "Small", mediano: "Medium", grande: "Large", "tazon xl": "XL mug", corto: "Short", largo: "Large" };
+    const fr: Record<string, string> = { espresso: "Espresso", pequeno: "Petit", mediano: "Moyen", grande: "Grand", "tazon xl": "Tasse XL", corto: "Court", largo: "Long" };
+    const pt: Record<string, string> = { espresso: "Espresso", pequeno: "Pequeno", mediano: "Medio", grande: "Grande", "tazon xl": "Caneca XL", corto: "Curto", largo: "Longo" };
+    const de: Record<string, string> = { espresso: "Espresso", pequeno: "Klein", mediano: "Mittel", grande: "Gross", "tazon xl": "XL-Tasse", corto: "Kurz", largo: "Lang" };
+    const dict = locale === "fr" ? fr : locale === "pt" ? pt : locale === "de" ? de : en;
+    return dict[key] ?? value;
+  };
   const isWaterEntry = (entry.type || "").toUpperCase() === "WATER";
   const coffeeNameNorm = (entry.coffee_name || "").trim().toLowerCase();
   const isRegistroRapido = !isWaterEntry && (
@@ -1629,8 +1794,9 @@ function DiaryActivityRow({
       if (ml <= 220) return "Mediano";
       return "Largo";
     })();
-  const sizeValue = sizeValueRaw === "Pequeno" ? "Pequeño" : sizeValueRaw === "Tazon XL" ? "Tazón XL" : sizeValueRaw;
-  const timeValue = new Date(entry.timestamp).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+  const sizeValueEs = sizeValueRaw === "Pequeno" ? "Pequeño" : sizeValueRaw === "Tazon XL" ? "Tazón XL" : sizeValueRaw;
+  const sizeValue = /\bml\b/i.test(sizeValueEs) ? sizeValueEs : localizeSizeName(sizeValueEs);
+  const timeValue = new Date(entry.timestamp).toLocaleTimeString(localeTag, { hour: "2-digit", minute: "2-digit" });
   const tipoDrawable = (() => {
     const normalized = normalizeLookupText(tipoDisplayValue);
     if (normalized.includes("americano")) return "americano.png";
@@ -1728,8 +1894,8 @@ function DiaryActivityRow({
   const methodMetaItem = elaborationMethod
     ? [{
         key: "method" as const,
-        label: "M\u00C9TODO",
-        value: elaborationMethod,
+        label: t("diary.methodUpper"),
+        value: localizeMethodName(elaborationMethod),
         drawable: methodDrawable,
         icon: methodIcon
       }]
@@ -1737,20 +1903,20 @@ function DiaryActivityRow({
   const tipoMetaItem = tipoDisplayValue
     ? [{
         key: "prep" as const,
-        label: "TIPO",
-        value: tipoDisplayValue,
+        label: t("diary.type").toUpperCase(),
+        value: localizePrepName(tipoDisplayValue),
         drawable: tipoDrawable,
         icon: undefined
       }]
     : [];
   const metaItemsBase: Array<{ key: string; icon?: IconName; drawable?: string; label: string; value: string }> = [
-    { key: "caffeine", icon: "caffeine", label: "CAFE\u00CDNA", value: `${Math.max(0, entry.caffeine_mg || 0)} mg` },
-    { key: "dose", icon: "dose", label: "DOSIS", value: doseValue },
-    { key: "size", drawable: sizeDrawable ?? undefined, icon: isWaterEntry ? "bottle" : (sizeDrawable ? undefined : "stock"), label: "TAMA\u00D1O", value: sizeValue },
+    { key: "caffeine", icon: "caffeine", label: t("diary.caffeine").toUpperCase(), value: `${Math.max(0, entry.caffeine_mg || 0)} mg` },
+    { key: "dose", icon: "dose", label: t("diary.dosePerCoffee").toUpperCase(), value: doseValue },
+    { key: "size", drawable: sizeDrawable ?? undefined, icon: isWaterEntry ? "bottle" : (sizeDrawable ? undefined : "stock"), label: t("diary.size").toUpperCase(), value: sizeValue },
     ...methodMetaItem,
     ...tipoMetaItem,
     ...(resultTasteFromPrep && resultTasteIcon
-      ? [{ key: "result" as const, icon: resultTasteIcon, label: "RESULTADO", value: resultTasteFromPrep }]
+      ? [{ key: "result" as const, icon: resultTasteIcon, label: t("brew.result").toUpperCase(), value: resultTasteFromPrep }]
       : [])
   ];
   const metaItems = isWaterEntry ? [] : metaItemsBase;

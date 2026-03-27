@@ -946,6 +946,8 @@ SearchScreen(
         }
 
         if (shouldShowBottomBar && !useNavRail) {
+            val isDarkNav = isSystemInDarkTheme()
+            val navSolidColor = if (isDarkNav) Color.Black else Color.White
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -954,10 +956,9 @@ SearchScreen(
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 Surface(
-                    color = MaterialTheme.colorScheme.surface,
+                    color = navSolidColor,
                     shape = Shapes.shapePremium,
-                    shadowElevation = 12.dp,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    shadowElevation = if (isDarkNav) 12.dp else 16.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     NavigationBar(

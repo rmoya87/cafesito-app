@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import com.cafesito.app.R
 import com.cafesito.app.data.Coffee
 import com.cafesito.app.ui.theme.Shapes
 import com.cafesito.app.ui.theme.Spacing
@@ -147,7 +149,7 @@ fun CoffeeListItem(
                 if (showChevron) {
                     Icon(
                         Icons.Default.ChevronRight,
-                        contentDescription = "Ver café",
+                        contentDescription = stringResource(id = R.string.common_open_coffee),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }

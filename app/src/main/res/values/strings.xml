@@ -490,4 +490,24 @@
     <string name="oms_hydration_value">2.5 L</string>
     <string name="oms_hydration_desc">El agua es vital. El café deshidrata ligeramente.</string>
     <string name="profile_avatar_cd">Avatar de %1$s</string>
+    <string name="tour_overlay_cd">Tour de la aplicación</string>
+    <string name="tour_skip_all">Omitir todo</string>
+    <string name="tour_understood">Entendido</string>
+    <string name="tour_skip_all_cd">Omitir todo el tour</string>
+    <string name="tour_understood_cd">Entendido, cerrar mensaje del tour</string>
+    <string name="common_back">Volver</string>
+    <string name="common_avatar">Avatar</string>
+    <string name="common_options">Opciones</string>
+    <string name="common_add_coffee_to_pantry">Añadir café a la despensa</string>
+    <string name="common_back_to_diary">Volver a Mi diario</string>
+    <string name="common_clear_country_filter">Limpiar filtro de país</string>
+    <string name="common_review_image">Imagen de la reseña</string>
+    <string name="common_rating">Valoración</string>
+    <string name="common_open_coffee">Ver café</string>
+    <string name="common_remove_from_lists">Quitar de listas</string>
+    <string name="common_remove_from_favorites">Quitar de favoritos</string>
+    <string name="common_time_hhmm">HH:mm</string>
+    <string name="common_star_of_pattern">Estrella %1$d de %2$d</string>
+    <string name="common_rating_of_five_pattern">Valoración %1$d de 5</string>
+    <string name="detail_you_badge">TÚ</string>
 </resources>

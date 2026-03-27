@@ -1173,7 +1173,7 @@ fun PeriodBottomSheet(
                     onClick = { onPeriodSelected(period); onDismiss() },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(44.dp)
+                        .height(52.dp)
                         .padding(vertical = Spacing.space1),
                     shape = Shapes.card,
                     color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant

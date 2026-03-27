@@ -12,13 +12,6 @@ import { useI18n } from "../../i18n";
 const SWIPE_THRESHOLD_PX = 3;
 const VERTICAL_LOCK_PX = 2;
 
-/** Textos de actividad en segunda persona (usuario logueado) vs tercera (otros). */
-const ACTIVITY_LABEL_SECOND: Record<string, string> = {
-  "añadió a su lista": "añadiste a tu lista",
-  "opinó sobre un café": "opinaste sobre un café",
-  "probó por primera vez": "probaste por primera vez"
-};
-
 function ProfileFavoriteItem({
   coffee,
   onOpenCoffee,
@@ -857,7 +850,13 @@ export function ProfileView({
                       const coffee = item.coffeeId != null ? coffeesById.get(item.coffeeId) : null;
                       const isOwnActivity = activeUserId != null && item.userId === activeUserId;
                       const displayName = isOwnActivity ? profileCopy.me : item.userName;
-                      const displayLabel = isOwnActivity ? (ACTIVITY_LABEL_SECOND[item.label] ?? item.label) : item.label;
+                      const displayLabel = item.type === "review"
+                        ? (isOwnActivity ? t("profile.activity.review.own") : t("profile.activity.review.other"))
+                        : item.type === "diary"
+                          ? (isOwnActivity ? t("profile.activity.diary.own") : t("profile.activity.diary.other"))
+                          : item.type === "favorite"
+                            ? (isOwnActivity ? t("profile.activity.favorite.own") : t("profile.activity.favorite.other"))
+                            : item.label;
                       return (
                       <li key={item.id} className="profile-activity-item">
                         <article className="card profile-activity-card" data-activity-type={item.type}>
@@ -892,21 +891,21 @@ export function ProfileView({
                                       type="button"
                                       className={`profile-activity-coffee-card-list ${item.listId === "favorites" ? "is-favorites" : ""}`.trim()}
                                       onClick={(e) => { e.stopPropagation(); onOpenUserList(item.userId, item.listId!); }}
-                                      aria-label={`Ver lista ${item.listName ?? "Lista"}`}
+                                      aria-label={t("profile.activity.viewListAria", { listName: item.listName ?? t("profile.activity.listFallback") })}
                                     >
                                       {item.listId === "favorites" ? (
                                         <UiIcon name="favorite-filled" className="ui-icon profile-activity-coffee-card-list-icon" aria-hidden="true" />
                                       ) : (
                                         <UiIcon name="list-alt" className="ui-icon profile-activity-coffee-card-list-icon" aria-hidden="true" />
                                       )}
-                                      <span className="profile-activity-coffee-card-list-name">{item.listName ?? "Lista"}</span>
+                                      <span className="profile-activity-coffee-card-list-name">{item.listName ?? t("profile.activity.listFallback")}</span>
                                     </Button>
                                     <div className="profile-activity-coffee-card-sep" aria-hidden="true" />
                                   </>
                                 ) : null}
                                 {item.type === "review" && (item.rating != null || item.comment) ? (
                                   <>
-                                    <div className="profile-activity-coffee-card-review-block" aria-label="Valoración y opinión">
+                                    <div className="profile-activity-coffee-card-review-block" aria-label={t("profile.activity.ratingAndReviewAria")}>
                                       {item.rating != null ? <span className="coffee-detail-opinion-rating-chip" aria-label="Nota"><UiIcon name="star-filled" className="ui-icon coffee-detail-opinion-chip-star" />{Math.round(item.rating)}/5</span> : null}
                                       {item.rating != null && item.comment ? " " : null}
                                       {item.comment ? <span className="profile-activity-coffee-card-review-comment">{item.comment}</span> : null}
@@ -923,7 +922,7 @@ export function ProfileView({
                                 >
                                   <span className="profile-activity-coffee-card-media">
                                     {coffee.image_url ? (
-                                      <img className="profile-activity-coffee-card-image" src={coffee.image_url} alt={`Imagen de ${coffee.nombre}`} loading="lazy" decoding="async" />
+                                      <img className="profile-activity-coffee-card-image" src={coffee.image_url} alt={t("profile.activity.coffeeImageAlt", { coffeeName: coffee.nombre })} loading="lazy" decoding="async" />
                                     ) : (
                                       <span className="profile-activity-coffee-card-image profile-activity-coffee-card-fallback" aria-hidden="true">{(coffee.nombre || "C").slice(0, 1).toUpperCase()}</span>
                                     )}

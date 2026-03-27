@@ -977,7 +977,7 @@ fun DiaryEntryItem(
                     onClick = {},
                     enabled = false,
                     label = { Text(dateStr, fontSize = 11.sp) },
-                    leadingIcon = { Icon(Icons.Default.Schedule, contentDescription = "HH:mm", modifier = Modifier.size(14.dp)) }
+                    leadingIcon = { Icon(Icons.Default.Schedule, contentDescription = stringResource(id = R.string.common_time_hhmm), modifier = Modifier.size(14.dp)) }
                 )
             }
 
@@ -1166,6 +1166,39 @@ fun DiaryEntryEditBottomSheet(
     }
 
     val isSpanish = Locale.getDefault().language.startsWith("es")
+    fun localizeMethodLabel(raw: String): String {
+        if (isSpanish) return raw
+        return when (normalizeDiaryLookupText(raw)) {
+            "goteo" -> "Drip"
+            "prensa francesa" -> "French press"
+            "italiana" -> "Moka"
+            "otros" -> "Other"
+            "agua" -> "Water"
+            else -> raw
+        }
+    }
+    fun localizePrepLabel(raw: String): String {
+        if (isSpanish) return raw
+        return when (normalizeDiaryLookupText(raw)) {
+            "moca" -> "Mocha"
+            "vienes" -> "Viennese"
+            "irlandes" -> "Irish"
+            "leche con chocolate" -> "Hot chocolate milk"
+            "marroqui" -> "Moroccan"
+            "descafeinado" -> "Decaf"
+            else -> raw
+        }
+    }
+    fun localizeSizeLabel(raw: String): String {
+        if (isSpanish) return raw
+        return when (normalizeDiaryLookupText(raw)) {
+            "pequeno" -> "Small"
+            "mediano" -> "Medium"
+            "grande" -> "Large"
+            "tazon xl" -> "XL mug"
+            else -> raw
+        }
+    }
     val tasteBitter = stringResource(id = R.string.brew_taste_bitter)
     val tasteAcidic = stringResource(id = R.string.brew_taste_acidic)
     val tasteBalanced = stringResource(id = R.string.brew_taste_balanced)
@@ -1363,7 +1396,7 @@ fun DiaryEntryEditBottomSheet(
                                     }
                                 }
                                 Text(
-                                    text = methodName,
+                                    text = localizeMethodLabel(methodName),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = if (isSelected) selectedChipContent else unselectedChipContent,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
@@ -1411,7 +1444,7 @@ fun DiaryEntryEditBottomSheet(
                                     Icon(Icons.Default.CoffeeMaker, contentDescription = option.label, tint = iconTint, modifier = Modifier.size(chipIconSize))
                                 }
                                 Text(
-                                    text = option.label,
+                                    text = localizePrepLabel(option.label),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = if (isSelected) selectedChipContent else unselectedChipContent,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
@@ -1511,7 +1544,7 @@ fun DiaryEntryEditBottomSheet(
                                     Icon(Icons.Default.LocalCafe, contentDescription = option.label, modifier = Modifier.size(20.dp), tint = chipContent)
                                 }
                                 Column {
-                                    Text(option.label, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = chipContent)
+                                    Text(localizeSizeLabel(option.label), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = chipContent)
                                     Text(option.rangeLabel, style = MaterialTheme.typography.bodySmall, color = chipContent.copy(alpha = 0.9f))
                                 }
                             }
@@ -1542,8 +1575,8 @@ fun DiaryEntryEditBottomSheet(
                     OutlinedTextField(
                         value = timeText,
                         onValueChange = { timeText = it.take(5) },
-                        label = { Text("HH:mm") },
-                        leadingIcon = { Icon(Icons.Default.Schedule, contentDescription = "HH:mm", modifier = Modifier.size(18.dp)) },
+                        label = { Text(stringResource(id = R.string.common_time_hhmm)) },
+                        leadingIcon = { Icon(Icons.Default.Schedule, contentDescription = stringResource(id = R.string.common_time_hhmm), modifier = Modifier.size(18.dp)) },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                         textStyle = editFieldTextStyle,
@@ -1557,8 +1590,8 @@ fun DiaryEntryEditBottomSheet(
                 OutlinedTextField(
                     value = timeText,
                     onValueChange = { timeText = it.take(5) },
-                    label = { Text("HH:mm") },
-                    leadingIcon = { Icon(Icons.Default.Schedule, contentDescription = "HH:mm") },
+                    label = { Text(stringResource(id = R.string.common_time_hhmm)) },
+                    leadingIcon = { Icon(Icons.Default.Schedule, contentDescription = stringResource(id = R.string.common_time_hhmm)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.space6),
                     textStyle = editFieldTextStyle,
@@ -2044,7 +2077,7 @@ fun ModalMenuOption(
             Spacer(Modifier.weight(1f))
             Icon(
                 imageVector = Icons.Default.ChevronRight,
-                contentDescription = "Abrir",
+                contentDescription = stringResource(id = R.string.common_open),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -2086,7 +2119,7 @@ fun ModalMenuOption(
             Spacer(Modifier.weight(1f))
             Icon(
                 imageVector = Icons.Default.ChevronRight,
-                contentDescription = "Abrir",
+                contentDescription = stringResource(id = R.string.common_open),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

@@ -51,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
@@ -58,6 +59,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.cafesito.app.BuildConfig
+import com.cafesito.app.R
 import com.cafesito.app.ui.theme.Shapes
 import com.cafesito.app.ui.theme.Spacing
 import org.osmdroid.config.Configuration
@@ -303,7 +305,7 @@ fun CafesProbadosScreen(
                     ) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver a Mi diario",
+                            contentDescription = stringResource(id = R.string.common_back_to_diary),
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -324,7 +326,7 @@ fun CafesProbadosScreen(
                         ) {
                             Icon(
                                 Icons.Default.Close,
-                                contentDescription = "Limpiar filtro de país",
+                                contentDescription = stringResource(id = R.string.common_clear_country_filter),
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
@@ -343,11 +345,14 @@ fun CafesProbadosScreen(
                 )
             }
             items(items, key = { it.coffee.id }) { item ->
-                val dateFormat = remember { java.text.SimpleDateFormat("d MMM yyyy", java.util.Locale.forLanguageTag("es-ES")) }
+                val dateFormat = remember { java.text.SimpleDateFormat("d MMM yyyy", java.util.Locale.getDefault()) }
                 CoffeeListItem(
                     coffee = item.coffee,
                     subtitle = item.coffee.marca + (item.coffee.paisOrigen?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
-                    secondLine = "Primera vez: ${dateFormat.format(java.util.Date(item.firstTriedMs))}",
+                    secondLine = stringResource(
+                        id = R.string.diary_first_time_pattern,
+                        dateFormat.format(java.util.Date(item.firstTriedMs))
+                    ),
                     imageSize = 48.dp,
                     showChevron = true,
                     onClick = onCoffeeClick

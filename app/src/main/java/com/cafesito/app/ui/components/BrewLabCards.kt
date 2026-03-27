@@ -29,11 +29,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.background
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.cafesito.app.R
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.ui.theme.Shapes
 import com.cafesito.app.data.PantryItemWithDetails
@@ -81,7 +83,7 @@ fun PantryPremiumMiniCard(
                             .clickable { onOptionsClick(item.pantryItem.id) },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones", tint = optionsIconTint, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.MoreHoriz, contentDescription = stringResource(id = R.string.common_options), tint = optionsIconTint, modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -184,7 +186,7 @@ fun PantryAddActionCard(onClick: () -> Unit) {
                 modifier = Modifier.size(48.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Add, contentDescription = "Añadir café a la despensa", tint = plusColor, modifier = Modifier.size(24.dp))
+                    Icon(Icons.Default.Add, contentDescription = stringResource(id = R.string.common_add_coffee_to_pantry), tint = plusColor, modifier = Modifier.size(24.dp))
                 }
             }
         }
