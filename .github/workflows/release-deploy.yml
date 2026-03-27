@@ -479,6 +479,15 @@ jobs:
             og-images-v1-${{ env.TARGET_BRANCH }}-
             og-images-v1-
 
+      - name: Restore coffee deploy manifest cache
+        uses: actions/cache/restore@v4
+        with:
+          path: webApp/.cache/deploy-delta
+          key: coffee-deploy-manifest-v1-${{ env.TARGET_BRANCH }}-${{ github.run_id }}
+          restore-keys: |
+            coffee-deploy-manifest-v1-${{ env.TARGET_BRANCH }}-
+            coffee-deploy-manifest-v1-
+
       - name: Install
         run: npm ci
 
@@ -575,6 +584,15 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
           VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://cafesitoapp.com' }}
 
+      - name: Prepare non-coffee upload staging
+        run: |
+          rm -rf deploy-upload
+          mkdir -p deploy-upload
+          rsync -a --exclude 'coffee' dist/ deploy-upload/
+
+      - name: Prepare coffee deploy delta
+        run: node scripts/prepare-coffee-deploy-delta.mjs
+
       - name: Check Ionos SSH/FTP secrets
         run: |
           if [[ -z "${{ secrets.IONOS_SSH_HOST }}" ]]; then
@@ -591,15 +609,15 @@ jobs:
           fi
           echo "Secrets de Ionos configurados."
 
-      # .htaccess se sube con RewriteBase / (correcto cuando el dominio apunta a /cafesito-web/app como document root)
-      - name: Deploy to Ionos via SFTP (/cafesito-web/app/)
+      # .htaccess y resto de la app, excepto las fichas de café, se suben en bloque.
+      - name: Deploy non-coffee web files to Ionos via SFTP (/cafesito-web/app/)
         uses: wlixcc/SFTP-Deploy-Action@v1.2.6
         with:
           server: ${{ secrets.IONOS_SSH_HOST }}
           username: ${{ secrets.IONOS_SSH_USER }}
           port: ${{ secrets.IONOS_SSH_PORT || '22' }}
           password: ${{ secrets.IONOS_SSH_PASSWORD }}
-          local_path: ./webApp/dist/*
+          local_path: ./webApp/deploy-upload/*
           remote_path: /cafesito-web/app/
           sftp_only: true
           # Nunca borramos todo el remoto para preservar URLs de cafés no tocados.
@@ -618,8 +636,63 @@ jobs:
           sftp_only: true
           delete_remote_files: false
 
-      - name: Delete removed coffee pages in remote (nightly only)
-        if: github.event_name == 'schedule'
+      - name: Install sshpass for incremental coffee deploy
+        env:
+          IONOS_HOST: ${{ secrets.IONOS_SSH_HOST }}
+          IONOS_USER: ${{ secrets.IONOS_SSH_USER }}
+          IONOS_PORT: ${{ secrets.IONOS_SSH_PORT || '22' }}
+          IONOS_PASSWORD: ${{ secrets.IONOS_SSH_PASSWORD }}
+        run: |
+          if [[ ! -s "dist/coffee-uploads.txt" && ! -s "dist/coffee-deletes.txt" ]]; then
+            echo "No changed or deleted coffee pages."
+            exit 0
+          fi
+          sudo apt-get update -y
+          sudo apt-get install -y sshpass
+
+      - name: Upload changed coffee pages to remote
+        env:
+          IONOS_HOST: ${{ secrets.IONOS_SSH_HOST }}
+          IONOS_USER: ${{ secrets.IONOS_SSH_USER }}
+          IONOS_PORT: ${{ secrets.IONOS_SSH_PORT || '22' }}
+          IONOS_PASSWORD: ${{ secrets.IONOS_SSH_PASSWORD }}
+        run: |
+          UPLOAD_FILE="dist/coffee-uploads.txt"
+          if [[ ! -s "${UPLOAD_FILE}" ]]; then
+            echo "No changed coffee pages to upload."
+            exit 0
+          fi
+
+          sshpass -p "${IONOS_PASSWORD}" ssh \
+            -o StrictHostKeyChecking=no \
+            -p "${IONOS_PORT}" \
+            "${IONOS_USER}@${IONOS_HOST}" \
+            "mkdir -p '/cafesito-web/app/coffee'"
+
+          while IFS= read -r REL_PATH || [[ -n "${REL_PATH}" ]]; do
+            [[ -z "${REL_PATH}" ]] && continue
+            LOCAL_PATH="dist/${REL_PATH}"
+            REMOTE_PARENT="/cafesito-web/app/$(dirname "${REL_PATH}")"
+            REMOTE_TARGET="/cafesito-web/app/${REL_PATH}"
+            if [[ ! -d "${LOCAL_PATH}" ]]; then
+              echo "Skip missing local coffee path: ${LOCAL_PATH}"
+              continue
+            fi
+            echo "Uploading coffee path: ${REL_PATH}"
+            sshpass -p "${IONOS_PASSWORD}" ssh \
+              -o StrictHostKeyChecking=no \
+              -p "${IONOS_PORT}" \
+              "${IONOS_USER}@${IONOS_HOST}" \
+              "rm -rf '${REMOTE_TARGET}' && mkdir -p '${REMOTE_PARENT}'"
+            sshpass -p "${IONOS_PASSWORD}" scp \
+              -r \
+              -P "${IONOS_PORT}" \
+              -o StrictHostKeyChecking=no \
+              "${LOCAL_PATH}" \
+              "${IONOS_USER}@${IONOS_HOST}:${REMOTE_PARENT}/"
+          done < "${UPLOAD_FILE}"
+
+      - name: Delete removed coffee pages in remote
         env:
           IONOS_HOST: ${{ secrets.IONOS_SSH_HOST }}
           IONOS_USER: ${{ secrets.IONOS_SSH_USER }}
@@ -632,9 +705,6 @@ jobs:
             exit 0
           fi
 
-          sudo apt-get update -y
-          sudo apt-get install -y sshpass
-
           while IFS= read -r REL_PATH || [[ -n "${REL_PATH}" ]]; do
             [[ -z "${REL_PATH}" ]] && continue
             echo "Deleting remote path: ${REL_PATH}"
@@ -644,6 +714,13 @@ jobs:
               "${IONOS_USER}@${IONOS_HOST}" \
               "rm -rf '/cafesito-web/app/${REL_PATH}'"
           done < "${DELETE_FILE}"
+
+      - name: Save coffee deploy manifest cache
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: webApp/.cache/deploy-delta
+          key: coffee-deploy-manifest-v1-${{ env.TARGET_BRANCH }}-${{ github.run_id }}
 
       # sitemap*.xml(.gz) y robots.txt van en el mismo deploy que dist/* → /cafesito-web/app/ (document root del dominio).
       # Antes solo se subían en schedule a /cafesito-web/ (padre), fuera de la app → 404 en https://cafesitoapp.com/sitemap.xml.gz
