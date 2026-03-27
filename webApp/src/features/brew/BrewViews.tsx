@@ -12,6 +12,7 @@ import type { BrewStep, CoffeeRow, PantryItemRow } from "../../types";
 import { convertImageToWebP, webPBlobToFile } from "../../utils/imageToWebP";
 import { Button, Input, Select, SheetCard, SheetHandle, SheetOverlay, Switch } from "../../ui/components";
 import { UiIcon, type IconName } from "../../ui/iconography";
+import { useI18n } from "../../i18n";
 
 const ROAST_OPTIONS = ["Ligero", "Medio", "Medio-oscuro"];
 const FORMAT_OPTIONS = ["Grano", "Molido", "Capsula"];
@@ -122,6 +123,85 @@ export function BrewLabView({
   /** Notifica cuando el temporizador termina (para mostrar botón Siguiente en topbar que va a consumo). */
   onTimerEndedChange?: (ended: boolean) => void;
 }) {
+  const { t, locale } = useI18n();
+  const createCopy = useMemo(() => {
+    if (locale === "en") {
+      return {
+        ariaCreateCoffee: "Create your coffee",
+        subtitle: "Create your coffee and add the bag you will have in your pantry.",
+        ready: "Ready to save",
+        missing: (n: number) => `${n} required fields missing`,
+        removeCoffeeImage: "Remove coffee image",
+        addCoffeeImage: "Add coffee photo",
+        addPhoto: "Add photo",
+        coffeeNamePlaceholder: "Coffee name *",
+        coffeeNameAria: "Coffee name (required)",
+        roasterPlaceholder: "Roaster",
+        roasterAria: "Roaster (required)",
+        suggestedRoasters: "Suggested roasters",
+        originProfile: "Origin and profile",
+        selectSpecialty: "Select specialty",
+        selectRoast: "Select roast",
+        selectCountry: "Select country(ies)",
+        selectVariety: "Select variety(ies)",
+        presentation: "Presentation",
+        hasCaffeine: "Has caffeine?",
+        caffeineCoffee: "Coffee with caffeine",
+        selectFormat: "Select format",
+        quantityGrams: "Amount (g)",
+        quantityAria: "Amount in grams, bag size (required)",
+        optionalDetails: "Optional details",
+        optionalBadge: "Optional",
+        description: "Description",
+        descriptionAria: "Coffee description",
+        process: "Process",
+        selectProcess: "Select process(es)",
+        recommendedGrind: "Recommended grind",
+        selectGrind: "Select grind",
+        barcode: "Barcode",
+        productLink: "Product link",
+        sensoryProfile: "Sensory profile",
+        sensoryHint: "Rating from 0 to 5 (0 = not rated)"
+      };
+    }
+    return {
+      ariaCreateCoffee: "Crea tu café",
+      subtitle: "Crea tu café y añade la bolsa que tendrás en tu despensa.",
+      ready: "Listo para guardar",
+      missing: (n: number) => `Faltan ${n} campos obligatorios`,
+      removeCoffeeImage: "Quitar imagen del café",
+      addCoffeeImage: "Añadir foto del café",
+      addPhoto: "Añadir foto",
+      coffeeNamePlaceholder: "Nombre del café *",
+      coffeeNameAria: "Nombre del café (obligatorio)",
+      roasterPlaceholder: "Tostador",
+      roasterAria: "Tostador (obligatorio)",
+      suggestedRoasters: "Tostadores sugeridos",
+      originProfile: "Origen y perfil",
+      selectSpecialty: "Seleccionar especialidad",
+      selectRoast: "Seleccionar tueste",
+      selectCountry: "Seleccionar país(es)",
+      selectVariety: "Seleccionar variedad(es)",
+      presentation: "Presentación",
+      hasCaffeine: "¿Tiene cafeína?",
+      caffeineCoffee: "Café con cafeína",
+      selectFormat: "Seleccionar formato",
+      quantityGrams: "Cantidad (g)",
+      quantityAria: "Cantidad en gramos, tamaño de la bolsa (obligatorio)",
+      optionalDetails: "Detalles opcionales",
+      optionalBadge: "Opcional",
+      description: "Descripción",
+      descriptionAria: "Descripción del café",
+      process: "Proceso",
+      selectProcess: "Seleccionar proceso(s)",
+      recommendedGrind: "Molienda recomendada",
+      selectGrind: "Seleccionar molienda",
+      barcode: "Código de barras",
+      productLink: "Enlace al producto",
+      sensoryProfile: "Perfil sensorial",
+      sensoryHint: "Valoración del 0 al 5 (0 = no valorar)"
+    };
+  }, [locale]);
   const [brewCoffeeQuery, setBrewCoffeeQuery] = useState("");
   const [brewSearchFocus, setBrewSearchFocus] = useState(false);
   const [resultTaste, setResultTaste] = useState("");
@@ -359,10 +439,15 @@ export function BrewLabView({
   const ratioProfile = useMemo(() => {
     const span = Math.max(0.1, methodProfile.ratioMax - methodProfile.ratioMin);
     const normalized = (effectiveRatio - methodProfile.ratioMin) / span;
-    if (normalized <= 0.35) return "CONCENTRADO";
-    if (normalized <= 0.7) return "EQUILIBRADO";
-    return "LIGERO";
-  }, [effectiveRatio, methodProfile.ratioMax, methodProfile.ratioMin]);
+    if (locale === "es") {
+      if (normalized <= 0.35) return "CONCENTRADO";
+      if (normalized <= 0.7) return "EQUILIBRADO";
+      return "LIGERO";
+    }
+    if (normalized <= 0.35) return "CONCENTRATED";
+    if (normalized <= 0.7) return "BALANCED";
+    return "LIGHT";
+  }, [effectiveRatio, locale, methodProfile.ratioMax, methodProfile.ratioMin]);
   const baristaTips = useMemo(
     () =>
       getBrewBaristaTipsForMethod(brewMethod, {
@@ -439,8 +524,52 @@ export function BrewLabView({
     }
     return Math.max(0, brewTimeline.length - 1);
   }, [brewTimeline, elapsedSeconds]);
-  const currentPhase = brewTimeline[currentPhaseIndex] ?? { label: "Listo", instruction: "Proceso completado.", durationSeconds: 0 };
+  const currentPhase = brewTimeline[currentPhaseIndex] ?? { label: t("brew.finish"), instruction: t("brew.recommendation"), durationSeconds: 0 };
   const nextPhase = brewTimeline[currentPhaseIndex + 1];
+  const translatePhaseLabel = useCallback(
+    (label: string) => {
+      if (locale === "es") return label;
+      const key = normalizeLookupText(label);
+      const map: Record<string, string> = {
+        "calentamiento": "Heating",
+        "extraccion": "Extraction",
+        "inmersion": "Immersion",
+        "infusion": "Infusion",
+        "pre-infusion": "Pre-infusion",
+        "preinfusion": "Pre-infusion",
+        "presion": "Press",
+        "vertido principal": "Main pour",
+        "drenado": "Drawdown",
+        "mezcla": "Mixing",
+        "toque final": "Final touch",
+        "ascenso": "Rise",
+        "efecto vacio": "Vacuum draw"
+      };
+      return map[key] ?? label;
+    },
+    [locale]
+  );
+  const translatePhaseInstruction = useCallback(
+    (instruction: string) => {
+      if (locale === "es") return instruction;
+      const key = normalizeLookupText(instruction);
+      if (key.includes("fuego medio-bajo")) return "Keep medium-low heat. Water in the lower chamber builds pressure up the funnel.";
+      if (key.includes("empiece a salir")) return "When coffee starts flowing, lower heat or remove from stove before the final sputter.";
+      if (key.includes("presion constante")) return "Keep steady pressure and a honey-like flow.";
+      if (key.includes("humedece el cafe")) return "Bloom the bed and let trapped CO2 release before continuing.";
+      return instruction;
+    },
+    [locale]
+  );
+  const currentPhaseLabel = useMemo(() => translatePhaseLabel(currentPhase.label), [currentPhase.label, translatePhaseLabel]);
+  const currentPhaseInstruction = useMemo(
+    () => translatePhaseInstruction(currentPhase.instruction),
+    [currentPhase.instruction, translatePhaseInstruction]
+  );
+  const nextPhaseLabel = useMemo(
+    () => (nextPhase ? translatePhaseLabel(nextPhase.label) : t("brew.finish")),
+    [nextPhase, t, translatePhaseLabel]
+  );
   const elapsedBeforeCurrentPhase = useMemo(() => {
     if (!brewTimeline.length) return 0;
     return brewTimeline.slice(0, currentPhaseIndex).reduce((acc, phase) => acc + phase.durationSeconds, 0);
@@ -461,22 +590,38 @@ export function BrewLabView({
         .filter(Boolean),
     [brewingProcessAdvice]
   );
-  const processAdviceCards = useMemo(
-    () => [currentPhase.instruction, ...brewingAdviceLines.map((line) => `${line}.`)],
-    [brewingAdviceLines, currentPhase.instruction]
-  );
-  const resultRecommendation = useMemo(() => getBrewDialRecommendation(resultTaste), [resultTaste]);
+  const processAdviceCards = useMemo(() => {
+    if (locale !== "es") {
+      return [
+        currentPhaseInstruction,
+        "Keep a steady flow and avoid abrupt changes in temperature or pour speed."
+      ];
+    }
+    return [currentPhaseInstruction, ...brewingAdviceLines.map((line) => `${line}.`)];
+  }, [brewingAdviceLines, currentPhaseInstruction, locale]);
+  const resultRecommendation = useMemo(() => {
+    if (locale === "es") return getBrewDialRecommendation(resultTaste);
+    const key = normalizeLookupText(resultTaste);
+    if (key === "amargo") return "Reduce extraction: grind a touch coarser or lower contact time slightly.";
+    if (key === "acido") return "Increase extraction: grind finer or raise temperature slightly.";
+    if (key === "equilibrado") return "Great balance. Save this profile as your reference point.";
+    if (key === "salado") return "Improve bed prep: check distribution and leveling for better uniformity.";
+    if (key === "acuoso") return "Increase coffee dose or lower ratio to gain body.";
+    if (key === "aspero") return "Astringency detected: reduce agitation and rinse filter thoroughly.";
+    if (key === "dulce") return "Excellent sugar extraction. Keep this setup.";
+    return "";
+  }, [locale, resultTaste]);
   const tasteOptions = useMemo(
     () => [
-      { label: "Amargo", icon: "taste-bitter" as IconName },
-      { label: "Acido", icon: "taste-acid" as IconName },
-      { label: "Equilibrado", icon: "taste-balance" as IconName },
-      { label: "Salado", icon: "taste-salty" as IconName },
-      { label: "Acuoso", icon: "taste-watery" as IconName },
-      { label: "Aspero", icon: "grind" as IconName },
-      { label: "Dulce", icon: "taste-sweet" as IconName }
+      { label: locale === "es" ? "Amargo" : "Bitter", value: "Amargo", icon: "taste-bitter" as IconName },
+      { label: locale === "es" ? "Acido" : "Acidic", value: "Acido", icon: "taste-acid" as IconName },
+      { label: locale === "es" ? "Equilibrado" : "Balanced", value: "Equilibrado", icon: "taste-balance" as IconName },
+      { label: locale === "es" ? "Salado" : "Salty", value: "Salado", icon: "taste-salty" as IconName },
+      { label: locale === "es" ? "Acuoso" : "Watery", value: "Acuoso", icon: "taste-watery" as IconName },
+      { label: locale === "es" ? "Aspero" : "Rough", value: "Aspero", icon: "grind" as IconName },
+      { label: locale === "es" ? "Dulce" : "Sweet", value: "Dulce", icon: "taste-sweet" as IconName }
     ],
-    []
+    [locale]
   );
 
   useEffect(() => {
@@ -555,8 +700,8 @@ export function BrewLabView({
   }, [brewMethod]);
   const ratioLabel = useMemo(() => {
     const value = methodProfile.ratioStep < 1 ? effectiveRatio.toFixed(1) : String(Math.round(effectiveRatio));
-    return `RATIO 1:${value} - ${ratioProfile.toUpperCase()}`;
-  }, [effectiveRatio, methodProfile.ratioStep, ratioProfile]);
+    return `${locale === "es" ? "RATIO" : "RATIO"} 1:${value} - ${ratioProfile.toUpperCase()}`;
+  }, [effectiveRatio, locale, methodProfile.ratioStep, ratioProfile]);
 
   const espressoCoffeeSliderLabel = useMemo(() => {
     const value = methodProfile.ratioStep < 1 ? effectiveRatio.toFixed(1) : String(Math.round(effectiveRatio));
@@ -567,21 +712,72 @@ export function BrewLabView({
     () => (orderedBrewMethods.length > 0 ? orderedBrewMethods : getOrderedBrewMethods([])),
     [orderedBrewMethods]
   );
+  const localizedMethodName = useCallback(
+    (name: string) => {
+      if (locale === "es") return name;
+      const key = normalizeLookupText(name);
+      const map: Record<string, string> = {
+        "goteo": "Drip",
+        "prensa francesa": "French press",
+        "italiana": "Moka",
+        "otros": "Other",
+        "agua": "Water"
+      };
+      return map[key] ?? name;
+    },
+    [locale]
+  );
   const isOtrosMethod = brewMethod === "Otros";
   const isAguaMethod = brewMethod === "Agua";
+  const translateBaristaLabel = useCallback(
+    (label: string) => {
+      if (locale === "es") return label;
+      const key = normalizeLookupText(label);
+      const map: Record<string, string> = {
+        "perfil actual": "CURRENT PROFILE",
+        "volumen": "VOLUME",
+        "tiempo actual": "CURRENT TIME",
+        "dosis": "DOSE",
+        "base": "BASE",
+        "proceso": "PROCESS",
+        "ajuste": "ADJUSTMENT",
+        "detalle": "DETAIL",
+        "molienda": "GRIND",
+        "temperatura": "TEMPERATURE",
+        "ratio": "RATIO"
+      };
+      return map[key] ?? label;
+    },
+    [locale]
+  );
+  const translateBaristaValue = useCallback(
+    (value: string) => {
+      if (locale === "es") return value;
+      const text = normalizeLookupText(value);
+      if (text.includes("mas concentrado")) return "More concentrated profile; if bitter, grind one notch coarser.";
+      if (text.includes("tramo medio")) return "Mid-volume range: good balance between body and clarity.";
+      if (text.includes("ventana ideal")) return "Within ideal window: keep steady flow and consistent crema.";
+      if (text.includes("dentro de rango clasico")) return "Within classic espresso dose range.";
+      if (text.includes("molienda fina")) return "Fine grind";
+      if (text.includes("si corre rapido")) return "Fast flow: grind finer. Slow choke: grind coarser.";
+      if (text.includes("distribucion")) return "Distribution: level the bed before tamping.";
+      return value;
+    },
+    [locale]
+  );
 
   return (
     <>
       {brewStep === "method" ? (
         <div className="brew-select-step">
           <div className="brew-forma-card brew-tech-card">
-            <section className="home-elaboration-methods brew-elaboration-methods brew-forma-methods" aria-label="Método">
+            <section className="home-elaboration-methods brew-elaboration-methods brew-forma-methods" aria-label={t("brew.method")}>
               <div className="home-carousel-with-nav brew-method-carousel-wrap">
                 <div
                   ref={brewMethodScrollRef}
                   className={`home-elaboration-methods-scroll brew-method-scroll${brewCarouselDragging ? " is-dragging" : ""}`.trim()}
                   role="listbox"
-                  aria-label="Método de elaboración"
+                  aria-label={t("brew.methodAria")}
                   onPointerDownCapture={(e) => handleBrewCarouselPointerDown(e, brewMethodScrollRef.current)}
                   onPointerMove={handleBrewCarouselPointerMove}
                   onPointerUp={handleBrewCarouselPointerUp}
@@ -590,7 +786,8 @@ export function BrewLabView({
                 >
                   {methodsToShow.map((method) => {
                     const isActive = brewMethod === method.name;
-                    const words = method.name.split(/\s+/);
+                    const methodDisplayName = localizedMethodName(method.name);
+                    const words = methodDisplayName.split(/\s+/);
                     return (
                       <Button
                         key={method.name}
@@ -607,7 +804,7 @@ export function BrewLabView({
                           setCoffeeGrams?.(Math.max(1, Math.round(profile.defaultWaterMl / Math.max(0.1, profile.defaultRatio))));
                           setEspressoTimeSeconds(methodTime.defaultSeconds);
                         }}
-                        aria-label={`Elaborar con ${method.name}`}
+                        aria-label={locale === "es" ? `Elaborar con ${methodDisplayName}` : `Brew with ${methodDisplayName}`}
                       >
                         <span className="brew-method-card-icon">
                           {method.icon === "bolt" ? (
@@ -647,11 +844,15 @@ export function BrewLabView({
                               ? pantryItems.find((r) => r.coffee.id === brewCoffeeId)
                               : null;
                           if (pantryRow) {
-                            return `Selecciona café: ${selectedCoffee.nombre}, ${Math.round(pantryRow.remaining)} de ${Math.round(pantryRow.total)} g en bolsa`;
+                            return locale === "es"
+                              ? `Selecciona café: ${selectedCoffee.nombre}, ${Math.round(pantryRow.remaining)} de ${Math.round(pantryRow.total)} g en bolsa`
+                              : `Select coffee: ${selectedCoffee.nombre}, ${Math.round(pantryRow.remaining)} of ${Math.round(pantryRow.total)} g in bag`;
                           }
-                          return `Selecciona café: ${selectedCoffee.nombre}`;
+                          return locale === "es"
+                            ? `Selecciona café: ${selectedCoffee.nombre}`
+                            : `Select coffee: ${selectedCoffee.nombre}`;
                         })()
-                      : "Selecciona café"
+                      : t("brew.selectCoffee")
                   }
                 >
                   {selectedCoffee ? (
@@ -677,7 +878,7 @@ export function BrewLabView({
                       </span>
                     </span>
                   ) : (
-                    <span className="brew-select-coffee-row-label">Selecciona café</span>
+                    <span className="brew-select-coffee-row-label">{t("brew.selectCoffee")}</span>
                   )}
                   <UiIcon name="arrow-right" className="ui-icon brew-select-coffee-row-arrow" aria-hidden="true" />
                 </button>
@@ -688,12 +889,12 @@ export function BrewLabView({
               <div className="brew-config-option-divider" aria-hidden="true" />
               <div className="brew-select-params-layout brew-forma-params">
                 <div className="brew-select-params-col">
-                  <div className="brew-tech-rows-wrap" aria-label={isAguaMethod ? "Cantidad de agua" : "Parámetros del método"}>
+                  <div className="brew-tech-rows-wrap" aria-label={isAguaMethod ? t("brew.waterMl") : t("brew.paramsMethod")}>
                 <div className="brew-tech-rows">
                   {(isWaterEditable || isAguaMethod) ? (
                     <div className="brew-tech-row">
                       <div className="brew-tech-field">
-                        <span>Agua (ml)</span>
+                        <span>{t("brew.waterMl")}</span>
                         <div className="brew-tech-value-field">
                           <Input
                             className="search-wide brew-tech-value-input is-water"
@@ -712,7 +913,7 @@ export function BrewLabView({
                                 setWaterDraft(String(waterMl));
                               }
                             }}
-                            aria-label="Agua en ml"
+                          aria-label={t("brew.waterMl")}
                           />
                         </div>
                       </div>
@@ -735,12 +936,12 @@ export function BrewLabView({
                   <div className={`brew-tech-row ${isEspressoMethod ? "brew-tech-row-coffee-espresso" : ""}`.trim()}>
                     {isEspressoMethod ? (
                       <div className="brew-tech-coffee-espresso-titles" aria-hidden="true">
-                        <span>Café (g)</span>
+                        <span>{t("brew.coffeeG")}</span>
                         <span className="brew-tech-slider-label">{espressoCoffeeSliderLabel}</span>
                       </div>
                     ) : null}
                     <div className="brew-tech-field">
-                      {!isEspressoMethod ? <span>Café (g)</span> : null}
+                      {!isEspressoMethod ? <span>{t("brew.coffeeG")}</span> : null}
                       <div className="brew-tech-value-field">
                         <Input
                           className="search-wide brew-tech-value-input is-coffee"
@@ -764,7 +965,7 @@ export function BrewLabView({
                               setCoffeeDraft(coffeeGramsPrecise.toFixed(1));
                             }
                           }}
-                          aria-label="Café en gramos"
+                          aria-label={t("brew.coffeeG")}
                         />
                       </div>
                     </div>
@@ -815,7 +1016,7 @@ export function BrewLabView({
                   {!isAguaMethod && isEspressoMethod ? (
                     <div className="brew-tech-row brew-tech-row-time">
                       <div className="brew-tech-field">
-                        <span>Tiempo (s)</span>
+                        <span>{t("brew.timeS")}</span>
                         <div className="brew-tech-value-field">
                           <Input
                             className="search-wide brew-tech-value-input is-time"
@@ -829,7 +1030,7 @@ export function BrewLabView({
                               const next = Number(event.target.value);
                               if (Number.isFinite(next)) setEspressoTimeSeconds(Math.max(timeProfile.minSeconds, Math.min(timeProfile.maxSeconds, Math.round(next))));
                             }}
-                            aria-label="Tiempo de extracción en segundos"
+                            aria-label={t("brew.timeS")}
                           />
                         </div>
                       </div>
@@ -854,9 +1055,9 @@ export function BrewLabView({
                     type="button"
                     className="brew-select-barista-cta"
                     onClick={() => setShowBaristaPopover(true)}
-                    aria-label="Ver consejos del barista"
+                    aria-label={t("brew.seeBaristaTips")}
                   >
-                    <span className="brew-select-barista-cta-text">Consejos del barista</span>
+                    <span className="brew-select-barista-cta-text">{t("brew.baristaTips")}</span>
                     <UiIcon name="chevron-right" className="ui-icon brew-select-barista-cta-arrow" aria-hidden="true" />
                   </Button>
                 ) : null}
@@ -864,13 +1065,13 @@ export function BrewLabView({
                   <div className="brew-config-option-divider" aria-hidden="true" />
                 ) : null}
                 {!isAguaMethod ? (
-                  <div className="brew-config-option-row brew-config-timer-row" role="group" aria-label="Temporizador">
-                    <span className="brew-config-option-label">Temporizador</span>
+                  <div className="brew-config-option-row brew-config-timer-row" role="group" aria-label={t("brew.timerAria")}>
+                    <span className="brew-config-option-label">{t("brew.timer")}</span>
                     {setBrewTimerEnabled ? (
                       <Switch
                         checked={brewTimerEnabled}
                         onClick={() => setBrewTimerEnabled(!brewTimerEnabled)}
-                        aria-label="Activar temporizador para proceso en curso"
+                        aria-label={t("brew.timerEnableAria")}
                       />
                     ) : null}
                   </div>
@@ -890,11 +1091,11 @@ export function BrewLabView({
             <div className="brew-prep-left-col">
             <article className="brew-prep-card brew-prep-card-timer">
               <div className="brew-prep-head">
-                <p className="brew-prep-phase">{currentPhase.label}</p>
+                <p className="brew-prep-phase">{currentPhaseLabel}</p>
                 <strong className={`brew-prep-clock ${remainingInPhase <= 5 && brewRunning ? "is-warning" : ""}`.trim()}>
                   {formatClock(remainingInPhase)}
                 </strong>
-                <p className="brew-prep-next">Siguiente: {nextPhase?.label ?? "Finalizar"}</p>
+                <p className="brew-prep-next">{t("brew.nextLabel", { label: nextPhaseLabel })}</p>
               </div>
 
               <div className="brew-prep-timeline">
@@ -925,7 +1126,7 @@ export function BrewLabView({
                   })}
                 </div>
                 <div className="brew-prep-total">
-                  <span>TOTAL {formatClock(brewTotalSeconds)}</span>
+                  <span>{t("brew.total", { time: formatClock(brewTotalSeconds) })}</span>
                   <strong>{formatClock(elapsedSeconds)}</strong>
                 </div>
               </div>
@@ -941,7 +1142,7 @@ export function BrewLabView({
                       setTimerSeconds(0);
                     }}
                   >
-                    REINICIAR
+                    {t("brew.restart")}
                   </Button>
                 ) : null}
                 <Button
@@ -949,7 +1150,7 @@ export function BrewLabView({
                   className={`action-button brew-prep-action-primary ${brewRunning ? "is-running" : ""}`.trim()}
                   onClick={() => setBrewRunning(!brewRunning)}
                 >
-                  {brewRunning ? "PAUSAR" : "INICIAR"}
+                  {brewRunning ? t("brew.pause") : t("brew.start")}
                 </Button>
               </div>
             ) : null}
@@ -957,14 +1158,14 @@ export function BrewLabView({
             <div className="brew-prep-tips-strip">
               {timerEnded && !timerEndedGoToConsumption ? (
                 <article className="brew-result-card brew-result-card-inline">
-                  <p className="brew-result-title">¿QUÉ SABOR HAS OBTENIDO?</p>
+                  <p className="brew-result-title">{t("brew.resultTasteTitle")}</p>
                   <div className="brew-result-grid">
                     {tasteOptions.map((taste) => (
                       <Button
                         variant="plain"
-                        key={taste.label}
-                        className={`brew-taste-chip ${resultTaste === taste.label ? "is-active" : ""}`.trim()}
-                        onClick={() => setResultTaste(taste.label)}
+                        key={taste.value}
+                        className={`brew-taste-chip ${resultTaste === taste.value ? "is-active" : ""}`.trim()}
+                        onClick={() => setResultTaste(taste.value)}
                       >
                         <UiIcon name={taste.icon} className="ui-icon" />
                         <span>{taste.label.toUpperCase()}</span>
@@ -975,7 +1176,7 @@ export function BrewLabView({
                     <div className="brew-result-reco">
                       <div className="brew-result-reco-head">
                         <UiIcon name="sparkles" className="ui-icon" />
-                        <strong>Recomendación</strong>
+                        <strong>{t("brew.recommendation")}</strong>
                       </div>
                       <p>{resultRecommendation}</p>
                     </div>
@@ -1016,18 +1217,18 @@ export function BrewLabView({
       ) : null}
 
       {brewStep === "result" ? (
-        <section className="brew-result-screen" aria-label="Consumo">
+        <section className="brew-result-screen" aria-label={t("diary.consumption")}>
           {!isAguaMethod ? (
             <>
-              <p className="section-title brew-select-section-title brew-config-cafe-title">Configura tu café</p>
+              <p className="section-title brew-select-section-title brew-config-cafe-title">{t("brew.configureCoffee")}</p>
               <div className="brew-config-cafe-card brew-tech-card">
-                <section className="brew-tipo-strip-wrap brew-config-cafe-section" aria-label="Tipo de café">
+                <section className="brew-tipo-strip-wrap brew-config-cafe-section" aria-label={t("brew.coffeeType")}>
                   <div className="brew-config-cafe-carousel-wrap">
                     <div
                       ref={brewTipoScrollRef}
                       className={`brew-tipo-strip${brewCarouselDragging ? " is-dragging" : ""}`.trim()}
                       role="listbox"
-                      aria-label="Tipo de café"
+                      aria-label={t("brew.coffeeType")}
                       onPointerDownCapture={(e) => handleBrewCarouselPointerDown(e, brewTipoScrollRef.current)}
                       onPointerMove={handleBrewCarouselPointerMove}
                       onPointerUp={handleBrewCarouselPointerUp}
@@ -1059,13 +1260,13 @@ export function BrewLabView({
                   </div>
                 </section>
                 <div className="brew-config-option-divider" aria-hidden="true" />
-                <section className="brew-tamaño-strip-wrap brew-config-cafe-section" aria-label="Tamaño">
+                <section className="brew-tamaño-strip-wrap brew-config-cafe-section" aria-label={t("brew.cupSize")}>
                   <div className="brew-config-cafe-carousel-wrap">
                     <div
                       ref={brewTamañoScrollRef}
                       className={`brew-tamaño-strip${brewCarouselDragging ? " is-dragging" : ""}`.trim()}
                       role="listbox"
-                      aria-label="Tamaño de la taza"
+                      aria-label={t("brew.cupSize")}
                       onPointerDownCapture={(e) => handleBrewCarouselPointerDown(e, brewTamañoScrollRef.current)}
                       onPointerMove={handleBrewCarouselPointerMove}
                       onPointerUp={handleBrewCarouselPointerUp}
@@ -1100,19 +1301,19 @@ export function BrewLabView({
               </div>
             </>
           ) : null}
-          <p className="section-title brew-select-section-title brew-result-section-title">Resultado</p>
+          <p className="section-title brew-select-section-title brew-result-section-title">{t("brew.result")}</p>
           <article className="brew-result-card">
             {isAguaMethod ? (
-              <p className="brew-result-title">Registrar {waterMl} ml de agua</p>
+              <p className="brew-result-title">{t("brew.registerWater", { ml: waterMl })}</p>
             ) : (
               <>
             <div className="brew-result-grid">
               {tasteOptions.map((taste) => (
                 <Button
                   variant="plain"
-                  key={taste.label}
-                  className={`brew-taste-chip ${resultTaste === taste.label ? "is-active" : ""}`.trim()}
-                  onClick={() => setResultTaste(taste.label)}
+                  key={taste.value}
+                  className={`brew-taste-chip ${resultTaste === taste.value ? "is-active" : ""}`.trim()}
+                  onClick={() => setResultTaste(taste.value)}
                 >
                   <UiIcon name={taste.icon} className="ui-icon" />
                   <span>{taste.label.toUpperCase()}</span>
@@ -1123,7 +1324,7 @@ export function BrewLabView({
               <div className="brew-result-reco">
                 <div className="brew-result-reco-head">
                   <UiIcon name="sparkles" className="ui-icon" />
-                  <strong>Recomendación</strong>
+                  <strong>{t("brew.recommendation")}</strong>
                 </div>
                 <p>{resultRecommendation}</p>
               </div>
@@ -1138,7 +1339,7 @@ export function BrewLabView({
         <SheetOverlay
           role="dialog"
           aria-modal="true"
-          aria-label="Consejos del barista"
+          aria-label={t("brew.baristaTips")}
           onDismiss={() => setShowBaristaPopover(false)}
           onClick={() => setShowBaristaPopover(false)}
         >
@@ -1146,12 +1347,12 @@ export function BrewLabView({
             <SheetHandle aria-hidden="true" />
             <header className="sheet-header brew-barista-sheet-header">
               <span className="brew-barista-sheet-header-spacer" aria-hidden="true" />
-              <strong className="sheet-title">Consejos del barista</strong>
+              <strong className="sheet-title">{t("brew.baristaTips")}</strong>
               <Button
                 variant="plain"
                 type="button"
                 className="brew-barista-sheet-close"
-                aria-label="Cerrar"
+                aria-label={t("common.close")}
                 onClick={() => setShowBaristaPopover(false)}
               >
                 <UiIcon name="close" className="ui-icon" />
@@ -1164,8 +1365,8 @@ export function BrewLabView({
                     <UiIcon name={tip.icon} className={`ui-icon brew-barista-glyph brew-barista-glyph-${tip.icon}`} />
                   </span>
                   <div className="brew-barista-copy">
-                    <strong>{tip.label}</strong>
-                    <em>{tip.value}</em>
+                    <strong>{translateBaristaLabel(tip.label)}</strong>
+                    <em>{translateBaristaValue(tip.value)}</em>
                   </div>
                 </article>
               ))}
@@ -1209,6 +1410,7 @@ function OptionPickerModal({
   onConfirmMulti: (values: string[]) => void;
   onClose: () => void;
 }) {
+  const { locale } = useI18n();
   const [tempMulti, setTempMulti] = useState<string[]>(selectedMulti);
 
   useEffect(() => {
@@ -1257,7 +1459,7 @@ function OptionPickerModal({
           <strong className="sheet-title">{title}</strong>
           {multi ? (
             <Button variant="plain" type="button" className="create-coffee-picker-apply" onClick={handleConfirmMulti}>
-              Aplicar
+              {locale === "es" ? "Aplicar" : "Apply"}
             </Button>
           ) : (
             <span className="create-coffee-picker-header-spacer" aria-hidden="true" />
@@ -1332,6 +1534,7 @@ export function CreateCoffeeView({
   hideHead?: boolean;
   showQuantityField?: boolean;
 }) {
+  const { locale } = useI18n();
   const rootRef = useRef<HTMLElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const brandDropdownRef = useRef<HTMLDivElement | null>(null);
@@ -1444,41 +1647,141 @@ export function CreateCoffeeView({
     (id: PickerId) => {
       switch (id) {
         case "specialty":
-          return { title: "Especialidad", options: specialtyOptions, single: draft.specialty, multi: [] };
+          return { title: locale === "es" ? "Especialidad" : "Specialty", options: specialtyOptions, single: draft.specialty, multi: [] };
         case "roast":
-          return { title: "Tueste", options: ROAST_OPTIONS, single: draft.roast, multi: [] };
+          return { title: locale === "es" ? "Tueste" : "Roast", options: ROAST_OPTIONS, single: draft.roast, multi: [] };
         case "country":
-          return { title: "País de origen", options: countryOptions, single: "", multi: parseMultiValue(draft.country ?? "") };
+          return { title: locale === "es" ? "País de origen" : "Origin country", options: countryOptions, single: "", multi: parseMultiValue(draft.country ?? "") };
         case "variety":
-          return { title: "Variedad o tipo", options: VARIETY_OPTIONS, single: "", multi: parseMultiValue(draft.variety ?? "") };
+          return { title: locale === "es" ? "Variedad o tipo" : "Variety or type", options: VARIETY_OPTIONS, single: "", multi: parseMultiValue(draft.variety ?? "") };
         case "format":
-          return { title: "Formato", options: FORMAT_OPTIONS, single: draft.format, multi: [] };
+          return { title: locale === "es" ? "Formato" : "Format", options: FORMAT_OPTIONS, single: draft.format, multi: [] };
         case "process":
-          return { title: "Proceso", options: PROCESS_OPTIONS, single: "", multi: parseMultiValue(draft.proceso ?? "") };
+          return { title: locale === "es" ? "Proceso" : "Process", options: PROCESS_OPTIONS, single: "", multi: parseMultiValue(draft.proceso ?? "") };
         case "grind":
-          return { title: "Molienda recomendada", options: GRIND_OPTIONS, single: draft.molienda_recomendada ?? "", multi: [] };
+          return { title: locale === "es" ? "Molienda recomendada" : "Recommended grind", options: GRIND_OPTIONS, single: draft.molienda_recomendada ?? "", multi: [] };
         default:
           return { title: "", options: [], single: "", multi: [] };
       }
     },
-    [specialtyOptions, countryOptions, draft.specialty, draft.roast, draft.country, draft.variety, draft.format, draft.proceso, draft.molienda_recomendada]
+    [locale, specialtyOptions, countryOptions, draft.specialty, draft.roast, draft.country, draft.variety, draft.format, draft.proceso, draft.molienda_recomendada]
   );
+  const createCopy = useMemo(() => {
+    if (locale === "en") {
+      return {
+        ariaCreateCoffee: "Create your coffee",
+        subtitle: "Create your coffee and add the bag you will have in your pantry.",
+        ready: "Ready to save",
+        missing: (n: number) => `${n} required fields missing`,
+        removeCoffeeImage: "Remove coffee image",
+        addCoffeeImage: "Add coffee photo",
+        addPhoto: "Add photo",
+        coffeeNamePlaceholder: "Coffee name *",
+        coffeeNameAria: "Coffee name (required)",
+        roasterPlaceholder: "Roaster",
+        roasterAria: "Roaster (required)",
+        suggestedRoasters: "Suggested roasters",
+        originProfile: "Origin and profile",
+        selectSpecialty: "Select specialty",
+        selectRoast: "Select roast",
+        selectCountry: "Select country(ies)",
+        selectVariety: "Select variety(ies)",
+        presentation: "Presentation",
+        hasCaffeine: "Has caffeine?",
+        caffeineCoffee: "Coffee with caffeine",
+        selectFormat: "Select format",
+        quantityGrams: "Amount (g)",
+        quantityAria: "Amount in grams, bag size (required)",
+        optionalDetails: "Optional details",
+        optionalBadge: "Optional",
+        description: "Description",
+        descriptionAria: "Coffee description",
+        process: "Process",
+        selectProcess: "Select process(es)",
+        recommendedGrind: "Recommended grind",
+        selectGrind: "Select grind",
+        barcode: "Barcode",
+        productLink: "Product link",
+        sensoryProfile: "Sensory profile",
+        sensoryHint: "Rating from 0 to 5 (0 = not rated)",
+        specialtyRequiredAria: "Specialty (required)",
+        roastAria: "Roast",
+        countryRequiredAria: "Origin country (required)",
+        varietyAria: "Variety or type",
+        apply: "Apply",
+        cancel: "Cancel",
+        saving: "Saving...",
+        saveCoffee: "Save coffee",
+        save: "Save",
+        totalCoffeeAmount: "Total coffee amount (g)",
+        remainingCoffeeAmount: "Remaining coffee amount (g)"
+      };
+    }
+    return {
+      ariaCreateCoffee: "Crea tu café",
+      subtitle: "Crea tu café y añade la bolsa que tendrás en tu despensa.",
+      ready: "Listo para guardar",
+      missing: (n: number) => `Faltan ${n} campos obligatorios`,
+      removeCoffeeImage: "Quitar imagen del café",
+      addCoffeeImage: "Añadir foto del café",
+      addPhoto: "Añadir foto",
+      coffeeNamePlaceholder: "Nombre del café *",
+      coffeeNameAria: "Nombre del café (obligatorio)",
+      roasterPlaceholder: "Tostador",
+      roasterAria: "Tostador (obligatorio)",
+      suggestedRoasters: "Tostadores sugeridos",
+      originProfile: "Origen y perfil",
+      selectSpecialty: "Seleccionar especialidad",
+      selectRoast: "Seleccionar tueste",
+      selectCountry: "Seleccionar país(es)",
+      selectVariety: "Seleccionar variedad(es)",
+      presentation: "Presentación",
+      hasCaffeine: "¿Tiene cafeína?",
+      caffeineCoffee: "Café con cafeína",
+      selectFormat: "Seleccionar formato",
+      quantityGrams: "Cantidad (g)",
+      quantityAria: "Cantidad en gramos, tamaño de la bolsa (obligatorio)",
+      optionalDetails: "Detalles opcionales",
+      optionalBadge: "Opcional",
+      description: "Descripción",
+      descriptionAria: "Descripción del café",
+      process: "Proceso",
+      selectProcess: "Seleccionar proceso(s)",
+      recommendedGrind: "Molienda recomendada",
+      selectGrind: "Seleccionar molienda",
+      barcode: "Código de barras",
+      productLink: "Enlace al producto",
+      sensoryProfile: "Perfil sensorial",
+      sensoryHint: "Valoración del 0 al 5 (0 = no valorar)",
+      specialtyRequiredAria: "Especialidad (obligatorio)",
+      roastAria: "Tueste",
+      countryRequiredAria: "País de origen (obligatorio)",
+      varietyAria: "Variedad o tipo",
+      apply: "Aplicar",
+      cancel: "Cancelar",
+      saving: "Guardando...",
+      saveCoffee: "Guardar café",
+      save: "Guardar",
+      totalCoffeeAmount: "Cantidad de café total (g)",
+      remainingCoffeeAmount: "Cantidad de café restante (g)"
+    };
+  }, [locale]);
 
   return (
     <section
       ref={rootRef}
       className={`create-coffee-view create-coffee-form ${fullPage ? "is-full-page" : "is-side-panel"}`.trim()}
-      aria-label="Crea tu café"
+      aria-label={createCopy.ariaCreateCoffee}
     >
       {!hideHead ? (
         <header className="create-coffee-head">
-          <p className="create-coffee-subtitle">Crea tu café y añade la bolsa que tendrás en tu despensa.</p>
+          <p className="create-coffee-subtitle">{createCopy.subtitle}</p>
         </header>
       ) : null}
 
       {attemptedSave ? (
         <p className="create-coffee-status" role="status" aria-live="polite">
-          {canSave ? "Listo para guardar" : `Faltan ${missingRequiredCount} campos obligatorios`}
+          {canSave ? createCopy.ready : createCopy.missing(missingRequiredCount)}
         </p>
       ) : null}
 
@@ -1511,7 +1814,7 @@ export function CreateCoffeeView({
                   variant="plain"
                   className="create-coffee-photo-remove"
                   onClick={onRemoveImage}
-                  aria-label="Quitar imagen del café"
+                  aria-label={createCopy.removeCoffeeImage}
                 >
                   <UiIcon name="close" className="ui-icon" />
                 </Button>
@@ -1521,10 +1824,10 @@ export function CreateCoffeeView({
                 type="button"
                 className="create-coffee-photo-placeholder"
                 onClick={() => imageInputRef.current?.click()}
-                aria-label="Añadir foto del café"
+                aria-label={createCopy.addCoffeeImage}
               >
                 <span className="material-symbols-outlined create-coffee-photo-icon" aria-hidden="true">photo_camera</span>
-                <span className="create-coffee-photo-text">Añadir foto</span>
+                <span className="create-coffee-photo-text">{createCopy.addPhoto}</span>
               </button>
             )}
           </div>
@@ -1533,11 +1836,11 @@ export function CreateCoffeeView({
               <Input
                 variant="default"
                 className="create-coffee-input search-wide"
-                placeholder="Nombre del café *"
+                placeholder={createCopy.coffeeNamePlaceholder}
                 value={draft.name}
                 onChange={(e) => onChange({ ...draft, name: e.target.value })}
                 aria-invalid={nameMissing}
-                aria-label="Nombre del café (obligatorio)"
+                aria-label={createCopy.coffeeNameAria}
               />
             </div>
             <div className="create-coffee-field-divider" aria-hidden="true" />
@@ -1546,13 +1849,13 @@ export function CreateCoffeeView({
                 <Input
                   variant="default"
                   className="create-coffee-input search-wide"
-                  placeholder="Tostador"
+                  placeholder={createCopy.roasterPlaceholder}
                   value={draft.brand}
                   onChange={(e) => onChange({ ...draft, brand: e.target.value })}
                   onFocus={handleBrandFocus}
                   onBlur={handleBrandBlur}
                   aria-invalid={brandMissing}
-                  aria-label="Tostador (obligatorio)"
+                  aria-label={createCopy.roasterAria}
                   aria-autocomplete="list"
                   aria-expanded={showBrandDropdown}
                   aria-controls={showBrandDropdown ? "create-coffee-brand-listbox" : undefined}
@@ -1562,10 +1865,10 @@ export function CreateCoffeeView({
                     id="create-coffee-brand-listbox"
                     className="create-coffee-brand-suggestions-wrap"
                     role="listbox"
-                    aria-label="Tostadores sugeridos"
+                    aria-label={createCopy.suggestedRoasters}
                     onMouseDown={(e) => e.preventDefault()}
                   >
-                    <p className="create-coffee-brand-suggestions-title">Tostadores sugeridos</p>
+                    <p className="create-coffee-brand-suggestions-title">{createCopy.suggestedRoasters}</p>
                     <ul className="create-coffee-brand-suggestions" role="group">
                       {filteredBrandSuggestions.map((brand) => (
                         <li key={brand} role="option">
@@ -1588,7 +1891,7 @@ export function CreateCoffeeView({
 
         {/* ——— Origen y perfil ——— */}
         <section className="create-coffee-form-section">
-          <h3 className="create-coffee-section-heading">Origen y perfil</h3>
+          <h3 className="create-coffee-section-heading">{createCopy.originProfile}</h3>
           <div className="create-coffee-card">
             <div className={`create-coffee-group ${specialtyMissing ? "is-invalid" : ""}`.trim()}>
               <button
@@ -1597,10 +1900,10 @@ export function CreateCoffeeView({
                 onClick={() => setPickerOpen("specialty")}
                 aria-haspopup="dialog"
                 aria-expanded={pickerOpen === "specialty"}
-                aria-label="Especialidad (obligatorio)"
+                aria-label={createCopy.specialtyRequiredAria}
               >
                 <span className={draft.specialty ? "" : "create-coffee-picker-placeholder"}>
-                  {draft.specialty || "Seleccionar especialidad"}
+                  {draft.specialty || createCopy.selectSpecialty}
                 </span>
                 <UiIcon name="chevron-right" className="ui-icon search-coffee-chevron" />
               </button>
@@ -1613,9 +1916,9 @@ export function CreateCoffeeView({
                 onClick={() => setPickerOpen("roast")}
                 aria-haspopup="dialog"
                 aria-expanded={pickerOpen === "roast"}
-                aria-label="Tueste"
+                aria-label={createCopy.roastAria}
               >
-                <span className={draft.roast ? "" : "create-coffee-picker-placeholder"}>{draft.roast || "Seleccionar tueste"}</span>
+                <span className={draft.roast ? "" : "create-coffee-picker-placeholder"}>{draft.roast || createCopy.selectRoast}</span>
                 <UiIcon name="chevron-right" className="ui-icon search-coffee-chevron" />
               </button>
             </div>
@@ -1627,10 +1930,10 @@ export function CreateCoffeeView({
                 onClick={() => setPickerOpen("country")}
                 aria-haspopup="dialog"
                 aria-expanded={pickerOpen === "country"}
-                aria-label="País de origen (obligatorio)"
+                aria-label={createCopy.countryRequiredAria}
               >
                 <span className={displayMultiValue(draft.country) ? "" : "create-coffee-picker-placeholder"}>
-                  {displayMultiValue(draft.country) || "Seleccionar país(es)"}
+                  {displayMultiValue(draft.country) || createCopy.selectCountry}
                 </span>
                 <UiIcon name="chevron-right" className="ui-icon search-coffee-chevron" />
               </button>
@@ -1643,10 +1946,10 @@ export function CreateCoffeeView({
                 onClick={() => setPickerOpen("variety")}
                 aria-haspopup="dialog"
                 aria-expanded={pickerOpen === "variety"}
-                aria-label="Variedad o tipo"
+                aria-label={createCopy.varietyAria}
               >
                 <span className={displayMultiValue(draft.variety) ? "" : "create-coffee-picker-placeholder"}>
-                  {displayMultiValue(draft.variety) || "Seleccionar variedad(es)"}
+                  {displayMultiValue(draft.variety) || createCopy.selectVariety}
                 </span>
                 <UiIcon name="chevron-right" className="ui-icon search-coffee-chevron" />
               </button>
@@ -1656,15 +1959,15 @@ export function CreateCoffeeView({
 
         {/* ——— Presentación ——— */}
         <section className="create-coffee-form-section">
-          <h3 className="create-coffee-section-heading">Presentación</h3>
+          <h3 className="create-coffee-section-heading">{createCopy.presentation}</h3>
           <div className={`create-coffee-card ${formatMissing || quantityMissing ? "is-invalid" : ""}`.trim()}>
             <div className="create-coffee-row create-coffee-row-caffeine">
-              <span className="create-coffee-label-inline">¿Tiene cafeína?</span>
+              <span className="create-coffee-label-inline">{createCopy.hasCaffeine}</span>
               <Switch
                 checked={draft.hasCaffeine}
                 className="create-coffee-switch"
                 onClick={() => onChange({ ...draft, hasCaffeine: !draft.hasCaffeine })}
-                aria-label="Café con cafeína"
+                aria-label={createCopy.caffeineCoffee}
               />
             </div>
             <div className="create-coffee-field-divider" aria-hidden="true" />
@@ -1675,15 +1978,15 @@ export function CreateCoffeeView({
                 onClick={() => setPickerOpen("format")}
                 aria-haspopup="dialog"
                 aria-expanded={pickerOpen === "format"}
-                aria-label="Formato (obligatorio)"
+                aria-label={locale === "es" ? `${createCopy.selectFormat} (obligatorio)` : `${createCopy.selectFormat} (required)`}
               >
-                <span className={draft.format ? "" : "create-coffee-picker-placeholder"}>{draft.format || "Seleccionar formato"}</span>
+                <span className={draft.format ? "" : "create-coffee-picker-placeholder"}>{draft.format || createCopy.selectFormat}</span>
                 <UiIcon name="chevron-right" className="ui-icon search-coffee-chevron" />
               </button>
             </div>
             <div className="create-coffee-field-divider" aria-hidden="true" />
             <div className={`create-coffee-row create-coffee-quantity-row ${quantityMissing ? "is-invalid" : ""}`.trim()}>
-              <span className="create-coffee-label-inline">Cantidad (g)</span>
+              <span className="create-coffee-label-inline">{createCopy.quantityGrams}</span>
               <Input
                 variant="default"
                 className="create-coffee-input create-coffee-quantity-input search-wide"
@@ -1698,7 +2001,7 @@ export function CreateCoffeeView({
                   onChange({ ...draft, totalGrams: n });
                 }}
                 placeholder=""
-                aria-label="Cantidad en gramos, tamaño de la bolsa (obligatorio)"
+                aria-label={createCopy.quantityAria}
                 aria-invalid={quantityMissing}
               />
             </div>
@@ -1708,19 +2011,19 @@ export function CreateCoffeeView({
         {/* ——— Detalles opcionales ——— */}
         <section className="create-coffee-form-section">
           <h3 className="create-coffee-section-heading">
-            Detalles opcionales
-            <span className="create-coffee-badge">Opcional</span>
+            {createCopy.optionalDetails}
+            <span className="create-coffee-badge">{createCopy.optionalBadge}</span>
           </h3>
           <div className="create-coffee-card create-coffee-card-optional">
             <div className="create-coffee-details-grid">
               <div className="create-coffee-group create-coffee-group-full">
                 <textarea
                   className="create-coffee-textarea search-wide"
-                  placeholder="Descripción"
+                  placeholder={createCopy.description}
                   value={draft.descripcion ?? ""}
                   onChange={(e) => onChange({ ...draft, descripcion: e.target.value })}
                   rows={3}
-                  aria-label="Descripción del café"
+                  aria-label={createCopy.descriptionAria}
                 />
               </div>
               <div className="create-coffee-field-divider" aria-hidden="true" />
@@ -1731,10 +2034,10 @@ export function CreateCoffeeView({
                   onClick={() => setPickerOpen("process")}
                   aria-haspopup="dialog"
                   aria-expanded={pickerOpen === "process"}
-                  aria-label="Proceso"
+                  aria-label={createCopy.process}
                 >
                   <span className={`create-coffee-picker-trigger-text ${displayMultiValue(draft.proceso) ? "" : "create-coffee-picker-placeholder"}`.trim()}>
-                    {displayMultiValue(draft.proceso) || "Seleccionar proceso(s)"}
+                    {displayMultiValue(draft.proceso) || createCopy.selectProcess}
                   </span>
                   <UiIcon name="chevron-right" className="ui-icon search-coffee-chevron create-coffee-picker-chevron-right" aria-hidden />
                 </button>
@@ -1747,10 +2050,10 @@ export function CreateCoffeeView({
                   onClick={() => setPickerOpen("grind")}
                   aria-haspopup="dialog"
                   aria-expanded={pickerOpen === "grind"}
-                  aria-label="Molienda recomendada"
+                  aria-label={createCopy.recommendedGrind}
                 >
                   <span className={`create-coffee-picker-trigger-text ${draft.molienda_recomendada ? "" : "create-coffee-picker-placeholder"}`.trim()}>
-                    {draft.molienda_recomendada || "Seleccionar molienda"}
+                    {draft.molienda_recomendada || createCopy.selectGrind}
                   </span>
                   <UiIcon name="chevron-right" className="ui-icon search-coffee-chevron create-coffee-picker-chevron-right" aria-hidden />
                 </button>
@@ -1762,10 +2065,10 @@ export function CreateCoffeeView({
                   className="create-coffee-input search-wide"
                   type="text"
                   inputMode="numeric"
-                  placeholder="Código de barras"
+                  placeholder={createCopy.barcode}
                   value={draft.codigo_barras ?? ""}
                   onChange={(e) => onChange({ ...draft, codigo_barras: e.target.value })}
-                  aria-label="Código de barras"
+                  aria-label={createCopy.barcode}
                   aria-invalid={barcodeInvalid}
                 />
               </div>
@@ -1776,10 +2079,10 @@ export function CreateCoffeeView({
                   className="create-coffee-input search-wide"
                   type="url"
                   inputMode="url"
-                  placeholder="Enlace al producto"
+                  placeholder={createCopy.productLink}
                   value={draft.product_url ?? ""}
                   onChange={(e) => onChange({ ...draft, product_url: e.target.value })}
-                  aria-label="Enlace al producto"
+                  aria-label={createCopy.productLink}
                   aria-invalid={productUrlInvalid}
                 />
               </div>
@@ -1790,11 +2093,11 @@ export function CreateCoffeeView({
         {/* ——— Perfil sensorial ——— */}
         <section className="create-coffee-form-section">
           <h3 className="create-coffee-section-heading">
-            Perfil sensorial
-            <span className="create-coffee-badge">Opcional</span>
+            {createCopy.sensoryProfile}
+            <span className="create-coffee-badge">{createCopy.optionalBadge}</span>
           </h3>
           <div className="create-coffee-card create-coffee-card-optional">
-            <p className="create-coffee-hint-block">Valoración del 0 al 5 (0 = no valorar)</p>
+            <p className="create-coffee-hint-block">{createCopy.sensoryHint}</p>
           <div className="create-coffee-sensory-list">
             {(["aroma", "sabor", "cuerpo", "acidez", "dulzura"] as const).map((key) => {
               const val = draft[key] ?? null;
@@ -1867,22 +2170,22 @@ export function CreateCoffeeView({
       {!hideActions && !fullPage ? (
         <footer className="create-coffee-actions">
           <Button variant="plain" className="create-coffee-btn create-coffee-btn-ghost" onClick={onClose} disabled={saving}>
-            Cancelar
+            {createCopy.cancel}
           </Button>
           <Button variant="plain" className="create-coffee-btn create-coffee-btn-primary" onClick={handleSaveAttempt} disabled={saving}>
-            {saving ? "Guardando..." : "Guardar café"}
+            {saving ? createCopy.saving : createCopy.saveCoffee}
           </Button>
         </footer>
       ) : null}
       {!hideActions && fullPage ? (
         <Button variant="plain" className="create-coffee-btn create-coffee-btn-primary create-coffee-mobile-save" onClick={handleSaveAttempt} disabled={saving}>
-          {saving ? "Guardando..." : "Guardar café"}
+          {saving ? createCopy.saving : createCopy.saveCoffee}
         </Button>
       ) : null}
       {hideActions && !fullPage ? (
         <footer className="create-coffee-actions create-coffee-actions-desktop-save">
           <Button variant="plain" className="create-coffee-btn create-coffee-btn-primary" onClick={handleSaveAttempt} disabled={saving}>
-            {saving ? "Guardando..." : "Guardar"}
+            {saving ? createCopy.saving : createCopy.save}
           </Button>
         </footer>
       ) : null}

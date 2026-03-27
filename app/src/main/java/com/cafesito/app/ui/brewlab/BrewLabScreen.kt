@@ -23,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -34,6 +35,7 @@ import android.os.Bundle
 import androidx.core.os.bundleOf
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
+import com.cafesito.app.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -190,7 +192,15 @@ fun BrewLabScreen(
             GlassyTopBar(
                 title = run {
                     val method = selectedMethod
-                    if (step == BrewStep.BREWING && method != null) "Estás elaborando: ${method.name}" else step.title
+                    if (step == BrewStep.BREWING && method != null) {
+                        stringResource(id = R.string.brew_timer_notification_title, method.name)
+                    } else {
+                        when (step) {
+                            BrewStep.CHOOSE_METHOD -> stringResource(id = R.string.nav_brewlab)
+                            BrewStep.BREWING -> stringResource(id = R.string.brew_timer_label)
+                            BrewStep.RESULT -> stringResource(id = R.string.brew_result)
+                        }
+                    }
                 },
                 onBackClick = if (step != BrewStep.CHOOSE_METHOD) { { viewModel.backStep() } } else null,
                 scrollBehavior = scrollBehavior,
@@ -205,7 +215,7 @@ fun BrewLabScreen(
                         ) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowForward,
-                                contentDescription = "Siguiente",
+                                contentDescription = stringResource(id = R.string.diary_next),
                                 tint = if (canGoNext) MaterialTheme.colorScheme.onSurface else androidx.compose.ui.graphics.Color.LightGray
                             )
                         }
@@ -216,7 +226,7 @@ fun BrewLabScreen(
                             onTrackEvent("button_click", bundleOf("button_id" to "brew_save_to_diary"))
                             viewModel.saveToDiary { onNavigateToDiary() }
                         }) {
-                            Text("Guardar", fontWeight = FontWeight.Bold)
+                            Text(stringResource(id = R.string.brew_save), fontWeight = FontWeight.Bold)
                         }
                     }
                     if (step == BrewStep.RESULT) {
@@ -227,7 +237,7 @@ fun BrewLabScreen(
                             },
                             enabled = canSaveForResult
                         ) {
-                            Text("Guardar", fontWeight = FontWeight.Bold)
+                            Text(stringResource(id = R.string.brew_save), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -320,12 +330,12 @@ fun BrewLabSelectCoffeeScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Selecciona café", fontWeight = FontWeight.SemiBold) },
+                title = { Text(stringResource(id = R.string.diary_add_select_coffee), fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver"
+                            contentDescription = stringResource(id = R.string.join_list_back)
                         )
                     }
                 },

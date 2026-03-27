@@ -4,6 +4,7 @@ import { NotificationRow } from "./NotificationRow";
 import type { UserRow } from "../../types";
 import { UiIcon } from "../../ui/iconography";
 import { IconButton, Topbar } from "../../ui/components";
+import { useI18n } from "../../i18n";
 
 export function NotificationsSheet({
   open,
@@ -34,6 +35,7 @@ export function NotificationsSheet({
   onAcceptListInvite?: (invitationId: string) => void;
   onDeclineListInvite?: (invitationId: string) => void;
 }) {
+  const { t } = useI18n();
   if (!open) return null;
 
   const groupedNotifications = useMemo(() => {
@@ -47,10 +49,10 @@ export function NotificationsSheet({
     const last30StartMs = todayStartMs - dayMs * 30;
 
     const buckets = [
-      { key: "today", title: "Hoy", items: [] as TimelineNotificationItem[] },
-      { key: "yesterday", title: "Ayer", items: [] as TimelineNotificationItem[] },
-      { key: "last7", title: "Últimos 7 días", items: [] as TimelineNotificationItem[] },
-      { key: "last30", title: "Últimos 30 días", items: [] as TimelineNotificationItem[] }
+      { key: "today", title: t("notifications.today"), items: [] as TimelineNotificationItem[] },
+      { key: "yesterday", title: t("notifications.yesterday"), items: [] as TimelineNotificationItem[] },
+      { key: "last7", title: t("notifications.last7"), items: [] as TimelineNotificationItem[] },
+      { key: "last30", title: t("notifications.last30"), items: [] as TimelineNotificationItem[] }
     ];
 
     notifications.forEach((item) => {
@@ -68,10 +70,10 @@ export function NotificationsSheet({
     });
 
     return buckets.filter((bucket) => bucket.items.length > 0);
-  }, [notifications]);
+  }, [notifications, t]);
 
   return (
-    <section className="notifications-page" aria-label="Notificaciones">
+    <section className="notifications-page" aria-label={t("top.notifications")}>
       <div className="notifications-panel">
         <Topbar centered className="topbar-timeline notifications-header">
           <div className="topbar-slot">
@@ -79,12 +81,12 @@ export function NotificationsSheet({
               tone="topbar"
               className="icon-button topbar-icon-button notifications-back"
               onClick={onClose}
-              aria-label="Atrás"
+              aria-label={t("top.search.back")}
             >
               <UiIcon name="arrow-left" className="ui-icon" />
             </IconButton>
           </div>
-          <h2 className="title title-upper topbar-title-center topbar-brand-title notifications-title">NOTIFICACIONES</h2>
+          <h2 className="title title-upper topbar-title-center topbar-brand-title notifications-title">{t("notifications.title")}</h2>
           <div className="topbar-slot topbar-slot-end">
             <IconButton tone="topbar" className="icon-button topbar-icon-button notifications-header-spacer" aria-hidden="true" tabIndex={-1}>
               <UiIcon name="notifications" className="ui-icon" />
@@ -131,7 +133,7 @@ export function NotificationsSheet({
               </Fragment>
             ))
           ) : (
-            <li className="sheet-item notifications-empty">No tienes notificaciones</li>
+            <li className="sheet-item notifications-empty">{t("notifications.empty")}</li>
           )}
         </ul>
       </div>

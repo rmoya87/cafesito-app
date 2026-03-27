@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { UserRow } from "../../types";
 import { Button } from "../../ui/components";
+import { useI18n } from "../../i18n";
 
 /**
  * Lista de usuarios (seguidores o siguiendo) con el mismo diseño que la búsqueda de usuarios.
@@ -8,6 +9,7 @@ import { Button } from "../../ui/components";
  */
 export function ProfileUsersListView({
   title,
+  emptyState,
   users,
   followerCounts,
   followingCounts,
@@ -15,7 +17,8 @@ export function ProfileUsersListView({
   onSelectUser,
   onToggleFollow
 }: {
-  title: "Seguidores" | "Siguiendo";
+  title: string;
+  emptyState: "followers" | "following";
   users: UserRow[];
   followerCounts: Map<number, number>;
   followingCounts: Map<number, number>;
@@ -23,6 +26,7 @@ export function ProfileUsersListView({
   onSelectUser: (userId: number) => void;
   onToggleFollow: (userId: number) => void;
 }) {
+  const { t } = useI18n();
   const [failedAvatarUrls, setFailedAvatarUrls] = useState<Set<string>>(new Set());
 
   return (
@@ -52,7 +56,7 @@ export function ProfileUsersListView({
                   <div className="search-users-copy">
                     <p className="search-users-username">{user.username}</p>
                     <p className="search-users-fullname">
-                      {followerCounts.get(user.id) ?? 0} seguidores · {followingCounts.get(user.id) ?? 0} siguiendo
+                      {t("search.followersFollowing", { followers: followerCounts.get(user.id) ?? 0, following: followingCounts.get(user.id) ?? 0 })}
                     </p>
                   </div>
                 </Button>
@@ -61,13 +65,13 @@ export function ProfileUsersListView({
                   className={`action-button search-users-follow ${followingIds.has(user.id) ? "action-button-following" : "action-button-ghost"}`}
                   onClick={() => onToggleFollow(user.id)}
                 >
-                  {followingIds.has(user.id) ? "Siguiendo" : "Seguir"}
+                  {followingIds.has(user.id) ? t("search.following") : t("search.follow")}
                 </Button>
               </li>
             ))
           ) : (
             <li className="search-users-empty">
-              {title === "Seguidores" ? "Sin seguidores" : "No sigue a nadie"}
+              {emptyState === "followers" ? t("profile.noFollowers") : t("profile.notFollowingAnyone")}
             </li>
           )}
         </ul>

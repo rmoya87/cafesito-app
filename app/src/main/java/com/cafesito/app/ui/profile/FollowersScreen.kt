@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.cafesito.app.R
 import com.cafesito.shared.domain.User
 import com.cafesito.app.ui.components.ModernAvatar
 import com.cafesito.app.ui.theme.*
@@ -72,7 +74,7 @@ fun FollowersScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(id = R.string.join_list_back))
                     }
                     
                     BasicTextField(
@@ -91,8 +93,8 @@ fun FollowersScreen(
                                 singleLine = true,
                                 visualTransformation = VisualTransformation.None,
                                 interactionSource = interactionSource,
-                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                placeholder = { Text("Buscar en seguidores...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(id = R.string.search_icon_search_cd), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                placeholder = { Text(stringResource(id = R.string.profile_search_followers_placeholder), color = MaterialTheme.colorScheme.onSurfaceVariant) },
                                 contentPadding = PaddingValues(0.dp),
                                 container = {
                                     OutlinedTextFieldDefaults.Container(
@@ -124,7 +126,7 @@ fun FollowersScreen(
                             },
                             contentPadding = PaddingValues(start = 12.dp, end = 4.dp)
                         ) {
-                            Text("Cancelar", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(stringResource(id = R.string.search_cancel), color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
                     }
                 }
@@ -154,7 +156,7 @@ fun FollowersScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = if (searchQuery.isEmpty()) "Todavía no hay seguidores" else "No se encontraron resultados",
+                                text = if (searchQuery.isEmpty()) stringResource(id = R.string.profile_no_followers_yet) else stringResource(id = R.string.profile_no_results),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 style = MaterialTheme.typography.bodyMedium
                             )
@@ -189,7 +191,7 @@ fun FollowItemModern(
     followingCount: Int? = null
 ) {
     val subtitleText = if (followersCount != null && followingCount != null) {
-        "$followersCount seguidores · $followingCount siguiendo"
+        stringResource(id = R.string.profile_follow_stats, followersCount, followingCount)
     } else {
         user.fullName
     }
@@ -242,7 +244,7 @@ fun FollowItemModern(
                     modifier = Modifier.height(36.dp)
                 ) {
                     Text(
-                        text = if (isFollowing) "Siguiendo" else "Seguir",
+                        text = if (isFollowing) stringResource(id = R.string.notifications_following) else stringResource(id = R.string.notifications_follow),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp

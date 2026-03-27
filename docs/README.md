@@ -1,7 +1,7 @@
 # Documentación Cafesito — Índice y gobernanza
 
 **Estado:** vivo  
-**Última actualización:** 2026-03-25 (runbook estáticos/landing/login WebApp)  
+**Última actualización:** 2026-03-26 (selector de idioma WebApp/Android)  
 **Objetivo:** documentación como fuente de verdad, sin incompatibilidades y con menor tasa de errores.
 
 ---
@@ -179,6 +179,7 @@ flowchart TB
 | `webApp/docs/SEO_WEBAPP_AVANZADO_2026-03.md` | **SEO WebApp avanzado (fuente única):** canonicalización, OG/Twitter/JSON-LD, facetas SEO, sitemaps `.xml.gz` + `image-sitemap`, OG images generadas en build, cache strategy Apache, mejoras CWV y separación SPA vs páginas estáticas (`landing/legal`). |
 | `webApp/docs/ESTATICOS_LANDING_LEGAL_LOGIN_WEB.md` | **Runbook:** evitar regresiones en landing (rutas `/landing/...`), legales (favicon), login SPA (`pathnameForSeo`, `features.css` en `LoginGate`). Enlazado desde `SEO_WEBAPP_AVANZADO_2026-03.md` §3.2.b. |
 | `webApp/docs/SEARCH_NORMALIZATION_WEBAPP_ANDROID.md` | **Búsqueda unificada Web/Android:** normalización de texto (tildes/apóstrofes/mayúsculas), mapa de archivos impactados, checklist de regresión y antipatrones. |
+| `I18N_IDIOMA_WEBAPP_ANDROID.md` | **Idioma de app Web/Android:** selector en perfil, opción Sistema (primera), idiomas soportados (`es/en/fr/pt/de`), fallback a inglés si el idioma del sistema no está soportado. |
 | `CHANGELOG_WEB_UI_AND_ANDROID_PORT.md` | Changelog de cambios en la WebApp y guía de traslado nativo a Android (paridad funcional). |
 | `OPCIONES_DE_LISTA_WEB_Y_ANDROID.md` | **Opciones de lista:** backend (Supabase), flujo WebApp (página opciones) y paridad Android (pantalla Opciones de lista, privacidad, miembros, invitaciones, copiar enlace, editar/eliminar/abandonar). |
 

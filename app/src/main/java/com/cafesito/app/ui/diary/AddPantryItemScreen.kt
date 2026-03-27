@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import com.cafesito.app.ui.theme.DisabledGray
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
@@ -45,6 +46,7 @@ import java.util.UUID
 import com.cafesito.app.ui.components.toCoffeeBrandFormat
 import android.os.Bundle
 import androidx.core.os.bundleOf
+import com.cafesito.app.R
 import com.cafesito.app.ui.components.toCoffeeNameFormat
 
 private val SPECIALTY_OPTIONS = listOf("Arabica", "Mezcla")
@@ -55,11 +57,6 @@ private val GRIND_OPTIONS = listOf("Molido fino", "Molido medio", "Molido grueso
 private val VARIETY_OPTIONS = listOf("Geisha", "Caturra", "Arábica 100%", "Robusta", "Bourbon", "Typica", "Maragogype", "Pacamara", "Otro")
 private const val SENSORY_MIN = 0
 private const val SENSORY_MAX = 5
-private val SENSORY_LABELS = mapOf(
-    "aroma" to "Aroma", "sabor" to "Sabor", "cuerpo" to "Cuerpo",
-    "acidez" to "Acidez", "dulzura" to "Dulzura"
-)
-
 private fun parseMultiValue(s: String): List<String> =
     s.split(",").map { it.trim() }.filter { it.isNotEmpty() }
 private fun formatMultiValue(list: List<String>): String = list.joinToString(", ")
@@ -183,6 +180,13 @@ fun AddPantryItemScreen(
     val barcodeValid = codigoBarras.isBlank() || codigoBarras.replace(" ", "").matches(Regex("^[0-9]{6,}$"))
     val urlValid = productUrl.isBlank() || productUrl.trim().matches(Regex("^https?://.+", RegexOption.IGNORE_CASE))
     val isFormValid = name.isNotBlank() && brand.isNotBlank() && (imageUri != null || existingImageUrl.isNotBlank()) && quantityValid && barcodeValid && urlValid
+    val screenTitle = if (coffeeId != null) {
+        stringResource(id = R.string.add_pantry_edit_coffee)
+    } else if (customFlow || brewLabFlow) {
+        stringResource(id = R.string.diary_create_coffee)
+    } else {
+        stringResource(id = R.string.add_pantry_new_coffee)
+    }
 
     val brandSuggestions = remember(coffees, brand) {
         val byKey = mutableMapOf<String, String>()
@@ -201,10 +205,10 @@ fun AddPantryItemScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(if (coffeeId != null) "Editar café" else if (customFlow || brewLabFlow) "Crea tu café" else "Nuevo café", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
+                title = { Text(screenTitle, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
                     IconButton(onClick = { onBackClick(null) }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(id = R.string.join_list_back), tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
                 actions = {
@@ -294,7 +298,7 @@ fun AddPantryItemScreen(
                         border = null
                     ) {
                         Text(
-                            text = "Guardar",
+                            text = stringResource(id = R.string.brew_save),
                             fontWeight = FontWeight.SemiBold
                         )
                     }
@@ -330,7 +334,7 @@ fun AddPantryItemScreen(
                             if (imageUri != null || existingImageUrl.isNotBlank()) {
                                 AsyncImage(
                                     model = imageUri ?: existingImageUrl,
-                                    contentDescription = "Imagen del café",
+                                    contentDescription = stringResource(id = R.string.add_pantry_image_cd),
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Fit
                                 )
@@ -349,16 +353,16 @@ fun AddPantryItemScreen(
                                 ) {
                                     Icon(
                                         Icons.Default.Close,
-                                        contentDescription = "Quitar foto",
+                                        contentDescription = stringResource(id = R.string.add_pantry_remove_photo),
                                         tint = if (isDark) PureBlack else PureWhite,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
                             } else {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                                    Icon(Icons.Default.AddAPhoto, contentDescription = "Añadir foto", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(40.dp))
+                                    Icon(Icons.Default.AddAPhoto, contentDescription = stringResource(id = R.string.add_pantry_add_photo), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(40.dp))
                                     Spacer(Modifier.height(8.dp))
-                                    Text("Añadir foto", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(stringResource(id = R.string.add_pantry_add_photo), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }
@@ -369,7 +373,7 @@ fun AddPantryItemScreen(
                             OutlinedTextField(
                                 value = name,
                                 onValueChange = { name = it.toCoffeeNameFormat() },
-                                placeholder = { Text("Nombre del café *") },
+                                placeholder = { Text(stringResource(id = R.string.add_pantry_name_placeholder)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = Shapes.cardSmall,
                                 singleLine = true,
@@ -384,7 +388,7 @@ fun AddPantryItemScreen(
                                 OutlinedTextField(
                                     value = brand,
                                     onValueChange = { v -> brand = v; brandDropdownExpanded = v.isNotBlank() },
-                                    placeholder = { Text("Tostador") },
+                                    placeholder = { Text(stringResource(id = R.string.add_pantry_roaster_placeholder)) },
                                     modifier = Modifier
                                         .menuAnchor(MenuAnchorType.PrimaryNotEditable, brandDropdownExpanded)
                                         .fillMaxWidth(),
@@ -396,7 +400,7 @@ fun AddPantryItemScreen(
                                     expanded = brandDropdownExpanded,
                                     onDismissRequest = { brandDropdownExpanded = false }
                                 ) {
-                                    Text("Tostadores sugeridos", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                                    Text(stringResource(id = R.string.add_pantry_suggested_roasters), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
                                     brandSuggestions.forEach { suggestion ->
                                         DropdownMenuItem(
                                             text = { Text(suggestion) },
@@ -415,39 +419,39 @@ fun AddPantryItemScreen(
 
             // Origen y perfil — título fuera, menos espacio con la card de abajo
             item {
-                Text("Origen y perfil", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(stringResource(id = R.string.add_pantry_origin_profile), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(4.dp))
             }
             item {
                 FormSectionCard(title = null) {
                     Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                        PickerTriggerRow(value = specialty, placeholder = "Seleccionar especialidad", onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = "specialty" })
+                        PickerTriggerRow(value = specialty, placeholder = stringResource(id = R.string.add_pantry_select_specialty), onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = "specialty" })
                         Spacer(Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         Spacer(Modifier.height(12.dp))
-                        PickerTriggerRow(value = roast, placeholder = "Seleccionar tueste", onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = "roast" })
+                        PickerTriggerRow(value = roast, placeholder = stringResource(id = R.string.add_pantry_select_roast), onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = "roast" })
                         Spacer(Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         Spacer(Modifier.height(12.dp))
-                        PickerTriggerRow(value = formatMultiValue(parseMultiValue(country)), placeholder = "Seleccionar país(es)", onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = "country" })
+                        PickerTriggerRow(value = formatMultiValue(parseMultiValue(country)), placeholder = stringResource(id = R.string.add_pantry_select_countries), onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = "country" })
                         Spacer(Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         Spacer(Modifier.height(12.dp))
-                        PickerTriggerRow(value = formatMultiValue(parseMultiValue(variety)), placeholder = "Seleccionar variedad(es)", onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = "variety" })
+                        PickerTriggerRow(value = formatMultiValue(parseMultiValue(variety)), placeholder = stringResource(id = R.string.add_pantry_select_varieties), onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = "variety" })
                     }
                 }
             }
 
             // Presentación — título fuera
             item {
-                Text("Presentación", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(stringResource(id = R.string.add_pantry_presentation), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(4.dp))
             }
             item {
                 FormSectionCard(title = null) {
                     Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                            Text("¿Tiene cafeína?", modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                            Text(stringResource(id = R.string.add_pantry_has_caffeine), modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                             Switch(
                                 checked = hasCaffeine,
                                 onCheckedChange = { hasCaffeine = it },
@@ -463,7 +467,7 @@ fun AddPantryItemScreen(
                         Spacer(Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         Spacer(Modifier.height(12.dp))
-                        PickerTriggerRow(value = format, placeholder = "Seleccionar formato", onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = "format" })
+                        PickerTriggerRow(value = format, placeholder = stringResource(id = R.string.add_pantry_select_format), onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = "format" })
                         if (!diaryEntryFlow) {
                             Spacer(Modifier.height(12.dp))
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
@@ -477,7 +481,7 @@ fun AddPantryItemScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "Cantidad (g)",
+                                    text = stringResource(id = R.string.add_pantry_amount_g),
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -503,9 +507,9 @@ fun AddPantryItemScreen(
             // Detalles opcionales — título y badge fuera
             item {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Detalles opcionales", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Text(stringResource(id = R.string.add_pantry_optional_details), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Surface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
-                        Text("Opcional", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                        Text(stringResource(id = R.string.add_pantry_optional_badge), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                     }
                 }
                 Spacer(Modifier.height(4.dp))
@@ -516,7 +520,7 @@ fun AddPantryItemScreen(
                         OutlinedTextField(
                             value = descripcion,
                             onValueChange = { descripcion = it },
-                            placeholder = { Text("Descripción") },
+                            placeholder = { Text(stringResource(id = R.string.add_pantry_description)) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = Shapes.cardSmall,
                             minLines = 3,
@@ -525,18 +529,18 @@ fun AddPantryItemScreen(
                         Spacer(Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         Spacer(Modifier.height(12.dp))
-                        PickerTriggerRow(value = formatMultiValue(parseMultiValue(proceso)), placeholder = "Seleccionar proceso(s)", onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = "process" })
+                        PickerTriggerRow(value = formatMultiValue(parseMultiValue(proceso)), placeholder = stringResource(id = R.string.add_pantry_select_processes), onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = "process" })
                         Spacer(Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         Spacer(Modifier.height(12.dp))
-                        PickerTriggerRow(value = moliendaRecomendada, placeholder = "Seleccionar molienda", onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = "grind" })
+                        PickerTriggerRow(value = moliendaRecomendada, placeholder = stringResource(id = R.string.add_pantry_select_grind), onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_pantry_option_picker")); pickerOpen = "grind" })
                         Spacer(Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         Spacer(Modifier.height(12.dp))
                         OutlinedTextField(
                             value = codigoBarras,
                             onValueChange = { codigoBarras = it },
-                            placeholder = { Text("Código de barras") },
+                            placeholder = { Text(stringResource(id = R.string.add_pantry_barcode)) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = Shapes.cardSmall,
                             singleLine = true,
@@ -550,7 +554,7 @@ fun AddPantryItemScreen(
                         OutlinedTextField(
                             value = productUrl,
                             onValueChange = { productUrl = it },
-                            placeholder = { Text("Enlace al producto") },
+                            placeholder = { Text(stringResource(id = R.string.add_pantry_product_link)) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = Shapes.cardSmall,
                             singleLine = true,
@@ -565,9 +569,9 @@ fun AddPantryItemScreen(
             // Perfil sensorial — título y badge fuera
             item {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Perfil sensorial", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Text(stringResource(id = R.string.add_pantry_sensory_profile), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Surface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
-                        Text("Opcional", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                        Text(stringResource(id = R.string.add_pantry_optional_badge), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                     }
                 }
                 Spacer(Modifier.height(4.dp))
@@ -575,14 +579,22 @@ fun AddPantryItemScreen(
             item {
                 FormSectionCard(title = null) {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Text("Valoración del 1 al 5", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(id = R.string.add_pantry_rating_1_5), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         listOf(
                             "aroma" to aroma, "sabor" to sabor, "cuerpo" to cuerpo,
                             "acidez" to acidez, "dulzura" to dulzura
                         ).forEach { (key, value) ->
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                                    Text(SENSORY_LABELS[key] ?: key, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                                    val sensoryLabel = when (key) {
+                                        "aroma" -> stringResource(id = R.string.sensory_aroma)
+                                        "sabor" -> stringResource(id = R.string.sensory_flavor)
+                                        "cuerpo" -> stringResource(id = R.string.sensory_body)
+                                        "acidez" -> stringResource(id = R.string.sensory_acidity)
+                                        "dulzura" -> stringResource(id = R.string.sensory_sweetness)
+                                        else -> key
+                                    }
+                                    Text(sensoryLabel, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                                     Text("$value", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Slider(
@@ -621,14 +633,14 @@ fun AddPantryItemScreen(
             ) {
                 Column(Modifier.padding(top = 8.dp, start = 24.dp, end = 24.dp, bottom = 40.dp)) {
                     Text(
-                        text = "AÑADIR FOTO",
+                        text = stringResource(id = R.string.add_pantry_add_photo_title).uppercase(),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(bottom = 16.dp),
                         fontWeight = FontWeight.Bold
                     )
                     ModalMenuOption(
-                        title = "Hacer Foto",
+                        title = stringResource(id = R.string.add_pantry_take_photo),
                         icon = Icons.Default.PhotoCamera,
                         color = MaterialTheme.colorScheme.primary,
                         onClick = {
@@ -644,7 +656,7 @@ fun AddPantryItemScreen(
                         }
                     )
                     ModalMenuOption(
-                        title = "Elegir de Galería",
+                        title = stringResource(id = R.string.add_pantry_choose_gallery),
                         icon = Icons.Default.Collections,
                         color = MaterialTheme.colorScheme.primary,
                         onClick = {
@@ -661,13 +673,13 @@ fun AddPantryItemScreen(
         val pickerId = pickerOpen
         if (pickerId != null) {
             val (title, options, isMulti) = when (pickerId) {
-                "specialty" -> Triple("Especialidad", SPECIALTY_OPTIONS, false)
-                "roast" -> Triple("Tueste", ROAST_OPTIONS, false)
-                "country" -> Triple("País(es)", countries, true)
-                "variety" -> Triple("Variedad(es)", VARIETY_OPTIONS, true)
-                "format" -> Triple("Formato", FORMAT_OPTIONS, false)
-                "process" -> Triple("Proceso", PROCESS_OPTIONS, true)
-                "grind" -> Triple("Molienda recomendada", GRIND_OPTIONS, false)
+                "specialty" -> Triple(stringResource(id = R.string.add_pantry_specialty), SPECIALTY_OPTIONS, false)
+                "roast" -> Triple(stringResource(id = R.string.add_pantry_roast), ROAST_OPTIONS, false)
+                "country" -> Triple(stringResource(id = R.string.add_pantry_countries), countries, true)
+                "variety" -> Triple(stringResource(id = R.string.add_pantry_varieties), VARIETY_OPTIONS, true)
+                "format" -> Triple(stringResource(id = R.string.add_pantry_format), FORMAT_OPTIONS, false)
+                "process" -> Triple(stringResource(id = R.string.add_pantry_process), PROCESS_OPTIONS, true)
+                "grind" -> Triple(stringResource(id = R.string.add_pantry_recommended_grind), GRIND_OPTIONS, false)
                 else -> Triple("", emptyList(), false)
             }
             val optionBg = if (isDark) PureBlack else PureWhite
@@ -700,7 +712,7 @@ fun AddPantryItemScreen(
                                     pickerOpen = null
                                 },
                                 modifier = Modifier.align(Alignment.CenterEnd)
-                            ) { Text("Aplicar") }
+                            ) { Text(stringResource(id = R.string.common_apply)) }
                         }
                     }
                     Spacer(Modifier.height(16.dp))
@@ -807,7 +819,7 @@ private fun PickerTriggerRow(
             )
             Icon(
                 Icons.Default.ChevronRight,
-                contentDescription = "Abrir",
+                contentDescription = stringResource(id = R.string.common_open),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

@@ -4,6 +4,7 @@ import { sendEvent } from "../../core/ga4";
 import type { CoffeeRow, UserRow } from "../../types";
 import { Button, Chip, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
 import { UiIcon } from "../../ui/iconography";
+import { useI18n } from "../../i18n";
 
 const SEARCH_PAGE_SIZE = 15;
 const SEARCH_LOAD_MORE_AT_INDEX = 12; // al llegar al 12.º elemento, cargar siguientes 15 (nunca todo el resultado de golpe)
@@ -78,6 +79,7 @@ export function SearchView({
   onExitCoffeeFocus: () => void;
   sidePanel?: ReactNode;
 }) {
+  const { t } = useI18n();
   const selectedCoffeeRef = useRef<HTMLElement | null>(null);
   const loadMoreSentinelRef = useRef<HTMLDivElement | null>(null);
   const [visibleCount, setVisibleCount] = useState(SEARCH_PAGE_SIZE);
@@ -164,7 +166,7 @@ export function SearchView({
         <div className="search-users-copy">
           <p className="search-users-username">{user.username}</p>
           <p className="search-users-fullname">
-            {followerCounts.get(user.id) ?? 0} seguidores · {followingCounts.get(user.id) ?? 0} siguiendo
+            {t("search.followersFollowing", { followers: followerCounts.get(user.id) ?? 0, following: followingCounts.get(user.id) ?? 0 })}
           </p>
         </div>
       </Button>
@@ -173,7 +175,7 @@ export function SearchView({
         className={`action-button search-users-follow ${followingIds.has(user.id) ? "action-button-following" : "action-button-ghost"}`}
         onClick={() => onToggleFollow(user.id)}
       >
-        {followingIds.has(user.id) ? "Siguiendo" : "Seguir"}
+        {followingIds.has(user.id) ? t("search.following") : t("search.follow")}
       </Button>
     </li>
   );
@@ -197,7 +199,7 @@ export function SearchView({
               </>
             ) : (
               <li className="search-users-empty">
-                {searchQuery.trim() ? "No se encontraron usuarios" : "Busca amigos para seguir"}
+                {searchQuery.trim() ? t("search.noUsersFound") : t("search.findFriends")}
               </li>
             )}
           </ul>
@@ -209,9 +211,9 @@ export function SearchView({
           {!focusCoffeeProfile && recentSearches.length ? (
             <section className="search-recent">
               <div className="search-recent-head">
-                <p className="search-recent-title">Busquedas recientes</p>
+                <p className="search-recent-title">{t("search.recentSearches")}</p>
                 <Button variant="text" className="search-recent-clear" onClick={clearRecentSearches}>
-                  Limpiar
+                  {t("search.clear")}
                 </Button>
               </div>
               <div className="search-recent-list">
@@ -236,16 +238,16 @@ export function SearchView({
             <article className={`coffee-profile-card ${focusCoffeeProfile ? "is-focused" : ""}`} ref={selectedCoffeeRef}>
               {focusCoffeeProfile ? (
                 <div className="coffee-profile-head">
-                  <p className="coffee-profile-badge">PERFIL DE CAFE</p>
+                  <p className="coffee-profile-badge">{t("search.coffeeProfile")}</p>
                   <Button variant="text" onClick={onExitCoffeeFocus}>
-                    Ver todos
+                    {t("search.seeAll")}
                   </Button>
                 </div>
               ) : null}
               {selectedCoffee.image_url ? <img className="coffee-profile-image" src={selectedCoffee.image_url} alt={selectedCoffee.nombre} loading="lazy" decoding="async" /> : null}
               <div className="coffee-profile-copy">
                 <h3 className="coffee-profile-title">{selectedCoffee.nombre}</h3>
-                <p className="coffee-profile-brand">{(selectedCoffee.marca || "Marca").toUpperCase()}</p>
+                <p className="coffee-profile-brand">{(selectedCoffee.marca || t("search.brandFallback")).toUpperCase()}</p>
               </div>
             </article>
           ) : null}
@@ -276,7 +278,7 @@ export function SearchView({
                       )}
                       <div className="search-coffee-copy">
                         <strong>{coffee.nombre}</strong>
-                        <p className="coffee-sub">{(coffee.marca || "Marca").toUpperCase()}</p>
+                        <p className="coffee-sub">{(coffee.marca || t("search.brandFallback")).toUpperCase()}</p>
                       </div>
                       <UiIcon name="chevron-right" className="ui-icon search-coffee-chevron" />
                     </Button>
@@ -306,7 +308,7 @@ export function SearchView({
                           )}
                           <div className="search-coffee-copy">
                             <strong>{coffee.nombre}</strong>
-                            <p className="coffee-sub">{(coffee.marca || "Marca").toUpperCase()}</p>
+                            <p className="coffee-sub">{(coffee.marca || t("search.brandFallback")).toUpperCase()}</p>
                           </div>
                           <UiIcon name="chevron-right" className="ui-icon search-coffee-chevron" />
                         </Button>
@@ -317,21 +319,21 @@ export function SearchView({
               </ul>
             );
           })()}
-          {!coffees.length ? <p className="search-coffee-empty">No encontramos cafes con esos filtros.</p> : null}
+          {!coffees.length ? <p className="search-coffee-empty">{t("search.noCoffeeWithFilters")}</p> : null}
 
           {activeFilterType && typeof document !== "undefined"
             ? createPortal(
-                <SheetOverlay role="dialog" aria-modal="true" aria-label="Filtros" onDismiss={() => { sendEvent("modal_close", { modal_id: "search_filter" }); onSetActiveFilterType(null); }} onClick={() => { sendEvent("modal_close", { modal_id: "search_filter" }); onSetActiveFilterType(null); }}>
+                <SheetOverlay role="dialog" aria-modal="true" aria-label={t("search.filters")} onDismiss={() => { sendEvent("modal_close", { modal_id: "search_filter" }); onSetActiveFilterType(null); }} onClick={() => { sendEvent("modal_close", { modal_id: "search_filter" }); onSetActiveFilterType(null); }}>
                   <SheetCard className="search-filter-sheet" onClick={(event) => event.stopPropagation()}>
                     <SheetHandle aria-hidden="true" />
                     <div className="search-filter-actions">
                       <Button variant="text" onClick={onClearCoffeeFilters}>
-                        Limpiar filtros
+                        {t("search.clearFilters")}
                       </Button>
                     </div>
                     {activeFilterType === "nota" ? (
                       <div className="search-rating-filter">
-                        <p className="search-rating-label">{minRating > 0 ? `Nota minima: ${minRating}+` : "Cualquier nota"}</p>
+                        <p className="search-rating-label">{minRating > 0 ? t("search.minRating", { value: minRating }) : t("search.anyRating")}</p>
                         <Input
                           className="app-range"
                           style={{ "--range-progress": `${(minRating / 5) * 100}%` } as React.CSSProperties}

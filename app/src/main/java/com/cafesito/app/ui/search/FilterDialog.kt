@@ -8,7 +8,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.cafesito.app.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,10 +27,10 @@ fun FilterDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Filtrar Cafés") },
+        title = { Text(stringResource(id = R.string.search_filter_dialog_title)) },
         text = {
             Column {
-                Text("Puntuación mínima: ${sliderValue.toInt()}")
+                Text(stringResource(id = R.string.search_filter_dialog_min_score, sliderValue.toInt()))
                 Slider(
                     value = sliderValue,
                     onValueChange = { sliderValue = it },
@@ -45,13 +47,13 @@ fun FilterDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text("País de Origen")
+                Text(stringResource(id = R.string.search_filter_origin))
                 ExposedDropdownMenuBox(
                     expanded = expanded,
                     onExpandedChange = { expanded = !expanded }
                 ) {
                     TextField(
-                        value = selectedOrigin ?: "Todos los países",
+                        value = selectedOrigin ?: stringResource(id = R.string.search_filter_all_countries),
                         onValueChange = {},
                         readOnly = true,
                         shape = CircleShape,
@@ -64,7 +66,7 @@ fun FilterDialog(
                         onDismissRequest = { expanded = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Todos los países") },
+                            text = { Text(stringResource(id = R.string.search_filter_all_countries)) },
                             onClick = {
                                 selectedOrigin = null
                                 expanded = false
@@ -85,12 +87,12 @@ fun FilterDialog(
         },
         confirmButton = {
             Button(onClick = { onApply(sliderValue, selectedOrigin) }) {
-                Text("Aplicar")
+                Text(stringResource(id = R.string.common_apply))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text(stringResource(id = R.string.search_cancel))
             }
         }
     )

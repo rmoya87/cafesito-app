@@ -29,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.IntOffset
@@ -36,6 +37,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.cafesito.app.R
 import com.cafesito.app.data.UserEntity
 import com.cafesito.app.ui.theme.Spacing
 import com.cafesito.app.ui.components.GlassyTopBar
@@ -68,7 +70,7 @@ fun ListDetailScreen(
     Scaffold(
         topBar = {
             GlassyTopBar(
-                title = listName.take(32).ifEmpty { "Lista" },
+                title = listName.take(32).ifEmpty { stringResource(id = R.string.profile_list_default_name) },
                 onBackClick = onBackClick,
                 scrollBehavior = scrollBehavior,
                 actions = {
@@ -94,7 +96,7 @@ fun ListDetailScreen(
                     }
                     if (!showMemberAvatars) {
                         IconButton(onClick = onOpenListOptions) {
-                            androidx.compose.material3.Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones de lista")
+                            androidx.compose.material3.Icon(Icons.Default.MoreHoriz, contentDescription = stringResource(id = R.string.profile_list_options_cd))
                         }
                     }
                     if (showJoinButton) {
@@ -102,7 +104,7 @@ fun ListDetailScreen(
                             onClick = { viewModel.joinPublicList() },
                             modifier = Modifier.padding(end = Spacing.space2)
                         ) {
-                            Text("Unirse")
+                            Text(stringResource(id = R.string.join_list_button))
                         }
                     }
                 }
@@ -127,7 +129,7 @@ fun ListDetailScreen(
                 contentAlignment = androidx.compose.ui.Alignment.Center
             ) {
                 Text(
-                    "No hay cafés en esta lista",
+                    stringResource(id = R.string.profile_list_empty),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -180,7 +182,7 @@ private fun ListMemberAvatarsStack(
                 if (!user.avatarUrl.isNullOrBlank()) {
                     AsyncImage(
                         model = user.avatarUrl,
-                        contentDescription = "Avatar de ${user.username}",
+                        contentDescription = stringResource(id = R.string.notifications_avatar),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )

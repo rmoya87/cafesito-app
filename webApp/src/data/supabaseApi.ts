@@ -351,60 +351,17 @@ export async function fetchProfileUserActivityData(userId: number): Promise<{
 }
 
 export async function toggleLike(postId: string, userId: number, alreadyLiked: boolean): Promise<LikeRow | null> {
-  const supabase = getSupabaseClient();
-  if (alreadyLiked) {
-    const { error } = await supabase.from("likes_db").delete().eq("post_id", postId).eq("user_id", userId);
-    throwIfError(error);
-    return null;
-  }
-
-  const payload: LikeRow = { post_id: postId, user_id: userId };
-  const { error } = await supabase.from("likes_db").insert(payload);
-  throwIfError(error);
-  return payload;
+  void postId;
+  void userId;
+  void alreadyLiked;
+  throw new Error("La funcionalidad social legacy (likes/posts/comments) está deshabilitada.");
 }
 
 export async function createComment(postId: string, userId: number, text: string): Promise<CommentRow> {
-  const supabase = getSupabaseClient();
-  const payload = {
-    post_id: postId,
-    user_id: userId,
-    text,
-    timestamp: Date.now()
-  };
-
-  const { data, error } = await supabase
-    .from("comments_db")
-    .insert(payload)
-    .select("id,post_id,user_id,text,timestamp")
-    .single();
-
-  throwIfError(error);
-  const row = mapCommentRow(data);
-
-  // Web no tenía pipeline de menciones en comentarios; lo resolvemos aquí.
-  const { data: author } = await supabase
-    .from("users_db")
-    .select("username")
-    .eq("id", userId)
-    .limit(1)
-    .maybeSingle<{ username: string }>();
-  const authorUsername = String(author?.username ?? "").trim();
-  if (authorUsername) {
-    try {
-      await notifyMentionsForText({
-        text,
-        authorId: userId,
-        authorUsername,
-        relatedId: `${postId}:${row.id}`,
-        mentionMessage: text
-      });
-    } catch (notifyError) {
-      console.warn("No se pudieron procesar menciones del comentario", notifyError);
-    }
-  }
-
-  return row;
+  void postId;
+  void userId;
+  void text;
+  throw new Error("La funcionalidad social legacy (likes/posts/comments) está deshabilitada.");
 }
 
 /** Marca un paso del tour como visto (JSON en `app_tour_dismissed_steps`). Paridad Android. */
@@ -499,30 +456,26 @@ export async function toggleFollow(
 }
 
 export async function updatePost(postId: string, text: string, imageUrl: string): Promise<void> {
-  const supabase = getSupabaseClient();
-  const { error } = await supabase
-    .from("posts_db")
-    .update({ comment: text, image_url: imageUrl })
-    .eq("id", postId);
-  throwIfError(error);
+  void postId;
+  void text;
+  void imageUrl;
+  throw new Error("La funcionalidad social legacy (likes/posts/comments) está deshabilitada.");
 }
 
 export async function deletePost(postId: string): Promise<void> {
-  const supabase = getSupabaseClient();
-  const { error } = await supabase.from("posts_db").delete().eq("id", postId);
-  throwIfError(error);
+  void postId;
+  throw new Error("La funcionalidad social legacy (likes/posts/comments) está deshabilitada.");
 }
 
 export async function updateComment(commentId: number, text: string): Promise<void> {
-  const supabase = getSupabaseClient();
-  const { error } = await supabase.from("comments_db").update({ text }).eq("id", commentId);
-  throwIfError(error);
+  void commentId;
+  void text;
+  throw new Error("La funcionalidad social legacy (likes/posts/comments) está deshabilitada.");
 }
 
 export async function deleteComment(commentId: number): Promise<void> {
-  const supabase = getSupabaseClient();
-  const { error } = await supabase.from("comments_db").delete().eq("id", commentId);
-  throwIfError(error);
+  void commentId;
+  throw new Error("La funcionalidad social legacy (likes/posts/comments) está deshabilitada.");
 }
 
 export async function updateUserProfile(
@@ -546,52 +499,15 @@ export async function createPost(
   text: string,
   imageUrl: string
 ): Promise<PostRow> {
-  const supabase = getSupabaseClient();
-  const id = crypto.randomUUID();
-  const payload = {
-    id,
-    user_id: userId,
-    comment: text,
-    image_url: imageUrl,
-    timestamp: Date.now()
-  };
-  const { data, error } = await supabase
-    .from("posts_db")
-    .insert(payload)
-    .select("id,user_id,image_url,comment,timestamp")
-    .single();
-  throwIfError(error);
-  const post = mapPostRow(data);
-
-  // Web no enviaba notificaciones por mención en posts.
-  const { data: author } = await supabase
-    .from("users_db")
-    .select("username")
-    .eq("id", userId)
-    .limit(1)
-    .maybeSingle<{ username: string }>();
-  const authorUsername = String(author?.username ?? "").trim();
-  if (authorUsername) {
-    try {
-      await notifyMentionsForText({
-        text,
-        authorId: userId,
-        authorUsername,
-        relatedId: `${post.id}:-1`,
-        mentionMessage: "te ha mencionado"
-      });
-    } catch (notifyError) {
-      console.warn("No se pudieron procesar menciones del post", notifyError);
-    }
-  }
-
-  return post;
+  void userId;
+  void text;
+  void imageUrl;
+  throw new Error("La funcionalidad social legacy (likes/posts/comments) está deshabilitada.");
 }
 
 export async function addPostCoffeeTag(tag: PostCoffeeTagRow): Promise<void> {
-  const supabase = getSupabaseClient();
-  const { error } = await supabase.from("post_coffee_tags").insert(tag);
-  throwIfError(error);
+  void tag;
+  throw new Error("La funcionalidad social legacy (likes/posts/comments) está deshabilitada.");
 }
 
 export async function uploadImageFile(bucket: string, file: File): Promise<string> {
@@ -1571,17 +1487,7 @@ async function reactivateAccount(userId: number): Promise<void> {
 
 async function hardDeleteAccountData(userId: number): Promise<void> {
   const supabase = getSupabaseClient();
-  const { data: postsRows } = await supabase.from("posts_db").select("id").eq("user_id", userId);
-  const postIds = ((postsRows ?? []) as Array<{ id?: string | null }>).map((row) => row.id).filter(Boolean) as string[];
-
-  if (postIds.length) {
-    const { error: tagsError } = await supabase.from("post_coffee_tags").delete().in("post_id", postIds);
-    throwIfError(tagsError);
-  }
-
   const results = await Promise.all([
-    supabase.from("comments_db").delete().eq("user_id", userId),
-    supabase.from("likes_db").delete().eq("user_id", userId),
     supabase.from("local_favorites").delete().eq("user_id", userId),
     supabase.from("reviews_db").delete().eq("user_id", userId),
     supabase.from("coffee_sensory_profiles").delete().eq("user_id", userId),
@@ -1592,7 +1498,6 @@ async function hardDeleteAccountData(userId: number): Promise<void> {
     supabase.from("user_list_members").delete().or(`user_id.eq.${userId},invited_by.eq.${userId}`),
     supabase.from("follows").delete().eq("follower_id", userId),
     supabase.from("follows").delete().eq("followed_id", userId),
-    supabase.from("posts_db").delete().eq("user_id", userId),
     supabase.from("users_db").delete().eq("id", userId)
   ]);
 

@@ -32,6 +32,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.Color
@@ -42,6 +43,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cafesito.app.data.PantryItemWithDetails
 import com.cafesito.app.ui.components.*
+import com.cafesito.app.R
 import android.os.Bundle
 import androidx.core.os.bundleOf
 import com.cafesito.app.ui.theme.*
@@ -127,7 +129,7 @@ fun HomeScreen(
             ) {
                 Column(Modifier.padding(top = 8.dp, start = 24.dp, end = 24.dp, bottom = 40.dp)) {
                     Text(
-                        text = "Opciones",
+                        text = stringResource(id = R.string.timeline_options),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
@@ -135,7 +137,7 @@ fun HomeScreen(
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = "Organiza",
+                        text = stringResource(id = R.string.timeline_organize),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 8.dp)
@@ -148,7 +150,7 @@ fun HomeScreen(
                         Column {
                             PantryOptionRow(
                                 icon = Icons.Default.Edit,
-                                label = "Editar stock",
+                                label = stringResource(id = R.string.timeline_edit_stock),
                                 onClick = {
                                     onTrackEvent("modal_close", bundleOf("modal_id" to "timeline_pantry_options"))
                                     onTrackEvent("modal_open", bundleOf("modal_id" to "timeline_stock_edit"))
@@ -160,7 +162,7 @@ fun HomeScreen(
                             HorizontalDivider(Modifier.padding(horizontal = 16.dp))
                             PantryOptionRow(
                                 icon = Icons.Default.Done,
-                                label = "Café terminado",
+                                label = stringResource(id = R.string.timeline_finished_coffee),
                                 onClick = {
                                     onTrackEvent("modal_close", bundleOf("modal_id" to "timeline_pantry_options"))
                                     onTrackEvent("modal_open", bundleOf("modal_id" to "timeline_finished_confirm"))
@@ -172,7 +174,7 @@ fun HomeScreen(
                     }
                     Spacer(Modifier.height(16.dp))
                     Text(
-                        text = "General",
+                        text = stringResource(id = R.string.settings_general),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 8.dp)
@@ -186,7 +188,7 @@ fun HomeScreen(
                             if (selectedItem.isCustom) {
                                 PantryOptionRow(
                                     icon = Icons.Default.LocalCafe,
-                                    label = "Editar café",
+                                    label = stringResource(id = R.string.timeline_edit_coffee),
                                     onClick = {
                                         onTrackEvent("modal_close", bundleOf("modal_id" to "timeline_pantry_options"))
                                         onEditCoffeeClick(selectedItem.coffee.id)
@@ -197,7 +199,7 @@ fun HomeScreen(
                             }
                             PantryOptionRow(
                                 icon = Icons.Default.Delete,
-                                label = "Eliminar de la despensa",
+                                label = stringResource(id = R.string.timeline_remove_from_pantry),
                                 onClick = {
                                     onTrackEvent("modal_close", bundleOf("modal_id" to "timeline_pantry_options"))
                                     onTrackEvent("modal_open", bundleOf("modal_id" to "timeline_delete_confirm_pantry"))
@@ -215,8 +217,8 @@ fun HomeScreen(
     if (itemToDeleteId != null) {
         DeleteConfirmationDialog(
             onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "timeline_delete_confirm_pantry")); itemToDeleteId = null },
-            title = "Eliminar de la despensa",
-            text = "¿Estás seguro de eliminar este café? Se borrará tu stock actual.",
+            title = stringResource(id = R.string.timeline_remove_from_pantry),
+            text = stringResource(id = R.string.timeline_remove_from_pantry_confirm),
             onConfirm = {
                 val id = itemToDeleteId!!
                 viewModel.removeFromPantry(id) { }
@@ -229,9 +231,9 @@ fun HomeScreen(
     if (showFinishedConfirmId != null) {
         DeleteConfirmationDialog(
             onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "timeline_finished_confirm")); showFinishedConfirmId = null },
-            title = "Café terminado",
-            text = "¿Marcar este café como terminado? Se quitará de tu despensa y se guardará en Historial.",
-            confirmButtonText = "CONFIRMAR",
+            title = stringResource(id = R.string.timeline_finished_coffee),
+            text = stringResource(id = R.string.timeline_finished_coffee_confirm),
+            confirmButtonText = stringResource(id = R.string.timeline_confirm).uppercase(),
             onConfirm = {
                 val id = showFinishedConfirmId!!
                 viewModel.markCoffeeAsFinished(id) { }
@@ -248,7 +250,7 @@ fun HomeScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = "CAFESITO",
+                        text = stringResource(id = R.string.app_name),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 2.sp
@@ -264,7 +266,7 @@ fun HomeScreen(
                                 )
                             }
                         ) {
-                            Icon(Icons.Default.Notifications, contentDescription = "Notificaciones", modifier = Modifier.size(24.dp))
+                            Icon(Icons.Default.Notifications, contentDescription = stringResource(id = R.string.notifications_title), modifier = Modifier.size(24.dp))
                         }
                     }
                 },
@@ -366,6 +368,21 @@ private fun HomeBrewMethodsCarousel(
         ) {
             items(methodNames) { name ->
                 val iconResName = iconResMap[name] ?: "maq_manual"
+                val localizedMethodName = when (name) {
+                    "Aeropress" -> stringResource(id = R.string.prep_aeropress)
+                    "Chemex" -> stringResource(id = R.string.prep_chemex)
+                    "Espresso" -> stringResource(id = R.string.prep_espresso)
+                    "Goteo" -> stringResource(id = R.string.prep_goteo)
+                    "Hario V60" -> stringResource(id = R.string.prep_hario_v60)
+                    "Italiana" -> stringResource(id = R.string.prep_italiana)
+                    "Manual" -> stringResource(id = R.string.prep_manual)
+                    "Prensa francesa" -> stringResource(id = R.string.prep_prensa_francesa)
+                    "Sifón" -> stringResource(id = R.string.prep_sifon)
+                    "Turco" -> stringResource(id = R.string.prep_turco)
+                    BREW_METHOD_OTROS -> stringResource(id = R.string.prep_otros)
+                    BREW_METHOD_AGUA -> stringResource(id = R.string.diary_add_water)
+                    else -> name
+                }
                 val resId = remember(iconResName) {
                     context.resources.getIdentifier(iconResName, "drawable", context.packageName)
                 }
@@ -389,21 +406,21 @@ private fun HomeBrewMethodsCarousel(
                         if (resId != 0) {
                             Image(
                                 painter = painterResource(id = resId),
-                                contentDescription = name,
+                                contentDescription = localizedMethodName,
                                 modifier = Modifier.size(36.dp),
                                 contentScale = ContentScale.Fit
                             )
                         } else {
                             Icon(
                                 Icons.Default.CoffeeMaker,
-                                contentDescription = name,
+                                contentDescription = localizedMethodName,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(36.dp)
                             )
                         }
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            text = name.uppercase(),
+                            text = localizedMethodName.uppercase(),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             maxLines = 2,
@@ -427,7 +444,7 @@ private fun HomePantrySection(
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(vertical = 12.dp)) {
         Text(
-            text = "Tu despensa",
+            text = stringResource(id = R.string.diary_pantry_title),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),

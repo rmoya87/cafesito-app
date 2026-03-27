@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -286,7 +287,7 @@ private fun DetailContent(
             translationY = -scrollState.firstVisibleItemScrollOffset * 0.5f
             alpha = 1f - (scrollState.firstVisibleItemScrollOffset / 1000f).coerceIn(0f, 1f)
         }) {
-            AsyncImage(model = coffee.imageUrl, contentDescription = "Foto del café ${coffee.nombre}", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            AsyncImage(model = coffee.imageUrl, contentDescription = stringResource(id = R.string.detail_coffee_photo_cd, coffee.nombre), contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
             Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(
                 colors = listOf(Color.Transparent, PureBlack.copy(alpha = 0.85f)),
                 startY = 600f
@@ -304,7 +305,7 @@ private fun DetailContent(
                     shape = Shapes.card
                 ) {
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "NOTA", style = MaterialTheme.typography.labelSmall, color = PureBlack)
+                        Text(text = stringResource(id = R.string.detail_rating_title), style = MaterialTheme.typography.labelSmall, color = PureBlack)
                         val ratingStr = String.format(Locale.getDefault(), "%.1f", coffeeDetails.averageRating)
                         Text(text = ratingStr, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = PureBlack)
                     }
@@ -324,7 +325,7 @@ private fun DetailContent(
                     Column(modifier = Modifier.padding(24.dp)) {
                         
                         if (!isCustom && coffee.descripcion.isNotBlank()) {
-                            Text(text = "HISTORIA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                            Text(text = stringResource(id = R.string.detail_story_title), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(12.dp))
                             Text(
                                 text = coffee.descripcion, 
@@ -345,59 +346,59 @@ private fun DetailContent(
                         val detailsItems = listOfNotNull(
                             coffee.paisOrigen?.takeIf { it.isNotBlank() }?.let {
                                 DetailTechnicalItem(
-                                    label = "PAÍS",
+                                    label = stringResource(id = R.string.detail_label_country).uppercase(),
                                     value = it,
                                     iconPainter = painterResource(id = R.drawable.pais)
                                 )
                             },
                             coffee.especialidad?.takeIf { it.isNotBlank() }?.let {
                                 DetailTechnicalItem(
-                                    label = "ESPECIALIDAD",
+                                    label = stringResource(id = R.string.detail_label_specialty).uppercase(),
                                     value = it,
                                     iconPainter = painterResource(id = R.drawable.especialidad)
                                 )
                             },
                             coffee.variedadTipo?.takeIf { it.isNotBlank() }?.let {
                                 DetailTechnicalItem(
-                                    label = "VARIEDAD",
+                                    label = stringResource(id = R.string.detail_label_variety).uppercase(),
                                     value = it,
                                     iconPainter = painterResource(id = R.drawable.variedad)
                                 )
                             },
                             coffee.tueste.takeIf { it.isNotBlank() }?.let {
                                 DetailTechnicalItem(
-                                    label = "TUESTE",
+                                    label = stringResource(id = R.string.detail_label_roast).uppercase(),
                                     value = it,
                                     iconPainter = painterResource(id = R.drawable.tueste)
                                 )
                             },
                             coffee.proceso.takeIf { it.isNotBlank() }?.let {
                                 DetailTechnicalItem(
-                                    label = "PROCESO",
+                                    label = stringResource(id = R.string.detail_label_process).uppercase(),
                                     value = it,
                                     iconPainter = painterResource(id = R.drawable.proceso)
                                 )
                             },
                             coffee.moliendaRecomendada.takeIf { it.isNotBlank() }?.let {
                                 DetailTechnicalItem(
-                                    label = "MOLIENDA",
+                                    label = stringResource(id = R.string.detail_label_grind).uppercase(),
                                     value = it,
                                     iconPainter = painterResource(id = R.drawable.molienda)
                                 )
                             },
                             DetailTechnicalItem(
-                                label = "FORMATO",
-                                value = coffee.formato.takeIf { it.isNotBlank() } ?: "No especificado",
+                                label = stringResource(id = R.string.detail_label_format).uppercase(),
+                                value = coffee.formato.takeIf { it.isNotBlank() } ?: stringResource(id = R.string.detail_not_specified),
                                 iconPainter = painterResource(id = R.drawable.formato)
                             ),
                             DetailTechnicalItem(
-                                label = "CAFEÍNA",
-                                value = coffee.cafeina.takeIf { it.isNotBlank() } ?: "No especificada",
+                                label = stringResource(id = R.string.detail_label_caffeine).uppercase(),
+                                value = coffee.cafeina.takeIf { it.isNotBlank() } ?: stringResource(id = R.string.detail_not_specified_female),
                                 iconPainter = painterResource(id = R.drawable.grano_cafe)
                             )
                         )
                         if (detailsItems.isNotEmpty()) {
-                            Text(text = "DETALLES TÉCNICOS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                            Text(text = stringResource(id = R.string.detail_technical_title), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(20.dp))
                             FlowRow(
                                 modifier = Modifier.fillMaxWidth(),
@@ -427,13 +428,13 @@ private fun DetailContent(
                         if (!isCustom) {
                             Spacer(Modifier.height(40.dp))
                             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Text(text = "PERFIL SENSORIAL", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                                Text(text = stringResource(id = R.string.detail_sensory_profile_title), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.weight(1f))
-                                TextButton(onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "sensory_profile")); showSensoryEditor = true }) { Text("Editar") }
+                                TextButton(onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "sensory_profile")); showSensoryEditor = true }) { Text(stringResource(id = R.string.list_edit)) }
                             }
                             if (sensoryEditorsCount > 0) {
                                 Text(
-                                    text = "Basado en los comentarios de $sensoryEditorsCount usuarios. $sensoryEditorsCount son las personas que lo han editado.",
+                                    text = stringResource(id = R.string.detail_sensory_based_on_users, sensoryEditorsCount),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -442,11 +443,11 @@ private fun DetailContent(
                                 Spacer(Modifier.height(8.dp))
                             }
                             listOf(
-                                "Aroma" to (sensoryAverages["Aroma"] ?: coffee.aroma),
-                                "Sabor" to (sensoryAverages["Sabor"] ?: coffee.sabor),
-                                "Cuerpo" to (sensoryAverages["Cuerpo"] ?: coffee.cuerpo),
-                                "Acidez" to (sensoryAverages["Acidez"] ?: coffee.acidez),
-                                "Dulzura" to (sensoryAverages["Dulzura"] ?: coffee.dulzura)
+                                stringResource(id = R.string.sensory_aroma) to (sensoryAverages["Aroma"] ?: coffee.aroma),
+                                stringResource(id = R.string.sensory_flavor) to (sensoryAverages["Sabor"] ?: coffee.sabor),
+                                stringResource(id = R.string.sensory_body) to (sensoryAverages["Cuerpo"] ?: coffee.cuerpo),
+                                stringResource(id = R.string.sensory_acidity) to (sensoryAverages["Acidez"] ?: coffee.acidez),
+                                stringResource(id = R.string.sensory_sweetness) to (sensoryAverages["Dulzura"] ?: coffee.dulzura)
                             ).forEach { (label, value) ->
                                 PremiumCharacteristicBar(label, value)
                                 Spacer(Modifier.height(16.dp))
@@ -454,23 +455,23 @@ private fun DetailContent(
 
                             if (!coffee.productUrl.isNullOrBlank()) {
                                 Spacer(Modifier.height(40.dp))
-                                Text(text = "ADQUIRIR", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                                Text(text = stringResource(id = R.string.detail_buy_title), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.height(16.6.dp))
                                 BuyPremiumCard(coffee.productUrl) { openCustomTab(context, it) }
                             }
 
                             Spacer(Modifier.height(40.dp))
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text(text = "OPINIONES", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                                Text(text = stringResource(id = R.string.detail_reviews_title), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                                 if (userReview == null) {
                                     Button(
                                         onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "review")); showAddReviewDialog = true },
                                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                         shape = Shapes.shapeCardMedium
                                     ) {
-                                        Icon(Icons.Default.Add, contentDescription = "Añadir reseña", Modifier.size(16.dp))
+                                        Icon(Icons.Default.Add, contentDescription = stringResource(id = R.string.detail_add_review_cd), Modifier.size(16.dp))
                                         Spacer(Modifier.width(8.dp))
-                                        Text(text = "AÑADIR")
+                                        Text(text = stringResource(id = R.string.common_add).uppercase())
                                     }
                                 }
                             }
@@ -478,7 +479,7 @@ private fun DetailContent(
                             Spacer(Modifier.height(24.dp))
                             if (reviews.isEmpty()) {
                                 Box(Modifier.fillMaxWidth().padding(vertical = 32.dp), contentAlignment = Alignment.Center) {
-                                    Text("No hay opiniones aún. ¡Sé el primero!", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(stringResource(id = R.string.detail_no_reviews_yet), color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             } else {
                                 reviews.sortedByDescending { it.review.timestamp }.forEach { info ->
@@ -556,12 +557,13 @@ private fun DetailContent(
             horizontalArrangement = Arrangement.SpaceBetween, 
             verticalAlignment = Alignment.CenterVertically
         ) {
-            GlassyIconButton(icon = Icons.AutoMirrored.Filled.ArrowBack, iconColor = PureBlack, contentDescription = "Volver", onClick = onBackClick)
+            GlassyIconButton(icon = Icons.AutoMirrored.Filled.ArrowBack, iconColor = PureBlack, contentDescription = stringResource(id = R.string.join_list_back), onClick = onBackClick)
+            val shareCoffeeLabel = stringResource(id = R.string.detail_share_coffee)
             Row {
                 GlassyIconButton(
                     icon = Icons.Default.Share,
                     iconColor = PureBlack,
-                    contentDescription = "Compartir café",
+                    contentDescription = shareCoffeeLabel,
                     onClick = {
                         val slug = toCoffeeSlug(coffee.nombre, coffee.marca)
                         val link = "https://cafesitoapp.com/coffee/$slug/"
@@ -570,14 +572,14 @@ private fun DetailContent(
                             type = "text/plain"
                             putExtra(Intent.EXTRA_TEXT, text)
                         }
-                        context.startActivity(Intent.createChooser(sendIntent, "Compartir café"))
+                        context.startActivity(Intent.createChooser(sendIntent, shareCoffeeLabel))
                     }
                 )
                 Spacer(Modifier.width(12.dp))
                 GlassyIconButton(
                     iconPainter = painterResource(id = R.drawable.shelves_24),
                     iconColor = PureBlack,
-                    contentDescription = "Añadir a despensa",
+                    contentDescription = stringResource(id = R.string.detail_add_to_pantry),
                     onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "stock_edit")); showStockDialog = true }
                 )
                 Spacer(Modifier.width(12.dp))
@@ -585,7 +587,7 @@ private fun DetailContent(
                     iconPainter = if (isListActive) rememberListAltCheckSvgPainter() else rememberListAltAddSvgPainter(),
                     iconColor = if (isListActive) ElectricGreen else PureBlack,
                     premiumAnimated = true,
-                    contentDescription = if (isListActive) "Quitar de listas" else "Añadir a listas",
+                    contentDescription = if (isListActive) stringResource(id = R.string.detail_remove_from_lists) else stringResource(id = R.string.detail_add_to_lists),
                     onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "add_to_list")); showAddToListModal = true }
                 )
             }
@@ -703,7 +705,7 @@ fun DetailReviewPremiumItem(
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = info.authorName ?: "Usuario", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        Text(text = info.authorName ?: stringResource(id = R.string.profile_edit_username), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         if (isOwnReview) {
                             Spacer(Modifier.width(8.dp))
                             Surface(
@@ -725,7 +727,7 @@ fun DetailReviewPremiumItem(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Outlined.Star, contentDescription = "Nota", modifier = Modifier.size(14.dp), tint = starTint)
+                            Icon(Icons.Outlined.Star, contentDescription = stringResource(id = R.string.detail_rating_title), modifier = Modifier.size(14.dp), tint = starTint)
                             Spacer(Modifier.width(4.dp))
                             Text(
                                 text = "${info.review.rating.toInt()}/5",
@@ -747,7 +749,7 @@ fun DetailReviewPremiumItem(
                         colors = ButtonDefaults.buttonColors(containerColor = editButtonBg, contentColor = editButtonTextColor),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
                     ) {
-                        Text(text = "Editar", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        Text(text = stringResource(id = R.string.list_edit), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -765,7 +767,7 @@ fun DetailReviewPremiumItem(
                 Spacer(Modifier.height(12.dp))
                 AsyncImage(
                     model = info.review.imageUrl,
-                    contentDescription = "Imagen de la reseña",
+                    contentDescription = stringResource(id = R.string.detail_review_photo_cd),
                     contentScale = ContentScale.FillWidth,
                     modifier = Modifier.fillMaxWidth().wrapContentHeight().clip(Shapes.cardSmall)
                 )
@@ -797,11 +799,11 @@ fun PremiumCharacteristicBar(label: String, value: Float) {
 fun BuyPremiumCard(url: String, onClick: (String) -> Unit) {
     PremiumCard(modifier = Modifier.clickable { onClick(url) }) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Storefront, contentDescription = "Tienda", tint = MaterialTheme.colorScheme.onSurface)
+            Icon(Icons.Default.Storefront, contentDescription = stringResource(id = R.string.detail_buy_title), tint = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.width(16.dp))
             val domain = url.removePrefix("https://").removePrefix("www.").substringBefore("/")
             Text(text = domain.uppercase(), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface)
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Ir a la tienda", tint = MaterialTheme.colorScheme.primary)
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = stringResource(id = R.string.detail_buy_title), tint = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -830,10 +832,10 @@ private fun SensoryProfileBottomSheet(
                 .padding(horizontal = 24.dp, vertical = 8.dp)
                 .navigationBarsPadding()
         ) {
-            Text("Perfil sensorial", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(stringResource(id = R.string.detail_sensory_profile_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(6.dp))
             Text(
-                "Tu opinión se unirá a la media de todas las valoraciones",
+                stringResource(id = R.string.detail_sensory_opinion_help),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -877,7 +879,7 @@ private fun SensoryProfileBottomSheet(
                 shape = Shapes.cardSmall,
                 colors = ButtonDefaults.buttonColors(containerColor = caramelColor)
             ) {
-                Text("Listo")
+                Text(stringResource(id = R.string.detail_done))
             }
             Spacer(Modifier.height(16.dp))
         }
@@ -931,7 +933,7 @@ fun ReviewBottomSheet(
                 .padding(bottom = 48.dp), 
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = "TU RESEÑA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+            Text(text = stringResource(id = R.string.detail_your_review).uppercase(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(24.dp))
             
             SemicircleRatingBar(rating = rating, onRatingChanged = { rating = it })
@@ -950,7 +952,7 @@ fun ReviewBottomSheet(
                             commentValue = it
                             commentsViewModel.onTextChanged(it.text)
                         },
-                        placeholder = "¿Qué te ha parecido?",
+                        placeholder = stringResource(id = R.string.detail_review_placeholder),
                         validUsers = allUsers,
                         modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
                         minHeight = 120.dp
@@ -974,11 +976,11 @@ fun ReviewBottomSheet(
                             ) {
                                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                     if (selectedImageUri != null) {
-                                        AsyncImage(model = selectedImageUri, contentDescription = "Foto de la reseña", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                                        AsyncImage(model = selectedImageUri, contentDescription = stringResource(id = R.string.detail_review_photo_cd), modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                                     } else if (!existingReview?.imageUrl.isNullOrBlank()) {
-                                        AsyncImage(model = existingReview.imageUrl, contentDescription = "Foto de la reseña", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                                        AsyncImage(model = existingReview.imageUrl, contentDescription = stringResource(id = R.string.detail_review_photo_cd), modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                                     } else {
-                                        Icon(Icons.Default.PhotoCamera, contentDescription = "Añadir foto a la reseña", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                        Icon(Icons.Default.PhotoCamera, contentDescription = stringResource(id = R.string.detail_add_photo_to_review), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                                     }
                                 }
                             }
@@ -1031,7 +1033,7 @@ fun ReviewBottomSheet(
                         enabled = !isSaving,
                         colors = ButtonDefaults.buttonColors(containerColor = ElectricRed, contentColor = deleteTextColor)
                     ) {
-                        Text(text = "ELIMINAR", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Text(text = stringResource(id = R.string.list_delete).uppercase(), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                     }
                 } else {
                     Spacer(Modifier.weight(1f))
@@ -1051,7 +1053,7 @@ fun ReviewBottomSheet(
                     if (isSaving) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
                     } else {
-                        Text(text = "PUBLICAR", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Text(text = stringResource(id = R.string.detail_publish).uppercase(), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                     }
                 }
             }
@@ -1065,8 +1067,8 @@ fun ReviewBottomSheet(
             scrimColor = ScrimDefault
         ) {
             Column(Modifier.padding(top = 8.dp, start = 24.dp, end = 24.dp, bottom = 40.dp)) {
-                Text(text = "AÑADIR FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 16.dp))
-                ModalMenuOption("Elegir de Galería", Icons.Default.Collections, MaterialTheme.colorScheme.primary) {
+                Text(text = stringResource(id = R.string.add_pantry_add_photo_title).uppercase(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 16.dp))
+                ModalMenuOption(stringResource(id = R.string.add_pantry_choose_gallery), Icons.Default.Collections, MaterialTheme.colorScheme.primary) {
                     galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                     showPickerSheet = false
                 }
@@ -1093,16 +1095,16 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
         dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
     ) {
         Column(Modifier.fillMaxWidth().padding(top = 8.dp, start = 24.dp, end = 24.dp, bottom = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = "Añadir a mi despensa", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+            Text(text = stringResource(id = R.string.detail_add_to_my_pantry), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(24.dp))
             if (isCustom) {
-                OutlinedTextField(value = name, onValueChange = { name = it.toCoffeeNameFormat() }, label = { Text(text = "Nombre") }, modifier = Modifier.fillMaxWidth(), shape = Shapes.card, colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary))
+                OutlinedTextField(value = name, onValueChange = { name = it.toCoffeeNameFormat() }, label = { Text(text = stringResource(id = R.string.detail_name)) }, modifier = Modifier.fillMaxWidth(), shape = Shapes.card, colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary))
                 Spacer(Modifier.height(12.dp))
-                OutlinedTextField(value = brand, onValueChange = { brand = it.toCoffeeBrandFormat() }, label = { Text(text = "Marca") }, modifier = Modifier.fillMaxWidth(), shape = Shapes.card, colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary))
+                OutlinedTextField(value = brand, onValueChange = { brand = it.toCoffeeBrandFormat() }, label = { Text(text = stringResource(id = R.string.detail_brand_fallback)) }, modifier = Modifier.fillMaxWidth(), shape = Shapes.card, colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary))
                 Spacer(Modifier.height(24.dp))
             }
             StockSliderSection(
-                label = "Cantidad de cafe total (g)", 
+                label = stringResource(id = R.string.detail_total_coffee_amount), 
                 value = total, 
                 maxValue = 1000f,
                 onValueChange = { 
@@ -1112,7 +1114,7 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
             )
             Spacer(Modifier.height(24.dp))
             StockSliderSection(
-                label = "Cantidad de cafe restante (g)", 
+                label = stringResource(id = R.string.detail_remaining_coffee_amount), 
                 value = rem, 
                 maxValue = total,
                 onValueChange = { rem = it }
@@ -1134,7 +1136,7 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
                     border = BorderStroke(1.dp, cancelBorderAndText),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = cancelBorderAndText)
                 ) {
-                    Text(text = "CANCELAR", fontWeight = FontWeight.Bold)
+                    Text(text = stringResource(id = R.string.search_cancel).uppercase(), fontWeight = FontWeight.Bold)
                 }
 
                 Button(
@@ -1146,7 +1148,7 @@ fun DetailStockEditBottomSheet(coffeeDetails: CoffeeWithDetails, isCustom: Boole
                     ),
                     shape = Shapes.shapeXl
                 ) {
-                    Text(text = if (isInPantry) "ACTUALIZAR" else "AÑADIR", fontWeight = FontWeight.Bold)
+                    Text(text = if (isInPantry) stringResource(id = R.string.detail_update).uppercase() else stringResource(id = R.string.common_add).uppercase(), fontWeight = FontWeight.Bold)
                 }
             }
         }

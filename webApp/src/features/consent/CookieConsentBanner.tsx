@@ -3,6 +3,7 @@ import { getConsent, setConsent, type CookieConsent } from "../../core/consent";
 import { initGa4 } from "../../core/ga4";
 import { getAppAssetBase } from "../../core/appAssets";
 import { Button } from "../../ui/components";
+import { useI18n } from "../../i18n";
 
 const PRIVACY_URL = "legal/privacidad.html";
 
@@ -14,6 +15,7 @@ const PRIVACY_URL = "legal/privacidad.html";
  * - Si el usuario inicia sesión, se asume consentimiento completo (all) sin mostrar banner.
  */
 export function CookieConsentBanner({ isAuthenticated }: { isAuthenticated: boolean }): React.ReactElement | null {
+  const { t } = useI18n();
   const [consent, setConsentState] = useState<CookieConsent>(() => getConsent());
   const assetBase = getAppAssetBase();
   const privacyHref = assetBase + PRIVACY_URL;
@@ -44,26 +46,25 @@ export function CookieConsentBanner({ isAuthenticated }: { isAuthenticated: bool
     <aside
       className="cookie-consent-banner"
       role="dialog"
-      aria-label="Aviso de cookies"
+      aria-label={t("cookie.aria")}
       aria-describedby="cookie-consent-description"
     >
       <div className="cookie-consent-banner-inner">
-        <h2 className="cookie-consent-banner-title">Cookies</h2>
+        <h2 className="cookie-consent-banner-title">{t("cookie.title")}</h2>
         <p id="cookie-consent-description" className="cookie-consent-banner-text">
-          Utilizamos las cookies necesarias para garantizar el correcto funcionamiento de la aplicación y las cookies
-          de análisis para mejorar tu experiencia. Puedes aceptar solo las necesarias o permitir todas.
+          {t("cookie.description")}
         </p>
         <p className="cookie-consent-banner-legal">
           <a href={privacyHref} target="_blank" rel="noopener noreferrer" className="cookie-consent-banner-link">
-            Más información en la Política de Privacidad
+            {t("cookie.privacyMore")}
           </a>
         </p>
         <div className="cookie-consent-banner-actions">
           <Button variant="ghost" type="button" onClick={handleEssential} className="cookie-consent-btn-secondary">
-            Solo esenciales
+            {t("cookie.essentialOnly")}
           </Button>
           <Button variant="primary" type="button" onClick={handleAcceptAll}>
-            Aceptar todas
+            {t("cookie.acceptAll")}
           </Button>
         </div>
       </div>

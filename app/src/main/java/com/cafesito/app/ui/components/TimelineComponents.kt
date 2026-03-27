@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
@@ -58,6 +59,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.*
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
@@ -174,7 +176,7 @@ fun NotificationsBottomSheet(
             .fillMaxWidth()
             .padding(top = 8.dp, bottom = Spacing.space8)) {
             Text(
-                text = "NOTIFICACIONES",
+                text = stringResource(id = R.string.notifications_title).uppercase(),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
@@ -185,7 +187,7 @@ fun NotificationsBottomSheet(
                 Box(Modifier
                     .fillMaxWidth()
                     .padding(vertical = 48.dp), contentAlignment = Alignment.Center) {
-                    Text("No tienes notificaciones", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(id = R.string.notifications_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
                 val groupedNotifications = remember(notifications) {
@@ -198,8 +200,15 @@ fun NotificationsBottomSheet(
                 ) {
                     groupedNotifications.forEachIndexed { index, section ->
                         item(key = "notif-header-${section.key}") {
+                            val sectionTitle = when (section.title) {
+                                "notifications_today" -> stringResource(id = R.string.notifications_today)
+                                "notifications_yesterday" -> stringResource(id = R.string.notifications_yesterday)
+                                "notifications_last7" -> stringResource(id = R.string.notifications_last7)
+                                "notifications_last30" -> stringResource(id = R.string.notifications_last30)
+                                else -> section.title
+                            }
                             Text(
-                                text = section.title,
+                                text = sectionTitle,
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = PureBlack,
@@ -216,7 +225,7 @@ fun NotificationsBottomSheet(
                                     NotificationRow(
                                         avatarUrl = notification.user.avatarUrl,
                                         title = "@${notification.user.username}",
-                                        subtitle = "ha comenzado a seguirte",
+                                        subtitle = stringResource(id = R.string.notifications_follow_started),
                                         isUnread = isUnread,
                                         trailingContent = {
                                             val isFollowing = followingIds.contains(notification.user.id)
@@ -236,7 +245,7 @@ fun NotificationsBottomSheet(
                                                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
                                                 ) {
-                                                    Text("SIGUIENDO", fontWeight = FontWeight.Medium, fontSize = 11.sp)
+                                                    Text(stringResource(id = R.string.notifications_following).uppercase(), fontWeight = FontWeight.Medium, fontSize = 11.sp)
                                                 }
                                             } else {
                                                 Button(
@@ -245,7 +254,7 @@ fun NotificationsBottomSheet(
                                                     shape = Shapes.cardSmall,
                                                     colors = buttonColors
                                                 ) {
-                                                    Text("SEGUIR", fontWeight = FontWeight.Medium, fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimary)
+                                                    Text(stringResource(id = R.string.notifications_follow).uppercase(), fontWeight = FontWeight.Medium, fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimary)
                                                 }
                                             }
                                         },
@@ -286,7 +295,10 @@ fun NotificationsBottomSheet(
                                     NotificationRow(
                                         avatarUrl = notification.user.avatarUrl,
                                         title = "@${notification.user.username}",
-                                        subtitle = "${notification.user.fullName.ifBlank { notification.user.username }} ha probado un café nuevo.",
+                                        subtitle = stringResource(
+                                            id = R.string.notifications_first_coffee_started,
+                                            notification.user.fullName.ifBlank { notification.user.username }
+                                        ),
                                         isUnread = isUnread,
                                         trailingContent = null,
                                         onClick = { onNotificationClick(notification) }
@@ -324,7 +336,7 @@ private fun NotificationRow(
             Box {
                 AsyncImage(
                     model = avatarUrl,
-                    contentDescription = "Avatar",
+                    contentDescription = stringResource(id = R.string.notifications_avatar),
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
@@ -388,10 +400,10 @@ private fun groupNotificationsByRange(notifications: List<TimelineNotification>)
     }
 
     return listOf(
-        NotificationSection("today", "Hoy", today),
-        NotificationSection("yesterday", "Ayer", yesterday),
-        NotificationSection("last7", "Últimos 7 días", last7),
-        NotificationSection("last30", "Últimos 30 días", last30)
+        NotificationSection("today", "notifications_today", today),
+        NotificationSection("yesterday", "notifications_yesterday", yesterday),
+        NotificationSection("last7", "notifications_last7", last7),
+        NotificationSection("last30", "notifications_last30", last30)
     ).filter { it.items.isNotEmpty() }
 }
 
@@ -453,7 +465,7 @@ fun MentionText(
                             } else {
                                 SubcomposeAsyncImage(
                                     model = mentionUser.avatarUrl,
-                                    contentDescription = "Avatar de ${mentionUser.username.ifBlank { "usuario" }}",
+                                    contentDescription = stringResource(id = R.string.profile_avatar_cd, mentionUser.username.ifBlank { "user" }),
                                     modifier = Modifier
                                         .size(14.dp)
                                         .clip(CircleShape),
@@ -560,7 +572,7 @@ private fun ComposerMentionPill(user: UserEntity) {
             } else {
                 SubcomposeAsyncImage(
                     model = user.avatarUrl,
-                    contentDescription = "Avatar de ${user.username}",
+                    contentDescription = stringResource(id = R.string.profile_avatar_cd, user.username),
                     modifier = Modifier
                         .size(14.dp)
                         .clip(CircleShape),
@@ -682,7 +694,7 @@ fun SuggestionChip(user: UserEntity, onClick: () -> Unit) {
         color = LocalCaramelAccent.current.copy(alpha = 0.08f)
     ) {
         Row(modifier = Modifier.padding(horizontal = Spacing.space3, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            AsyncImage(model = user.avatarUrl, contentDescription = "Avatar de ${user.fullName.ifBlank { user.username } }", modifier = Modifier
+            AsyncImage(model = user.avatarUrl, contentDescription = stringResource(id = R.string.profile_avatar_cd, user.fullName.ifBlank { user.username }), modifier = Modifier
                 .size(20.dp)
                 .clip(CircleShape))
             Spacer(Modifier.width(Spacing.space2))
@@ -827,7 +839,7 @@ fun SwipeableDiaryItem(
                     .background(ElectricRed),
                 contentAlignment = Alignment.CenterEnd
             ) {
-                Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = PureWhite, modifier = Modifier.padding(end = Spacing.space4))
+                Icon(Icons.Default.Delete, contentDescription = stringResource(id = R.string.notifications_delete), tint = PureWhite, modifier = Modifier.padding(end = Spacing.space4))
             }
         }
     ) {
@@ -889,7 +901,7 @@ fun DiaryEntryItem(
                 if (entry.type == "CUP" && !coffeeImageUrl.isNullOrBlank() && !isRegistroRapido && !isBrewSinCafe) {
                     AsyncImage(
                         model = coffeeImageUrl,
-                        contentDescription = entry.coffeeName.ifBlank { "Imagen del café" },
+                        contentDescription = entry.coffeeName.ifBlank { stringResource(id = R.string.detail_coffee_photo_cd, stringResource(id = R.string.diary_add_coffee)) },
                         modifier = Modifier
                             .size(46.dp)
                             .clip(Shapes.cardSmall),
@@ -908,7 +920,7 @@ fun DiaryEntryItem(
                         if (entry.type == "WATER") {
                             Image(
                                 painter = painterResource(R.drawable.agua),
-                                contentDescription = "Entrada de agua",
+                                contentDescription = stringResource(id = R.string.diary_add_water),
                                 modifier = Modifier.size(20.dp),
                                 contentScale = ContentScale.Fit
                             )
@@ -920,9 +932,9 @@ fun DiaryEntryItem(
                                     else -> Icons.Default.Coffee
                                 },
                                 contentDescription = when {
-                                    isBrewSinCafe -> "Café"
-                                    isRegistroRapido -> "Registro rápido"
-                                    else -> "Entrada de café"
+                                    isBrewSinCafe -> stringResource(id = R.string.diary_add_coffee)
+                                    isRegistroRapido -> stringResource(id = R.string.diary_add_quick_entry)
+                                    else -> stringResource(id = R.string.diary_add_selection)
                                 },
                                 tint = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(Spacing.space6)
@@ -935,9 +947,9 @@ fun DiaryEntryItem(
                 Column(Modifier.weight(1f)) {
                     Text(
                         text = when {
-                            entry.type == "WATER" -> "Agua"
-                            isBrewSinCafe -> "Café"
-                            isRegistroRapido -> entry.preparationType.trim().ifBlank { "Registro r\u00E1pido" }.toCoffeeNameFormat()
+                            entry.type == "WATER" -> stringResource(id = R.string.diary_add_water)
+                            isBrewSinCafe -> stringResource(id = R.string.diary_add_coffee)
+                            isRegistroRapido -> entry.preparationType.trim().ifBlank { stringResource(id = R.string.diary_add_quick_entry) }.toCoffeeNameFormat()
                             else -> entry.coffeeName.toCoffeeNameFormat()
                         },
                         fontWeight = FontWeight.Bold,
@@ -948,7 +960,7 @@ fun DiaryEntryItem(
                     )
                     if (entry.type != "WATER") {
                         Text(
-                            text = if (isRegistroRapido) "CAFÉ" else entry.coffeeBrand.ifBlank { "Café" }.toCoffeeBrandFormat(),
+                            text = if (isRegistroRapido) stringResource(id = R.string.diary_add_coffee).uppercase() else entry.coffeeBrand.ifBlank { stringResource(id = R.string.diary_add_coffee) }.toCoffeeBrandFormat(),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -965,7 +977,7 @@ fun DiaryEntryItem(
                     onClick = {},
                     enabled = false,
                     label = { Text(dateStr, fontSize = 11.sp) },
-                    leadingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Hora", modifier = Modifier.size(14.dp)) }
+                    leadingIcon = { Icon(Icons.Default.Schedule, contentDescription = "HH:mm", modifier = Modifier.size(14.dp)) }
                 )
             }
 
@@ -1036,14 +1048,14 @@ fun DiaryEntryItem(
                     item {
                         MetricPill(
                             icon = painterResource(R.drawable.grano_cafe),
-                            label = "CAFEÍNA",
+                            label = stringResource(id = R.string.diary_stat_caffeine).uppercase(),
                             value = "${entry.caffeineAmount} mg"
                         )
                     }
                     item {
                         MetricPill(
                             icon = painterResource(R.drawable.portafiltro),
-                            label = "DOSIS",
+                            label = stringResource(id = R.string.diary_stat_dose).uppercase(),
                             value = "${entry.coffeeGrams} g"
                         )
                     }
@@ -1051,13 +1063,13 @@ fun DiaryEntryItem(
                         if (sizeDrawablePainter != null) {
                             MetricPill(
                                 icon = sizeDrawablePainter,
-                                label = "TAMAÑO",
+                                label = stringResource(id = R.string.diary_stat_cup_size).uppercase(),
                                 value = entry.sizeLabel ?: inferSizeLabel(entry.amountMl)
                             )
                         } else {
                             MetricPill(
                                 icon = Icons.Default.LocalCafe,
-                                label = "TAMAÑO",
+                                label = stringResource(id = R.string.diary_stat_cup_size).uppercase(),
                                 value = entry.sizeLabel ?: inferSizeLabel(entry.amountMl)
                             )
                         }
@@ -1071,13 +1083,13 @@ fun DiaryEntryItem(
                         if (prepIcon.first != null) {
                             MetricPill(
                                 icon = prepIcon.first!!,
-                                label = "PREPARACIÓN",
+                                label = stringResource(id = R.string.diary_stat_method).uppercase(),
                                 value = preparationValue
                             )
                         } else {
                             MetricPill(
                                 icon = prepIcon.second!!,
-                                label = "PREPARACIÓN",
+                                label = stringResource(id = R.string.diary_stat_method).uppercase(),
                                 value = preparationValue
                             )
                         }
@@ -1086,9 +1098,9 @@ fun DiaryEntryItem(
                         item {
                             val tipoDrawable = diaryDrawablePainter(diaryPreparationDrawableName(parsed.tipo))
                             if (tipoDrawable != null) {
-                                MetricPill(icon = tipoDrawable, label = "TIPO", value = parsed.tipo)
+                                MetricPill(icon = tipoDrawable, label = stringResource(id = R.string.diary_add_type).uppercase(), value = parsed.tipo)
                             } else {
-                                MetricPill(icon = diaryPreparationIcon(parsed.tipo), label = "TIPO", value = parsed.tipo)
+                                MetricPill(icon = diaryPreparationIcon(parsed.tipo), label = stringResource(id = R.string.diary_add_type).uppercase(), value = parsed.tipo)
                             }
                         }
                     }
@@ -1104,7 +1116,7 @@ fun DiaryEntryItem(
                                 "aspero", "áspero" -> Icons.Default.Grain
                                 else -> Icons.Default.AutoAwesome
                             }
-                            MetricPill(icon = tasteIcon, label = "RESULTADO", value = parsed.taste)
+                            MetricPill(icon = tasteIcon, label = stringResource(id = R.string.brew_result).uppercase(), value = parsed.taste)
                         }
                     }
                 }
@@ -1153,12 +1165,25 @@ fun DiaryEntryEditBottomSheet(
         mutableStateOf(entry.sizeLabel ?: inferSizeLabel(entry.amountMl))
     }
 
+    val isSpanish = Locale.getDefault().language.startsWith("es")
+    val tasteBitter = stringResource(id = R.string.brew_taste_bitter)
+    val tasteAcidic = stringResource(id = R.string.brew_taste_acidic)
+    val tasteBalanced = stringResource(id = R.string.brew_taste_balanced)
+    val tasteSalty = stringResource(id = R.string.brew_taste_salty)
+    val tasteWatery = stringResource(id = R.string.brew_taste_watery)
+    val tasteRough = stringResource(id = R.string.brew_taste_rough)
+    val tasteSweet = stringResource(id = R.string.brew_taste_sweet)
+    val errorInvalidTime = if (isSpanish) "Usa un formato de tiempo válido: HH:mm" else "Use a valid time format: HH:mm"
+    val errorInvalidAmount = if (isSpanish) "Cantidad inválida" else "Invalid amount"
+    val errorInvalidDose = if (isSpanish) "Para espresso, la dosis debe estar entre 3.0 y 30.0 g" else "For espresso, dose must be between 3.0 and 30.0 g"
+    val errorFillFields = if (isSpanish) "Completa todos los campos correctamente" else "Complete all fields correctly"
+
     val (initialMethod, initialTaste, initialTipo) = remember(entry.id) {
         val p = parsePreparationType(entry.preparationType)
         Triple(p.method, p.taste, p.tipo)
     }
     var selectedBrewMethod by remember(entry.id) { mutableStateOf(initialMethod) }
-    var selectedBrewTaste by remember(entry.id) { mutableStateOf(initialTaste ?: "Equilibrado") }
+    var selectedBrewTaste by remember(entry.id) { mutableStateOf(initialTaste ?: tasteBalanced) }
 
     val preparationOptions = remember(entry.id) {
         val base = listOf(
@@ -1192,14 +1217,14 @@ fun DiaryEntryEditBottomSheet(
     fun handleSaveEditEntry() {
         val updatedTimestamp = updateTimestampWithHourMinute(entry.timestamp, timeText)
         if (updatedTimestamp == null) {
-            errorText = "Usa un formato de tiempo válido: HH:mm"
+            errorText = errorInvalidTime
             return
         }
 
         val updatedEntry = if (entry.type == "WATER") {
             val amount = amountText.toIntOrNull()
             if (amount == null || amount <= 0) {
-                errorText = "Cantidad inválida"
+                errorText = errorInvalidAmount
                 return
             }
             entry.copy(amountMl = amount, timestamp = updatedTimestamp)
@@ -1209,11 +1234,11 @@ fun DiaryEntryEditBottomSheet(
             val normalizedPrep = selectedPreparation.trim()
             val espressoRangeValid = !normalizedPrep.equals("Espresso", ignoreCase = true) || (grams != null && grams in 3f..30f)
             if (caffeine == null || caffeine < 0 || grams == null || grams <= 0f || normalizedPrep.isBlank() || !espressoRangeValid) {
-                errorText = if (!espressoRangeValid) "Para espresso, la dosis debe estar entre 3.0 y 30.0 g" else "Completa todos los campos correctamente"
+                errorText = if (!espressoRangeValid) errorInvalidDose else errorFillFields
                 return
             }
             val preparationTypeToSave = if (selectedBrewMethod != null) {
-                "Lab: $selectedBrewMethod (${selectedBrewTaste.trim().ifBlank { "Equilibrado" }})|${normalizedPrep}"
+                "Lab: $selectedBrewMethod (${selectedBrewTaste.trim().ifBlank { tasteBalanced }})|${normalizedPrep}"
             } else {
                 normalizedPrep
             }
@@ -1250,7 +1275,7 @@ fun DiaryEntryEditBottomSheet(
         ) {
             Box(modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.space6)) {
                 Text(
-                    text = "Editar",
+                    text = stringResource(id = R.string.list_edit),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -1262,7 +1287,7 @@ fun DiaryEntryEditBottomSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextButton(onClick = { handleSaveEditEntry() }) {
-                        Text("Guardar", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(id = R.string.common_save_upper), fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -1272,7 +1297,7 @@ fun DiaryEntryEditBottomSheet(
             val brewMethodNamesForWidth = remember { BREW_METHOD_NAMES + listOf(BREW_METHOD_OTROS, BREW_METHOD_AGUA) }
             val editModalChipLabels = remember(brewMethodNamesForWidth, preparationOptions, sizeOptions) {
                 brewMethodNamesForWidth + preparationOptions.map { it.label } + sizeOptions.map { it.label } +
-                    listOf("Amargo", "Ácido", "Equilibrado", "Salado", "Acuoso", "Aspero", "Dulce")
+                    listOf(tasteBitter, tasteAcidic, tasteBalanced, tasteSalty, tasteWatery, tasteRough, tasteSweet)
             }
             val editModalChipMinWidth = remember(editModalChipLabels) {
                 val maxWordLen = editModalChipLabels.flatMap { it.split(" ") }.maxOfOrNull { it.length } ?: 8
@@ -1281,7 +1306,7 @@ fun DiaryEntryEditBottomSheet(
 
             if (entry.type == "CUP") {
                 Text(
-                    text = "Método",
+                    text = stringResource(id = R.string.diary_stat_method),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold,
@@ -1353,7 +1378,7 @@ fun DiaryEntryEditBottomSheet(
 
                 Spacer(Modifier.height(Spacing.space6))
                 Text(
-                    text = "Tipo",
+                    text = stringResource(id = R.string.diary_stat_format),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold,
@@ -1404,11 +1429,11 @@ fun DiaryEntryEditBottomSheet(
                     OutlinedTextField(
                         value = caffeineText,
                         onValueChange = { caffeineText = it.filter(Char::isDigit) },
-                        label = { Text("Cafeína (mg)") },
+                        label = { Text("${stringResource(id = R.string.diary_stat_caffeine)} (mg)") },
                         leadingIcon = {
                             Icon(
                                 painter = painterResource(R.drawable.grano_cafe),
-                                contentDescription = "Cafeína",
+                                contentDescription = stringResource(id = R.string.diary_stat_caffeine),
                                 modifier = Modifier.size(20.dp),
                                 tint = Color.Unspecified
                             )
@@ -1428,11 +1453,11 @@ fun DiaryEntryEditBottomSheet(
                                 if (normalized.count { it == '.' } <= 1) filtered else filtered.dropLast(1)
                             }
                         },
-                        label = { Text("Dosis (g)") },
+                        label = { Text("${stringResource(id = R.string.diary_stat_dose)} (g)") },
                         leadingIcon = {
                             Icon(
                                 painter = painterResource(R.drawable.portafiltro),
-                                contentDescription = "Dosis",
+                                contentDescription = stringResource(id = R.string.diary_stat_dose),
                                 modifier = Modifier.size(20.dp),
                                 tint = Color.Unspecified
                             )
@@ -1447,7 +1472,7 @@ fun DiaryEntryEditBottomSheet(
 
                 Spacer(Modifier.height(Spacing.space6))
                 Text(
-                    text = "Tamaño",
+                    text = stringResource(id = R.string.diary_stat_cup_size),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold,
@@ -1499,11 +1524,11 @@ fun DiaryEntryEditBottomSheet(
                     OutlinedTextField(
                         value = amountText,
                         onValueChange = { amountText = it.filter(Char::isDigit) },
-                        label = { Text("Cantidad (ml)") },
+                        label = { Text("${stringResource(id = R.string.diary_add_water)} (${stringResource(id = R.string.diary_ml)})") },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.WaterDrop,
-                                contentDescription = "Agua",
+                                contentDescription = stringResource(id = R.string.diary_add_water),
                                 tint = WaterBlue,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -1517,8 +1542,8 @@ fun DiaryEntryEditBottomSheet(
                     OutlinedTextField(
                         value = timeText,
                         onValueChange = { timeText = it.take(5) },
-                        label = { Text("Tiempo (HH:mm)") },
-                        leadingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Hora", modifier = Modifier.size(18.dp)) },
+                        label = { Text("HH:mm") },
+                        leadingIcon = { Icon(Icons.Default.Schedule, contentDescription = "HH:mm", modifier = Modifier.size(18.dp)) },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                         textStyle = editFieldTextStyle,
@@ -1532,8 +1557,8 @@ fun DiaryEntryEditBottomSheet(
                 OutlinedTextField(
                     value = timeText,
                     onValueChange = { timeText = it.take(5) },
-                    label = { Text("Tiempo (HH:mm)") },
-                    leadingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Hora") },
+                    label = { Text("HH:mm") },
+                    leadingIcon = { Icon(Icons.Default.Schedule, contentDescription = "HH:mm") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.space6),
                     textStyle = editFieldTextStyle,
@@ -1544,7 +1569,7 @@ fun DiaryEntryEditBottomSheet(
             if (entry.type == "CUP" && selectedBrewMethod != null) {
                 Spacer(Modifier.height(Spacing.space6))
                 Text(
-                    text = "Resultado",
+                    text = stringResource(id = R.string.brew_result),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold,
@@ -1552,13 +1577,13 @@ fun DiaryEntryEditBottomSheet(
                 )
                 Spacer(Modifier.height(Spacing.space1))
                 val tasteOptionsWithIcons = listOf(
-                    "Amargo" to Icons.Default.LocalFireDepartment,
-                    "Ácido" to Icons.Default.Science,
-                    "Equilibrado" to Icons.Default.Verified,
-                    "Salado" to Icons.Default.Waves,
-                    "Acuoso" to Icons.Default.WaterDrop,
-                    "Aspero" to Icons.Default.Grain,
-                    "Dulce" to Icons.Default.Favorite
+                    tasteBitter to Icons.Default.LocalFireDepartment,
+                    tasteAcidic to Icons.Default.Science,
+                    tasteBalanced to Icons.Default.Verified,
+                    tasteSalty to Icons.Default.Waves,
+                    tasteWatery to Icons.Default.WaterDrop,
+                    tasteRough to Icons.Default.Grain,
+                    tasteSweet to Icons.Default.Favorite
                 )
                 val unselectedChipBgResult = if (isDark) PureBlack else PureWhite
                 val unselectedChipContentResult = if (isDark) PureWhite else PureBlack
@@ -1859,7 +1884,7 @@ fun InfoBottomSheet(onDismiss: () -> Unit) {
             .fillMaxWidth()
             .padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space8)) {
             Text(
-                text = "Recomendaciones OMS",
+                text = stringResource(id = R.string.oms_recommendations_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -1867,11 +1892,23 @@ fun InfoBottomSheet(onDismiss: () -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(Spacing.space6))
-            InfoRow("Máximo Diario", "400 mg", "Aprox. 4 espressos. Límite seguro para adultos sanos.")
+            InfoRow(
+                stringResource(id = R.string.oms_max_daily_label),
+                stringResource(id = R.string.oms_max_daily_value),
+                stringResource(id = R.string.oms_max_daily_desc)
+            )
             HorizontalDivider(Modifier.padding(vertical = Spacing.space4), color = MaterialTheme.colorScheme.outline)
-            InfoRow("Embarazo", "200 mg", "Se recomienda reducir el consumo a la mitad.")
+            InfoRow(
+                stringResource(id = R.string.oms_pregnancy_label),
+                stringResource(id = R.string.oms_pregnancy_value),
+                stringResource(id = R.string.oms_pregnancy_desc)
+            )
             HorizontalDivider(Modifier.padding(vertical = Spacing.space4), color = MaterialTheme.colorScheme.outline)
-            InfoRow("Hidratación", "2.5 L", "El agua es vital. El café deshidrata ligeramente.")
+            InfoRow(
+                stringResource(id = R.string.oms_hydration_label),
+                stringResource(id = R.string.oms_hydration_value),
+                stringResource(id = R.string.oms_hydration_desc)
+            )
         }
     }
 }
@@ -1909,7 +1946,7 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
                 .verticalScroll(rememberScrollState())
         ) {
             Text(
-                text = "Editar Stock",
+                text = stringResource(id = R.string.timeline_edit_stock),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -1918,14 +1955,14 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
             )
             Spacer(Modifier.height(Spacing.space8))
             StockSliderSection(
-                "Cantidad de café total (g)",
+                stringResource(id = R.string.detail_total_coffee_amount),
                 total,
                 1000f,
                 onValueChange = { total = it }
             )
             Spacer(Modifier.height(Spacing.space6))
             StockSliderSection(
-                "Cantidad de café restante (g)",
+                stringResource(id = R.string.detail_remaining_coffee_amount),
                 rem,
                 total.coerceAtLeast(1f),
                 onValueChange = { rem = it }
@@ -1951,7 +1988,7 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
                         contentColor = cancelBorderAndText
                     )
                 ) {
-                    Text("CANCELAR", fontWeight = FontWeight.Medium)
+                    Text(stringResource(id = R.string.common_cancel_upper), fontWeight = FontWeight.Medium)
                 }
 
                 Button(
@@ -1965,7 +2002,7 @@ fun StockEditBottomSheet(item: PantryItemWithDetails, onDismiss: () -> Unit, onS
                     ),
                     shape = Shapes.card
                 ) {
-                    Text("GUARDAR", fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(id = R.string.common_save_upper), fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -2093,13 +2130,13 @@ fun PostOptionsBottomSheet(
     ) {
         Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
             ModalMenuOption(
-                title = "Editar",
+                title = stringResource(id = R.string.list_edit),
                 icon = Icons.Default.Edit,
                 color = MaterialTheme.colorScheme.onSurface,
                 onClick = onEditClick
             )
             ModalMenuOption(
-                title = "Borrar",
+                title = stringResource(id = R.string.notifications_delete),
                 icon = Icons.Default.Delete,
                 color = MaterialTheme.colorScheme.onSurface,
                 onClick = onDeleteClick
@@ -2113,11 +2150,13 @@ fun PostOptionsBottomSheet(
 fun SettingsBottomSheet(
     onDismiss: () -> Unit,
     onEditClick: () -> Unit,
+    onLanguageClick: () -> Unit,
     onHistorialClick: () -> Unit,
     onDeleteAccountClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
     val context = LocalContext.current
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val prefs = remember(context) { context.getSharedPreferences("cafesito_prefs", android.content.Context.MODE_PRIVATE) }
     var dynamicColorEnabled by remember {
         mutableStateOf(prefs.getBoolean(DynamicColorMode.KEY, DynamicColorMode.DEFAULT))
@@ -2125,14 +2164,19 @@ fun SettingsBottomSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        sheetState = sheetState,
         containerColor = CafesitoModalSheetDefaults.containerColor(),
         shape = CafesitoModalSheetDefaults.shape,
         scrimColor = CafesitoModalSheetDefaults.scrimColor,
         dragHandle = { CafesitoModalSheetDefaults.dragHandle() }
     ) {
-        Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = 48.dp)) {
+        Column(
+            Modifier
+                .padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = 48.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
             Text(
-                "General",
+                stringResource(id = R.string.settings_general),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = Spacing.space2, start = Spacing.space2)
@@ -2145,7 +2189,7 @@ fun SettingsBottomSheet(
                 Column {
                     SettingsOptionRow(
                         icon = Icons.Default.History,
-                        title = "Cafés consumidos",
+                        title = stringResource(id = R.string.settings_consumed_coffees),
                         onClick = { onDismiss(); onHistorialClick() }
                     )
                     Row(
@@ -2154,12 +2198,17 @@ fun SettingsBottomSheet(
                             .padding(Spacing.space4, 14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Palette, contentDescription = "Material You", modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(
+                            Icons.Default.Palette,
+                            contentDescription = stringResource(id = R.string.settings_material_you),
+                            modifier = Modifier.size(24.dp),
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
                         Spacer(Modifier.width(Spacing.space3))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Material You", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+                            Text(stringResource(id = R.string.settings_material_you), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
                             Text(
-                                text = "Usar colores dinámicos del sistema",
+                                text = stringResource(id = R.string.settings_material_you_description),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -2177,7 +2226,7 @@ fun SettingsBottomSheet(
             }
             Spacer(Modifier.height(Spacing.space4))
             Text(
-                "Cuenta",
+                stringResource(id = R.string.settings_account),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = Spacing.space2, start = Spacing.space2, top = Spacing.space2)
@@ -2190,19 +2239,25 @@ fun SettingsBottomSheet(
                 Column {
                     SettingsOptionRow(
                         icon = Icons.Default.Edit,
-                        title = "Editar perfil",
+                        title = stringResource(id = R.string.settings_edit_profile),
                         onClick = { onDismiss(); onEditClick() }
                     )
                     HorizontalDivider(Modifier.padding(horizontal = 16.dp))
                     SettingsOptionRow(
+                        icon = Icons.Default.Language,
+                        title = stringResource(id = R.string.language_title),
+                        onClick = { onDismiss(); onLanguageClick() }
+                    )
+                    HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                    SettingsOptionRow(
                         icon = Icons.Default.PersonRemove,
-                        title = "Eliminar mi cuenta y mis datos",
+                        title = stringResource(id = R.string.settings_delete_account_data),
                         onClick = { onDismiss(); onDeleteAccountClick() }
                     )
                     HorizontalDivider(Modifier.padding(horizontal = 16.dp))
                     SettingsOptionRow(
                         icon = Icons.AutoMirrored.Filled.Logout,
-                        title = "Cerrar sesión",
+                        title = stringResource(id = R.string.settings_sign_out),
                         onClick = { onDismiss(); onLogoutClick() }
                     )
                 }
@@ -2238,7 +2293,7 @@ fun DeleteConfirmationDialog(
     onConfirm: () -> Unit,
     title: String,
     text: String,
-    confirmButtonText: String = "ELIMINAR"
+    confirmButtonText: String = stringResource(id = R.string.notifications_delete).uppercase()
 ) {
     val isDark = isSystemInDarkTheme()
     val cancelColor = if (isDark) PureWhite else PureBlack
@@ -2287,7 +2342,7 @@ fun DeleteConfirmationDialog(
                         contentColor = cancelColor
                     )
                 ) {
-                    Text("CANCELAR", fontWeight = FontWeight.Medium)
+                    Text(stringResource(id = R.string.common_cancel_upper), fontWeight = FontWeight.Medium)
                 }
                 Button(
                     onClick = {

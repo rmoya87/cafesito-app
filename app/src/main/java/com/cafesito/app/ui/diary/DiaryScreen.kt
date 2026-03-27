@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -37,6 +38,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.cafesito.app.R
 import com.cafesito.app.data.DiaryEntryEntity
 import com.cafesito.app.data.PantryItemWithDetails
 import com.cafesito.app.ui.components.*
@@ -99,11 +101,12 @@ fun DiaryScreen(
         c.timeInMillis
     }
     val isSelectedToday = selectedDiaryDateMs in todayStartMs until (todayStartMs + 86400000L)
+    val todayLabel = stringResource(id = R.string.diary_today)
     val dateLabel = remember(selectedDiaryDateMs, selectedPeriod) {
         when (selectedPeriod) {
             DiaryPeriod.SEMANA -> formatWeekRange(if (selectedDiaryDateMs != 0L) selectedDiaryDateMs else getMondayOfWeek(System.currentTimeMillis()))
             DiaryPeriod.MES -> if (selectedDiaryDateMs != 0L) formatMonthOnly(selectedDiaryDateMs) else formatMonthOnly(Calendar.getInstance().apply { set(Calendar.DAY_OF_MONTH, 1); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis)
-            else -> if (selectedDiaryDateMs == 0L) "Hoy" else if (isSelectedToday) "Hoy" else SimpleDateFormat("dd/MM", Locale.getDefault()).format(Date(selectedDiaryDateMs))
+            else -> if (selectedDiaryDateMs == 0L) todayLabel else if (isSelectedToday) todayLabel else SimpleDateFormat("dd/MM", Locale.getDefault()).format(Date(selectedDiaryDateMs))
         }
     }
     val canGoNext = when (selectedPeriod) {
@@ -194,7 +197,7 @@ fun DiaryScreen(
             ) {
                 Column(Modifier.padding(top = 8.dp, start = 24.dp, end = 24.dp, bottom = 40.dp)) {
                     Text(
-                        text = "Opciones",
+                        text = stringResource(id = R.string.timeline_options),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
@@ -202,7 +205,7 @@ fun DiaryScreen(
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = "Organiza",
+                        text = stringResource(id = R.string.timeline_organize),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 8.dp)
@@ -215,7 +218,7 @@ fun DiaryScreen(
                         Column {
                             PantryOptionRow(
                                 icon = Icons.Default.Edit,
-                                label = "Editar stock",
+                                label = stringResource(id = R.string.timeline_edit_stock),
                                 onClick = {
                                     onTrackEvent("modal_close", bundleOf("modal_id" to "diary_pantry_options"))
                                     onTrackEvent("modal_open", bundleOf("modal_id" to "diary_stock_edit"))
@@ -227,7 +230,7 @@ fun DiaryScreen(
                             HorizontalDivider(Modifier.padding(horizontal = 16.dp))
                             PantryOptionRow(
                                 icon = Icons.Default.Done,
-                                label = "Café terminado",
+                                label = stringResource(id = R.string.timeline_finished_coffee),
                                 onClick = {
                                     onTrackEvent("modal_close", bundleOf("modal_id" to "diary_pantry_options"))
                                     onTrackEvent("modal_open", bundleOf("modal_id" to "diary_finished_confirm"))
@@ -239,7 +242,7 @@ fun DiaryScreen(
                     }
                     Spacer(Modifier.height(16.dp))
                     Text(
-                        text = "General",
+                        text = stringResource(id = R.string.settings_general),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 8.dp)
@@ -253,7 +256,7 @@ fun DiaryScreen(
                             if (selectedItem.isCustom) {
                                 PantryOptionRow(
                                     icon = Icons.Default.LocalCafe,
-                                    label = "Editar café",
+                                    label = stringResource(id = R.string.timeline_edit_coffee),
                                     onClick = {
                                         val coffeeId = selectedItem.coffee.id
                                         onTrackEvent("modal_close", bundleOf("modal_id" to "diary_pantry_options"))
@@ -265,7 +268,7 @@ fun DiaryScreen(
                             }
                             PantryOptionRow(
                                 icon = Icons.Default.Delete,
-                                label = "Eliminar de la despensa",
+                                label = stringResource(id = R.string.timeline_remove_from_pantry),
                                 onClick = {
                                     onTrackEvent("modal_close", bundleOf("modal_id" to "diary_pantry_options"))
                                     onTrackEvent("modal_open", bundleOf("modal_id" to "diary_delete_confirm_pantry"))
@@ -283,8 +286,8 @@ fun DiaryScreen(
     if (itemToDeleteId != null) {
         DeleteConfirmationDialog(
             onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "diary_delete_confirm_pantry")); itemToDeleteId = null },
-            title = "Eliminar de la despensa",
-            text = "¿Estás seguro de eliminar este café? Se borrará tu stock actual.",
+            title = stringResource(id = R.string.timeline_remove_from_pantry),
+            text = stringResource(id = R.string.timeline_remove_from_pantry_confirm),
             onConfirm = {
                 val id = itemToDeleteId!!
                 viewModel.removeFromPantry(id) {
@@ -299,9 +302,9 @@ fun DiaryScreen(
     if (showFinishedConfirmId != null) {
         DeleteConfirmationDialog(
             onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "diary_finished_confirm")); showFinishedConfirmId = null },
-            title = "Café terminado",
-            text = "¿Marcar este café como terminado? Se quitará de tu despensa y se guardará en Historial.",
-            confirmButtonText = "CONFIRMAR",
+            title = stringResource(id = R.string.timeline_finished_coffee),
+            text = stringResource(id = R.string.timeline_finished_coffee_confirm),
+            confirmButtonText = stringResource(id = R.string.timeline_confirm),
             onConfirm = {
                 val id = showFinishedConfirmId!!
                 viewModel.markCoffeeAsFinished(id) {
@@ -318,7 +321,7 @@ fun DiaryScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             GlassyTopBar(
-                title = "MI DIARIO",
+                title = stringResource(id = R.string.nav_diary),
                 navigationContent = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -350,7 +353,7 @@ fun DiaryScreen(
                                     contentColor = chipContentColor
                                 )
                             ) {
-                                Icon(Icons.Default.ChevronLeft, contentDescription = if (selectedPeriod == DiaryPeriod.MES) "Mes anterior" else "Anterior", modifier = Modifier.size(20.dp))
+                                Icon(Icons.Default.ChevronLeft, contentDescription = if (selectedPeriod == DiaryPeriod.MES) stringResource(id = R.string.diary_prev_month) else stringResource(id = R.string.diary_previous), modifier = Modifier.size(20.dp))
                             }
                             Row(
                                 modifier = Modifier
@@ -384,7 +387,7 @@ fun DiaryScreen(
                                         contentColor = chipContentColor
                                     )
                                 ) {
-                                    Icon(Icons.Default.ChevronRight, contentDescription = if (selectedPeriod == DiaryPeriod.MES) "Mes siguiente" else "Siguiente", modifier = Modifier.size(20.dp))
+                                    Icon(Icons.Default.ChevronRight, contentDescription = if (selectedPeriod == DiaryPeriod.MES) stringResource(id = R.string.diary_next_month) else stringResource(id = R.string.diary_next), modifier = Modifier.size(20.dp))
                                 }
                             } else {
                                 Spacer(Modifier.size(36.dp))
@@ -417,7 +420,7 @@ fun DiaryScreen(
             }
             item {
                 Text(
-                    text = "Hábito",
+                    text = stringResource(id = R.string.diary_habit),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -427,7 +430,7 @@ fun DiaryScreen(
             }
             item {
                 Text(
-                    text = "Consumo",
+                    text = stringResource(id = R.string.diary_consumption),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -437,7 +440,7 @@ fun DiaryScreen(
             }
             item {
                 Text(
-                    text = "Barista",
+                    text = stringResource(id = R.string.diary_barista),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -449,7 +452,7 @@ fun DiaryScreen(
             item {
                 Spacer(Modifier.height(20.dp))
                 Text(
-                    text = "ACTIVIDAD",
+                    text = stringResource(id = R.string.profile_tab_activity),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -464,7 +467,7 @@ fun DiaryScreen(
                     }
                 }
             } else if (entries.isEmpty()) {
-                item { EmptyStateMessage("Sin café o agua registrada") }
+                item { EmptyStateMessage(stringResource(id = R.string.empty_diary_no_entries)) }
             } else {
                 itemsIndexed(entries, key = { _, it -> "${it.id}_${it.timestamp}" }) { index, entry ->
                     if (selectedPeriod != DiaryPeriod.HOY) {
@@ -481,7 +484,7 @@ fun DiaryScreen(
                                 else -> MaterialTheme.colorScheme.onSurfaceVariant
                             }
                             Text(
-                                text = SimpleDateFormat("d MMMM", Locale.forLanguageTag("es-ES")).format(Date(entry.timestamp)),
+                                text = SimpleDateFormat("d MMMM", Locale.getDefault()).format(Date(entry.timestamp)),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = dayHeaderColor,

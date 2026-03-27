@@ -6,6 +6,7 @@ import { sendEvent } from "../../core/ga4";
 import type { BrewStep, TabId } from "../../types";
 import { UiIcon } from "../../ui/iconography";
 import { Button, Chip, IconButton, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
+import { useI18n } from "../../i18n";
 
 export function TopBar({
   activeTab,
@@ -62,6 +63,7 @@ export function TopBar({
   onProfileDeleteAccount,
   profileMenuEnabled,
   onProfileOpenEdit,
+  onProfileOpenLanguage,
   onHistorialClick,
   profileSubPanel,
   profileListName,
@@ -138,8 +140,9 @@ export function TopBar({
   onProfileDeleteAccount: () => Promise<void> | void;
   profileMenuEnabled: boolean;
   onProfileOpenEdit: () => void;
+  onProfileOpenLanguage: () => void;
   onHistorialClick?: () => void;
-  profileSubPanel?: "historial" | "followers" | "following" | "favorites" | "list" | null;
+  profileSubPanel?: "historial" | "followers" | "following" | "favorites" | "list" | "language" | null;
   profileListName?: string;
   /** Al pulsar el menú de 3 puntos en la vista de detalle de una lista (solo cuando profileSubPanel === "list"). */
   onOpenListOptionsSheet?: () => void;
@@ -160,8 +163,8 @@ export function TopBar({
   onCoffeeTopbarToggleFavorite: () => void;
   onCoffeeTopbarOpenStock: () => void;
 }) {
+  const { t } = useI18n();
   const [searchFocus, setSearchFocus] = useState(false);
-  const [searchHintWord, setSearchHintWord] = useState<"marca" | "cafe">("marca");
   const [notificationPop, setNotificationPop] = useState(false);
   const [showProfileOptions, setShowProfileOptions] = useState(false);
   const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] = useState(false);
@@ -169,14 +172,6 @@ export function TopBar({
   /** Índices de avatares en listMemberPreviews que fallaron al cargar (se muestra placeholder). */
   const [failedTopbarAvatarIndices, setFailedTopbarAvatarIndices] = useState<Set<number>>(new Set());
   const showSearchCancel = Boolean(searchQuery || searchFocus);
-
-  useEffect(() => {
-    if (activeTab !== "search") return;
-    const interval = window.setInterval(() => {
-      setSearchHintWord((prev) => (prev === "marca" ? "cafe" : "marca"));
-    }, 2200);
-    return () => window.clearInterval(interval);
-  }, [activeTab]);
 
   useEffect(() => {
     if (!showNotificationsBadge || activeTab !== "home") return;
@@ -195,7 +190,7 @@ export function TopBar({
       return (
         <header className={`topbar topbar-search-users ${showSearchCancel ? "has-cancel" : ""} ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`.trim()}>
           <div className="topbar-slot">
-            <IconButton tone="topbar" className="search-users-back" onClick={onSearchBack} aria-label="Atrás">
+            <IconButton tone="topbar" className="search-users-back" onClick={onSearchBack} aria-label={t("top.search.back")}>
               <UiIcon name="arrow-left" className="ui-icon" />
             </IconButton>
           </div>
@@ -205,12 +200,12 @@ export function TopBar({
               id="quick-search"
               variant="search"
               className="search-users-input"
-              placeholder="Buscar usuarios..."
+              placeholder={t("top.search.users.placeholder")}
               value={searchQuery}
               onFocus={() => setSearchFocus(true)}
               onBlur={() => setSearchFocus(false)}
               onChange={(event) => onSearchQueryChange(event.target.value)}
-              aria-label="Buscar usuarios"
+              aria-label={t("top.search.users.aria")}
             />
           </div>
           <div className="topbar-slot topbar-slot-end search-users-cancel-slot">
@@ -226,7 +221,7 @@ export function TopBar({
               aria-hidden={!showSearchCancel}
               tabIndex={showSearchCancel ? 0 : -1}
             >
-              Cancelar
+              {t("common.cancel")}
             </Button>
           </div>
         </header>
@@ -239,10 +234,7 @@ export function TopBar({
           <UiIcon name="search" className="ui-icon search-coffee-leading-icon" />
           {!searchQuery && !searchFocus ? (
             <div className="search-coffee-placeholder" aria-hidden="true">
-              <span>Busca </span>
-              <span key={searchHintWord} className="search-coffee-placeholder-word">
-                {searchHintWord}
-              </span>
+              <span>{t("top.search.placeholder")}</span>
             </div>
           ) : null}
           <Input
@@ -254,10 +246,10 @@ export function TopBar({
             onFocus={() => setSearchFocus(true)}
             onBlur={() => setSearchFocus(false)}
             onChange={(event) => onSearchQueryChange(event.target.value)}
-            aria-label="Busqueda"
+            aria-label={t("top.search.aria")}
           />
           {showSearchBarcodeButton ? (
-            <IconButton className="search-coffee-trailing-button" aria-label="Escanear código" onClick={onSearchBarcodeClick}>
+            <IconButton className="search-coffee-trailing-button" aria-label={t("top.search.scan")} onClick={onSearchBarcodeClick}>
               <UiIcon name="barcode" className="ui-icon" />
             </IconButton>
           ) : null}
@@ -274,15 +266,15 @@ export function TopBar({
           aria-hidden={!showSearchCancel}
           tabIndex={showSearchCancel ? 0 : -1}
         >
-          Cancelar
+          {t("common.cancel")}
         </Button>
         {showSearchCoffeeFilterChips ? (
-          <div className="topbar-search-chips" role="tablist" aria-label="Filtros de busqueda">
-            <Chip active={Boolean(searchOriginCount)} onClick={() => onOpenSearchFilter("origen")}>PAIS{searchOriginCount ? <span className="filter-chip-count">{searchOriginCount}</span> : null}</Chip>
-            <Chip active={Boolean(searchSpecialtyCount)} onClick={() => onOpenSearchFilter("especialidad")}>ESPECIALIDAD{searchSpecialtyCount ? <span className="filter-chip-count">{searchSpecialtyCount}</span> : null}</Chip>
-            <Chip active={Boolean(searchRoastCount)} onClick={() => onOpenSearchFilter("tueste")}>TUESTE{searchRoastCount ? <span className="filter-chip-count">{searchRoastCount}</span> : null}</Chip>
-            <Chip active={Boolean(searchFormatCount)} onClick={() => onOpenSearchFilter("formato")}>FORMATO{searchFormatCount ? <span className="filter-chip-count">{searchFormatCount}</span> : null}</Chip>
-            <Chip active={searchHasRatingFilter} onClick={() => onOpenSearchFilter("nota")}>NOTA{searchHasRatingFilter ? <span className="filter-chip-count">1</span> : null}</Chip>
+          <div className="topbar-search-chips" role="tablist" aria-label={t("top.search.filtersAria")}>
+            <Chip active={Boolean(searchOriginCount)} onClick={() => onOpenSearchFilter("origen")}>{t("top.filter.country")}{searchOriginCount ? <span className="filter-chip-count">{searchOriginCount}</span> : null}</Chip>
+            <Chip active={Boolean(searchSpecialtyCount)} onClick={() => onOpenSearchFilter("especialidad")}>{t("top.filter.specialty")}{searchSpecialtyCount ? <span className="filter-chip-count">{searchSpecialtyCount}</span> : null}</Chip>
+            <Chip active={Boolean(searchRoastCount)} onClick={() => onOpenSearchFilter("tueste")}>{t("top.filter.roast")}{searchRoastCount ? <span className="filter-chip-count">{searchRoastCount}</span> : null}</Chip>
+            <Chip active={Boolean(searchFormatCount)} onClick={() => onOpenSearchFilter("formato")}>{t("top.filter.format")}{searchFormatCount ? <span className="filter-chip-count">{searchFormatCount}</span> : null}</Chip>
+            <Chip active={searchHasRatingFilter} onClick={() => onOpenSearchFilter("nota")}>{t("top.filter.rating")}{searchHasRatingFilter ? <span className="filter-chip-count">1</span> : null}</Chip>
           </div>
         ) : null}
       </header>
@@ -293,11 +285,11 @@ export function TopBar({
     return (
       <header className={`topbar topbar-home topbar-brew topbar-crear-cafe topbar-centered ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`.trim()}>
         <div className="topbar-slot">
-          <IconButton tone="topbar" onClick={onBrewCreateCoffeeBack} aria-label="Volver">
+          <IconButton tone="topbar" onClick={onBrewCreateCoffeeBack} aria-label={t("common.back")}>
             <UiIcon name="arrow-left" className="ui-icon" />
           </IconButton>
         </div>
-        <h1 className="title title-upper topbar-title-center">Crea tu café</h1>
+        <h1 className="title title-upper topbar-title-center">{t("top.createCoffee")}</h1>
         <div className="topbar-slot topbar-slot-end" />
       </header>
     );
@@ -308,11 +300,11 @@ export function TopBar({
       return (
         <header className={`topbar topbar-home topbar-brew topbar-centered ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`.trim()}>
           <div className="topbar-slot">
-            <IconButton tone="topbar" onClick={onBrewSelectCoffeeBack} aria-label="Volver">
+            <IconButton tone="topbar" onClick={onBrewSelectCoffeeBack} aria-label={t("common.back")}>
               <UiIcon name="arrow-left" className="ui-icon" />
             </IconButton>
           </div>
-          <h1 className="title title-upper topbar-title-center">Selecciona café</h1>
+          <h1 className="title title-upper topbar-title-center">{t("top.selectCoffee")}</h1>
           <div className="topbar-slot topbar-slot-end" />
         </header>
       );
@@ -321,11 +313,11 @@ export function TopBar({
       return (
         <header className={`topbar topbar-home topbar-brew topbar-centered ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`.trim()}>
           <div className="topbar-slot">
-            <IconButton tone="topbar" onClick={onBrewCreateCoffeeBack} aria-label="Atrás">
+            <IconButton tone="topbar" onClick={onBrewCreateCoffeeBack} aria-label={t("top.search.back")}>
               <UiIcon name="arrow-left" className="ui-icon" />
             </IconButton>
           </div>
-          <h1 className="title title-upper topbar-title-center">CREAR CAFE</h1>
+          <h1 className="title title-upper topbar-title-center">{t("top.createCoffee").toUpperCase()}</h1>
           <div className="topbar-slot topbar-slot-end">
             <Button
               variant="plain"
@@ -333,9 +325,9 @@ export function TopBar({
               className={`topbar-create-coffee-save ${!brewCreateCoffeeFormValid || brewCreateCoffeeSaving ? "is-disabled" : ""}`.trim()}
               onClick={() => (brewCreateCoffeeFormValid && !brewCreateCoffeeSaving ? onBrewCreateCoffeeSave() : undefined)}
               disabled={!brewCreateCoffeeFormValid || brewCreateCoffeeSaving}
-              aria-label="Guardar"
+              aria-label={t("top.saveLabel")}
             >
-              {brewCreateCoffeeSaving ? "Guardando..." : "Guardar"}
+              {brewCreateCoffeeSaving ? t("common.saving") : t("common.save")}
             </Button>
           </div>
         </header>
@@ -345,7 +337,7 @@ export function TopBar({
       <header className={`topbar topbar-home topbar-brew topbar-centered ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`.trim()}>
         <div className="topbar-slot">
           {brewStep !== "method" ? (
-            <IconButton tone="topbar" onClick={onBrewBack} aria-label="Atrás">
+            <IconButton tone="topbar" onClick={onBrewBack} aria-label={t("top.search.back")}>
               <UiIcon name="arrow-left" className="ui-icon" />
             </IconButton>
           ) : null}
@@ -358,7 +350,7 @@ export function TopBar({
               onClick={() => {
                 if (brewCanGoToConfig && onBrewGoToConfig) onBrewGoToConfig();
               }}
-              aria-label={brewTimerEnabled ? "Ir a proceso en curso" : "Ir a resultado"}
+              aria-label={brewTimerEnabled ? t("top.goBrewing") : t("top.goResult")}
               disabled={!brewCanGoToConfig}
               className={!brewCanGoToConfig ? "topbar-brew-next-inactive" : undefined}
             >
@@ -368,7 +360,7 @@ export function TopBar({
             <IconButton
               tone="topbar"
               onClick={onBrewGoToConsumptionWhenTimerEnded}
-              aria-label="Siguiente: ir a consumo"
+              aria-label={t("top.nextConsumption")}
             >
               <UiIcon name="arrow-right" className="ui-icon" />
             </IconButton>
@@ -379,7 +371,7 @@ export function TopBar({
               onClick={onBrewResultSave}
               disabled={!brewResultCanSave || brewResultSaving}
             >
-              {brewResultSaving ? "Guardando…" : "Guardar"}
+              {brewResultSaving ? t("common.saving") : t("common.save")}
             </button>
           ) : null}
         </div>
@@ -390,16 +382,16 @@ export function TopBar({
   if (activeTab === "diary") {
     if (diarySubView === "cafes-probados") return null;
     const canNext = canDiaryGoNext === true;
-    const arrowLabelPrev = diaryPeriod === "30d" ? "Mes anterior" : "Anterior";
-    const arrowLabelNext = diaryPeriod === "30d" ? "Mes siguiente" : "Siguiente";
+    const arrowLabelPrev = diaryPeriod === "30d" ? t("top.prevMonth") : t("top.prev");
+    const arrowLabelNext = diaryPeriod === "30d" ? t("top.nextMonth") : t("top.next");
     return (
       <header className={`topbar topbar-centered topbar-home topbar-diary ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
         <div className="topbar-slot diary-topbar-date-slot">
-          <div className="diary-period-chip diary-period-chip-with-arrows" role="group" aria-label="Seleccionar periodo">
+          <div className="diary-period-chip diary-period-chip-with-arrows" role="group" aria-label={t("top.selectPeriod")}>
             <button type="button" className="diary-chip-arrow" onClick={(e) => { e.stopPropagation(); onDiaryPrev(); }} aria-label={arrowLabelPrev}>
               <UiIcon name="arrow-left" className="ui-icon" />
             </button>
-            <button type="button" className="diary-chip-date" onClick={(e) => { e.stopPropagation(); onDiaryOpenPeriodSelector(); }} aria-label="Seleccionar periodo">
+            <button type="button" className="diary-chip-date" onClick={(e) => { e.stopPropagation(); onDiaryOpenPeriodSelector(); }} aria-label={t("top.selectPeriod")}>
               {diaryDateLabel}
             </button>
             {canNext ? (
@@ -411,19 +403,29 @@ export function TopBar({
             )}
           </div>
         </div>
-        <h1 className="title title-upper topbar-title-center">MI DIARIO</h1>
+        <h1 className="title title-upper topbar-title-center">{t("top.myDiary")}</h1>
         <div className="topbar-slot topbar-slot-end diary-topbar-end-spacer" aria-hidden="true" />
       </header>
     );
   }
 
   if (activeTab === "profile") {
-    if (profileSubPanel === "historial" || profileSubPanel === "followers" || profileSubPanel === "following" || profileSubPanel === "favorites" || profileSubPanel === "list") {
-      const sectionTitle = profileSubPanel === "historial" ? "HISTORIAL" : profileSubPanel === "followers" ? "SEGUIDORES" : profileSubPanel === "following" ? "SIGUIENDO" : profileSubPanel === "favorites" ? "FAVORITOS" : (profileListName ?? "Lista").toUpperCase();
+    if (profileSubPanel === "historial" || profileSubPanel === "followers" || profileSubPanel === "following" || profileSubPanel === "favorites" || profileSubPanel === "list" || profileSubPanel === "language") {
+      const sectionTitle = profileSubPanel === "historial"
+        ? t("top.history")
+        : profileSubPanel === "followers"
+          ? t("top.followers")
+          : profileSubPanel === "following"
+            ? t("top.following")
+            : profileSubPanel === "favorites"
+              ? t("top.favorites")
+              : profileSubPanel === "language"
+                ? t("language.title").toUpperCase()
+                : (profileListName ?? t("top.listDefault")).toUpperCase();
       return (
         <header className={`topbar topbar-centered topbar-home topbar-historial ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`} dir="ltr">
           <div className="topbar-slot topbar-slot-back">
-            <IconButton tone="topbar" aria-label="Volver" onClick={onHistorialBack}>
+            <IconButton tone="topbar" aria-label={t("common.back")} onClick={onHistorialBack}>
               <UiIcon name="arrow-left" className="ui-icon" />
             </IconButton>
           </div>
@@ -434,9 +436,9 @@ export function TopBar({
                 variant="primary"
                 className="action-button topbar-join-list-btn"
                 onClick={() => void onJoinPublicList()}
-                aria-label="Unirse a esta lista"
+                aria-label={t("top.joinThisList")}
               >
-                Unirse
+                {t("top.join")}
               </Button>
             ) : profileSubPanel === "list" ? (
               <>
@@ -445,7 +447,7 @@ export function TopBar({
                     type="button"
                     className="topbar-list-members-btn"
                     onClick={onOpenListOptionsSheet}
-                    aria-label="Opciones de lista"
+                    aria-label={t("top.listOptions")}
                   >
                     <span className="topbar-list-members-count" aria-hidden="true">
                       {listMemberCount}
@@ -484,13 +486,13 @@ export function TopBar({
                     type="button"
                     className="topbar-share-list-btn"
                     onClick={onOpenListOptionsSheet}
-                    aria-label="Opciones de lista"
+                    aria-label={t("top.listOptions")}
                   >
                     <UiIcon name="person_add" className="topbar-share-list-icon" />
                   </button>
                 ) : null}
                 {onOpenListOptionsSheet && !(typeof listMemberCount === "number" && Array.isArray(listMemberPreviews) && listMemberPreviews.length > 0) ? (
-                  <IconButton tone="topbar" className="topbar-list-options-btn" aria-label="Opciones de lista" onClick={onOpenListOptionsSheet}>
+                  <IconButton tone="topbar" className="topbar-list-options-btn" aria-label={t("top.listOptions")} onClick={onOpenListOptionsSheet}>
                     <UiIcon name="more" className="ui-icon" />
                   </IconButton>
                 ) : null}
@@ -505,15 +507,15 @@ export function TopBar({
         <header className={`topbar topbar-centered topbar-home topbar-profile ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
           <div className="topbar-slot">
             {profileMenuEnabled ? (
-              <IconButton tone="topbar" aria-label="Buscar usuarios" onClick={onHomeSearchUsers}>
+              <IconButton tone="topbar" aria-label={t("top.searchUsers")} onClick={onHomeSearchUsers}>
                 <UiIcon name="search" className="ui-icon" />
               </IconButton>
             ) : null}
           </div>
-          <h1 className="title title-upper topbar-title-center">PERFIL</h1>
+          <h1 className="title title-upper topbar-title-center">{t("top.profile")}</h1>
           <div className="topbar-slot topbar-slot-end">
             {profileMenuEnabled ? (
-              <IconButton tone="menu" aria-label="Opciones de perfil" onClick={() => { sendEvent("modal_open", { modal_id: "profile_options" }); setShowProfileOptions(true); }}>
+              <IconButton tone="menu" aria-label={t("top.profileOptions")} onClick={() => { sendEvent("modal_open", { modal_id: "profile_options" }); setShowProfileOptions(true); }}>
                 <UiIcon name="more" className="ui-icon" />
               </IconButton>
             ) : null}
@@ -521,11 +523,11 @@ export function TopBar({
         </header>
         {showProfileOptions && profileMenuEnabled && typeof document !== "undefined"
           ? createPortal(
-              <SheetOverlay className="profile-topbar-options-overlay" role="dialog" aria-modal="true" aria-label="Opciones de perfil" onDismiss={() => { sendEvent("modal_close", { modal_id: "profile_options" }); setShowProfileOptions(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "profile_options" }); setShowProfileOptions(false); }}>
+              <SheetOverlay className="profile-topbar-options-overlay" role="dialog" aria-modal="true" aria-label={t("top.profileOptions")} onDismiss={() => { sendEvent("modal_close", { modal_id: "profile_options" }); setShowProfileOptions(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "profile_options" }); setShowProfileOptions(false); }}>
                 <SheetCard className="diary-sheet diary-sheet-pantry-options profile-topbar-options-sheet" onClick={(event) => event.stopPropagation()}>
                   <SheetHandle aria-hidden="true" />
                   <div className="diary-sheet-list list-options-general-wrap">
-                    <h3 className="create-list-privacy-subtitle">General</h3>
+                    <h3 className="create-list-privacy-subtitle">{t("top.general")}</h3>
                     <div className="list-options-general-card">
                       {onHistorialClick ? (
                         <Button
@@ -538,13 +540,13 @@ export function TopBar({
                           }}
                         >
                           <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">history</span>
-                          <span>Cafés consumidos</span>
+                          <span>{t("top.coffeesConsumed")}</span>
                           <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
                         </Button>
                       ) : null}
                     </div>
                     <div className="list-options-page-section list-options-section-spaced">
-                      <h3 className="create-list-privacy-subtitle">Cuenta</h3>
+                      <h3 className="create-list-privacy-subtitle">{t("top.account")}</h3>
                       <div className="list-options-general-card">
                       <Button
                         variant="plain"
@@ -556,7 +558,20 @@ export function TopBar({
                         }}
                       >
                         <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">edit</span>
-                        <span>Editar perfil</span>
+                        <span>{t("top.editProfile")}</span>
+                        <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
+                      </Button>
+                      <Button
+                        variant="plain"
+                        className="list-options-page-action"
+                        onClick={() => {
+                          sendEvent("modal_close", { modal_id: "profile_options" });
+                          setShowProfileOptions(false);
+                          onProfileOpenLanguage();
+                        }}
+                      >
+                        <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">language</span>
+                        <span>{t("top.language")}</span>
                         <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
                       </Button>
                       <Button
@@ -570,7 +585,7 @@ export function TopBar({
                         }}
                       >
                         <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">person_remove</span>
-                        <span>Eliminar mi cuenta y mis datos</span>
+                        <span>{t("top.deleteAccountData")}</span>
                         <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
                       </Button>
                       <Button
@@ -583,7 +598,7 @@ export function TopBar({
                         }}
                       >
                         <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">logout</span>
-                        <span>Cerrar sesión</span>
+                        <span>{t("top.signOut")}</span>
                         <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
                       </Button>
                       </div>
@@ -596,13 +611,13 @@ export function TopBar({
           : null}
         {showDeleteAccountConfirm && typeof document !== "undefined"
           ? createPortal(
-              <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar cuenta" onDismiss={() => { sendEvent("modal_close", { modal_id: "delete_confirm_account" }); setShowDeleteAccountConfirm(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "delete_confirm_account" }); setShowDeleteAccountConfirm(false); }}>
+              <SheetOverlay role="dialog" aria-modal="true" aria-label={t("top.deleteAccountAria")} onDismiss={() => { sendEvent("modal_close", { modal_id: "delete_confirm_account" }); setShowDeleteAccountConfirm(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "delete_confirm_account" }); setShowDeleteAccountConfirm(false); }}>
                 <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(event) => event.stopPropagation()}>
                   <SheetHandle aria-hidden="true" />
                   <div className="diary-delete-confirm-body">
-                    <h2 className="diary-delete-confirm-title">Eliminar mi cuenta y mis datos</h2>
+                    <h2 className="diary-delete-confirm-title">{t("top.deleteAccountData")}</h2>
                     <p className="diary-delete-confirm-text">
-                      Tu cuenta quedará inactiva durante 30 días y luego se eliminará con todos tus datos. Si vuelves a acceder antes, se cancelará el proceso.
+                      {t("top.deleteAccountText")}
                     </p>
                     <div className="diary-delete-confirm-actions">
                       <Button
@@ -612,7 +627,7 @@ export function TopBar({
                         disabled={deletingAccount}
                         onClick={() => { sendEvent("modal_close", { modal_id: "delete_confirm_account" }); setShowDeleteAccountConfirm(false); }}
                       >
-                        Cancelar
+                        {t("common.cancel")}
                       </Button>
                       <Button
                         variant="plain"
@@ -631,7 +646,7 @@ export function TopBar({
                           }
                         }}
                       >
-                        {deletingAccount ? "Procesando..." : "Eliminar"}
+                        {deletingAccount ? t("top.processing") : t("top.delete")}
                       </Button>
                     </div>
                   </div>
@@ -648,16 +663,16 @@ export function TopBar({
     return (
       <header className={`topbar topbar-home topbar-centered topbar-coffee ${scrolled ? "topbar-scrolled" : ""} ${hidden ? "topbar-is-hidden" : ""}`}>
         <div className="topbar-slot">
-          <IconButton tone="topbar" onClick={onCoffeeBack} aria-label="Volver">
+          <IconButton tone="topbar" onClick={onCoffeeBack} aria-label={t("common.back")}>
             <UiIcon name="arrow-left" className="ui-icon" />
           </IconButton>
         </div>
-        <h1 className="title title-upper topbar-title-center">CAFE</h1>
+        <h1 className="title title-upper topbar-title-center">{t("top.coffee")}</h1>
         <div className="topbar-slot topbar-slot-end">
-          <IconButton tone="topbar" className={`coffee-topbar-favorite ${coffeeTopbarFavoriteActive ? "is-active" : ""}`.trim()} aria-label={coffeeTopbarFavoriteActive ? "Quitar de listas" : "Añadir a listas"} onClick={onCoffeeTopbarToggleFavorite}>
+          <IconButton tone="topbar" className={`coffee-topbar-favorite ${coffeeTopbarFavoriteActive ? "is-active" : ""}`.trim()} aria-label={coffeeTopbarFavoriteActive ? t("top.removeFromLists") : t("top.addToLists")} onClick={onCoffeeTopbarToggleFavorite}>
             <UiIcon name={coffeeTopbarFavoriteActive ? "list-alt-check" : "list-alt-add"} className="ui-icon" />
           </IconButton>
-          <IconButton tone="topbar" className={coffeeTopbarStockActive ? "is-active" : ""} aria-label="Añadir a stock" onClick={onCoffeeTopbarOpenStock}>
+          <IconButton tone="topbar" className={coffeeTopbarStockActive ? "is-active" : ""} aria-label={t("top.addStock")} onClick={onCoffeeTopbarOpenStock}>
             <UiIcon name="stock" className="ui-icon" />
           </IconButton>
         </div>
@@ -670,7 +685,7 @@ export function TopBar({
       <div className="topbar-slot" />
       <h1 className="title title-upper topbar-title-center topbar-brand-title">CAFESITO</h1>
       <div className="topbar-slot topbar-slot-end">
-        <IconButton tone="topbar" className={notificationPop ? "notification-pop" : ""} aria-label="Notificaciones" onClick={onHomeNotifications}>
+        <IconButton tone="topbar" className={notificationPop ? "notification-pop" : ""} aria-label={t("top.notifications")} onClick={onHomeNotifications}>
           <UiIcon name="notifications" className="ui-icon" />
           {showNotificationsBadge ? <span className="badge-dot" aria-hidden="true" /> : null}
         </IconButton>

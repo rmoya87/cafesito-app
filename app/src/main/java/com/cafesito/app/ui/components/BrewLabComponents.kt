@@ -65,6 +65,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -177,7 +178,7 @@ fun MethodCard(method: BrewMethod, modifier: Modifier = Modifier, selected: Bool
                     contentScale = ContentScale.Fit
                 )
             } else {
-                Icon(Icons.Default.CoffeeMaker, contentDescription = "Método de elaboración", tint = contentColor, modifier = Modifier.size(Spacing.space8))
+                Icon(Icons.Default.CoffeeMaker, contentDescription = stringResource(id = R.string.diary_brew_method_cd), tint = contentColor, modifier = Modifier.size(Spacing.space8))
             }
             Spacer(Modifier.height(Spacing.space3))
             Text(
@@ -255,34 +256,34 @@ fun BrewMethodRowCard(method: BrewMethod, modifier: Modifier = Modifier, selecte
     }
 }
 
-private data class BrewLabPrepOption(val label: String, val drawableName: String?)
-private data class BrewLabSizeOption(val label: String, val rangeLabel: String, val defaultMl: Int, val drawableName: String)
+private data class BrewLabPrepOption(val key: String, val labelResId: Int, val drawableName: String?)
+private data class BrewLabSizeOption(val key: String, val labelResId: Int, val rangeResId: Int, val defaultMl: Int, val drawableName: String)
 
 private val BREWLAB_TIPO_OPTIONS = listOf(
-    BrewLabPrepOption("Espresso", "espresso"),
-    BrewLabPrepOption("Americano", "americano"),
-    BrewLabPrepOption("Capuchino", "capuchino"),
-    BrewLabPrepOption("Latte", "latte"),
-    BrewLabPrepOption("Macchiato", "macchiato"),
-    BrewLabPrepOption("Moca", "moca"),
-    BrewLabPrepOption("Vienés", "vienes"),
-    BrewLabPrepOption("Irlandés", "irlandes"),
-    BrewLabPrepOption("Frappuccino", "frappuccino"),
-    BrewLabPrepOption("Caramelo macchiato", "caramel_macchiato"),
-    BrewLabPrepOption("Corretto", "corretto"),
-    BrewLabPrepOption("Freddo", "freddo"),
-    BrewLabPrepOption("Latte macchiato", "latte_macchiato"),
-    BrewLabPrepOption("Leche con chocolate", "leche_con_chocolate"),
-    BrewLabPrepOption("Marroquí", "marroqui"),
-    BrewLabPrepOption("Romano", "romano"),
-    BrewLabPrepOption("Descafeinado", "descafeinado")
+    BrewLabPrepOption("Espresso", R.string.prep_espresso, "espresso"),
+    BrewLabPrepOption("Americano", R.string.prep_americano, "americano"),
+    BrewLabPrepOption("Capuchino", R.string.prep_capuchino, "capuchino"),
+    BrewLabPrepOption("Latte", R.string.prep_latte, "latte"),
+    BrewLabPrepOption("Macchiato", R.string.prep_macchiato, "macchiato"),
+    BrewLabPrepOption("Moca", R.string.prep_moca, "moca"),
+    BrewLabPrepOption("Vienés", R.string.prep_vienes, "vienes"),
+    BrewLabPrepOption("Irlandés", R.string.prep_irlandes, "irlandes"),
+    BrewLabPrepOption("Frappuccino", R.string.prep_frappuccino, "frappuccino"),
+    BrewLabPrepOption("Caramelo macchiato", R.string.prep_caramel_macchiato, "caramel_macchiato"),
+    BrewLabPrepOption("Corretto", R.string.prep_corretto, "corretto"),
+    BrewLabPrepOption("Freddo", R.string.prep_freddo, "freddo"),
+    BrewLabPrepOption("Latte macchiato", R.string.prep_latte_macchiato, "latte_macchiato"),
+    BrewLabPrepOption("Leche con chocolate", R.string.prep_leche_con_chocolate, "leche_con_chocolate"),
+    BrewLabPrepOption("Marroquí", R.string.prep_marroqui, "marroqui"),
+    BrewLabPrepOption("Romano", R.string.prep_romano, "romano"),
+    BrewLabPrepOption("Descafeinado", R.string.prep_descafeinado, "descafeinado")
 )
 private val BREWLAB_SIZE_OPTIONS = listOf(
-    BrewLabSizeOption("Espresso", "25–30 ml", 30, "taza_espresso"),
-    BrewLabSizeOption("Pequeño", "150–200 ml", 180, "taza_pequeno"),
-    BrewLabSizeOption("Mediano", "250–300 ml", 275, "taza_mediano"),
-    BrewLabSizeOption("Grande", "350–400 ml", 375, "taza_grande"),
-    BrewLabSizeOption("Tazón XL", "450–500 ml", 475, "taza_xl")
+    BrewLabSizeOption("Espresso", R.string.size_espresso, R.string.size_range_espresso, 30, "taza_espresso"),
+    BrewLabSizeOption("Pequeño", R.string.size_small, R.string.size_range_small, 180, "taza_pequeno"),
+    BrewLabSizeOption("Mediano", R.string.size_medium, R.string.size_range_medium, 275, "taza_mediano"),
+    BrewLabSizeOption("Grande", R.string.size_large, R.string.size_range_large, 375, "taza_grande"),
+    BrewLabSizeOption("Tazón XL", R.string.size_xl, R.string.size_range_xl, 475, "taza_xl")
 )
 
 @Composable
@@ -430,7 +431,7 @@ fun BrewLabMainStepContent(
                                     }
                                 } else {
                                     Text(
-                                        text = "Selecciona café",
+                                        text = stringResource(id = R.string.diary_add_select_coffee),
                                         style = MaterialTheme.typography.bodyLarge,
                                         fontWeight = FontWeight.Medium,
                                         color = if (isDarkBrew) PureWhite else MaterialTheme.colorScheme.onSurface,
@@ -438,7 +439,7 @@ fun BrewLabMainStepContent(
                                     )
                                 }
                             }
-                            Icon(Icons.Default.ChevronRight, contentDescription = "Abrir", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Icon(Icons.Default.ChevronRight, contentDescription = stringResource(id = R.string.common_open), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -497,7 +498,7 @@ fun ChooseCoffeeStep(
     ) {
         item {
             Text(
-                "TU DESPENSA",
+                stringResource(id = R.string.diary_pantry_title).uppercase(),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = Spacing.space6)
@@ -511,7 +512,7 @@ fun ChooseCoffeeStep(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        if (searchQuery.isBlank()) "Tu despensa está vacía." else "No hay coincidencias en tu despensa.",
+                        if (searchQuery.isBlank()) stringResource(id = R.string.brew_pantry_empty) else stringResource(id = R.string.brew_pantry_no_matches),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
@@ -542,19 +543,19 @@ fun ChooseCoffeeStep(
                 modifier = Modifier.padding(horizontal = Spacing.space6)
             ) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("SUGERENCIAS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(id = R.string.diary_suggestions_title).uppercase(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.weight(1f))
                     TextButton(onClick = onCreateCoffeeClick) {
-                        Text("Crea tu café", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        Text(stringResource(id = R.string.diary_create_coffee), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
                 }
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = onSearchQueryChange,
-                    placeholder = { Text("Buscar café...") },
+                    placeholder = { Text(stringResource(id = R.string.brew_search_coffee_placeholder)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = Shapes.pillFull,
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar café") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(id = R.string.brew_search_coffee_cd)) },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surface,
                         unfocusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -568,7 +569,7 @@ fun ChooseCoffeeStep(
         if (filteredSuggestions.isEmpty()) {
             item {
                 Text(
-                    "No hay sugerencias disponibles.",
+                    stringResource(id = R.string.brew_no_suggestions),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = Spacing.space6)
                 )
@@ -621,7 +622,7 @@ fun SimpleCoffeeSelectionCard(coffee: Coffee, onClick: () -> Unit) {
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            Icon(Icons.Filled.Add, contentDescription = "Añadir", tint = MaterialTheme.colorScheme.primary)
+            Icon(Icons.Filled.Add, contentDescription = stringResource(id = R.string.common_add), tint = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -654,15 +655,16 @@ fun ConfigStep(
     LaunchedEffect(water) { waterDraft = water.roundToInt().toString() }
     LaunchedEffect(coffeeGrams) { coffeeDraft = formatDecimalWithComma(coffeeGrams) }
 
-    val ratioProfile = remember(ratio, methodProfile) {
+    val ratioProfileRes = remember(ratio, methodProfile) {
         val span = (methodProfile.ratioMax - methodProfile.ratioMin).toFloat().coerceAtLeast(0.1f)
         val normalized = (ratio - methodProfile.ratioMin.toFloat()) / span
         when {
-            normalized <= 0.35f -> "CONCENTRADO"
-            normalized <= 0.7f -> "EQUILIBRADO"
-            else -> "LIGERO"
+            normalized <= 0.35f -> R.string.brew_ratio_concentrated
+            normalized <= 0.7f -> R.string.brew_ratio_balanced
+            else -> R.string.brew_ratio_light
         }
     }
+    val ratioProfile = stringResource(id = ratioProfileRes).uppercase()
     val sliderInactiveTrackColor = if (isSystemInDarkTheme()) SliderTrackInactiveDark else SliderTrackInactiveLight
     val coffeeColor = LocalCaramelAccent.current
     val isOtrosMethod = methodName == BREW_METHOD_OTROS // "Rápido"
@@ -671,7 +673,11 @@ fun ConfigStep(
     Column(Modifier.fillMaxWidth()) {
         if (showSectionTitle) {
             Spacer(Modifier.height(Spacing.space4))
-            val configTitle = if (isAguaMethod) "Configura tu Agua" else "Configura tu ${methodName ?: "elaboración"}"
+            val configTitle = if (isAguaMethod) {
+                stringResource(id = R.string.brew_config_water)
+            } else {
+                stringResource(id = R.string.brew_config_method, methodName ?: stringResource(id = R.string.nav_brewlab))
+            }
             Text(
                 text = configTitle,
                 style = MaterialTheme.typography.labelLarge,
@@ -684,7 +690,7 @@ fun ConfigStep(
         val configContent: @Composable () -> Unit = {
                     if (isOtrosMethod) {
                         Text(
-                            text = "Este método no tiene parámetros específicos.",
+                            text = stringResource(id = R.string.brew_method_no_specific_params),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(vertical = Spacing.space4)
@@ -692,7 +698,7 @@ fun ConfigStep(
                     } else if (isAguaMethod) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             BrewMetricInputBlock(
-                                label = "Agua (ml)",
+                                label = stringResource(id = R.string.brew_water_ml),
                                 value = waterDraft,
                                 valueColor = waterBlue,
                                 keyboardType = KeyboardType.Number,
@@ -726,7 +732,7 @@ fun ConfigStep(
                     if (isWaterEditable) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             BrewMetricInputBlock(
-                                label = "Agua (ml)",
+                                label = stringResource(id = R.string.brew_water_ml),
                                 value = waterDraft,
                                 valueColor = waterBlue,
                                 keyboardType = KeyboardType.Number,
@@ -763,10 +769,10 @@ fun ConfigStep(
                         val coffeeMin = BREW_SLIDER_MIN_COFFEE_G
                         val coffeeSliderMax = BREW_SLIDER_MAX_COFFEE_G
                         val ratioLabelValue = if (methodProfile.ratioStep < 1.0) String.format(Locale.US, "%.1f", ratio) else ratio.roundToInt().toString()
-                        val ratioTitle = "RATIO 1:$ratioLabelValue - $ratioProfile"
+                        val ratioTitle = stringResource(id = R.string.brew_ratio_label, ratioLabelValue, ratioProfile)
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             BrewMetricInputBlock(
-                                label = "Café (g)",
+                                label = stringResource(id = R.string.brew_coffee_g),
                                 value = coffeeDraft,
                                 valueColor = coffeeColor,
                                 keyboardType = KeyboardType.Decimal,
@@ -806,7 +812,7 @@ fun ConfigStep(
                         val timeSliderMin = minOf(timeProfile.minSeconds, timeSliderMax)
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             BrewMetricInputBlock(
-                                label = "Tiempo (s)",
+                                label = stringResource(id = R.string.brew_time_s),
                                 value = brewTimeSeconds.toString(),
                                 valueColor = timeSliderColor,
                                 keyboardType = KeyboardType.Number,
@@ -847,13 +853,13 @@ fun ConfigStep(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "Consejos del barista",
+                                    text = stringResource(id = R.string.brew_barista_tips),
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.weight(1f)
                                 )
-                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Abrir", tint = MaterialTheme.colorScheme.primary)
+                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = stringResource(id = R.string.common_open), tint = MaterialTheme.colorScheme.primary)
                             }
                         }
                     }
@@ -870,7 +876,7 @@ fun ConfigStep(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Temporizador",
+                                text = stringResource(id = R.string.brew_timer_label),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.weight(1f)
@@ -921,7 +927,7 @@ fun ConfigStep(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "Consejos del barista",
+                            stringResource(id = R.string.brew_barista_tips),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -950,7 +956,7 @@ fun PreparationStep(
     viewModel: BrewLabViewModel
 ) {
     val haptic = LocalHapticFeedback.current
-    val currentPhase = timeline.getOrNull(currentPhaseIndex) ?: BrewPhaseInfo("Listo", "Proceso completado.", 0)
+    val currentPhase = timeline.getOrNull(currentPhaseIndex) ?: BrewPhaseInfo(stringResource(id = R.string.brew_ready), stringResource(id = R.string.brew_process_completed), 0)
     val nextPhase = timeline.getOrNull(currentPhaseIndex + 1)
     val totalSeconds = timeline.sumOf { it.durationSeconds }.coerceAtLeast(1)
     val totalProgress = (timerSeconds.toFloat() / totalSeconds).coerceIn(0f, 1f)
@@ -960,8 +966,14 @@ fun PreparationStep(
             .map { it.trim() }
             .filter { it.isNotBlank() }
     }
-    val adviceCards = remember(currentPhase.instruction, adviceLines) {
-        listOf(currentPhase.instruction) + adviceLines.map { "$it." }
+    val isSpanish = remember { Locale.getDefault().language.startsWith("es") }
+    val timerTipsGeneric = stringResource(id = R.string.brew_timer_tips_generic)
+    val adviceCards = remember(currentPhase.instruction, adviceLines, isSpanish, timerTipsGeneric) {
+        if (isSpanish) {
+            listOf(currentPhase.instruction) + adviceLines.map { "$it." }
+        } else {
+            listOf(timerTipsGeneric)
+        }
     }
     val advicePages = remember(adviceCards) { adviceCards.chunked(3) }
 
@@ -1011,7 +1023,7 @@ fun PreparationStep(
 
                     Column(modifier = Modifier.padding(Spacing.space6)) {
                             Text(
-                                text = "El paso: ${currentPhase.label}",
+                                text = stringResource(id = R.string.brew_step_label, currentPhase.label),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = PureWhite
                             )
@@ -1044,9 +1056,9 @@ fun PreparationStep(
                                 )
                             }
 
-                            val nextLabel = nextPhase?.label ?: "Finalizar"
+                            val nextLabel = nextPhase?.label ?: stringResource(id = R.string.brew_finish)
                             Text(
-                                text = "Siguiente: $nextLabel",
+                                text = stringResource(id = R.string.brew_next_label, nextLabel),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = timerCardText
                             )
@@ -1063,7 +1075,7 @@ fun PreparationStep(
                             ) {
                                 @Suppress("DEPRECATION")
                                 Text(
-                                    text = String.format("TOTAL %02d:%02d", totalSeconds / 60, totalSeconds % 60),
+                                    text = String.format(stringResource(id = R.string.brew_total_timer_pattern), totalSeconds / 60, totalSeconds % 60),
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.Bold,
                                     color = timerCardText
@@ -1143,7 +1155,7 @@ fun PreparationStep(
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                         ) {
-                            Text("REINICIAR", fontWeight = FontWeight.Bold)
+                            Text(stringResource(id = R.string.brew_reset).uppercase(), fontWeight = FontWeight.Bold)
                         }
                     }
                     Button(
@@ -1159,12 +1171,12 @@ fun PreparationStep(
                     ) {
                         Icon(
                             if (isTimerRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (isTimerRunning) "Pausar" else "Iniciar",
+                            contentDescription = if (isTimerRunning) stringResource(id = R.string.brew_timer_pause) else stringResource(id = R.string.brew_timer_start),
                             tint = if (isTimerRunning) PureWhite else if (isSystemInDarkTheme()) PureBlack else MaterialTheme.colorScheme.onPrimary
                         )
                         Spacer(Modifier.width(Spacing.space2))
                         Text(
-                            if (isTimerRunning) "PAUSAR" else "INICIAR",
+                            if (isTimerRunning) stringResource(id = R.string.brew_timer_pause).uppercase() else stringResource(id = R.string.brew_timer_start).uppercase(),
                             fontWeight = FontWeight.Bold,
                             color = if (isTimerRunning) PureWhite else if (isSystemInDarkTheme()) PureBlack else MaterialTheme.colorScheme.onPrimary
                         )
@@ -1257,13 +1269,13 @@ private fun PreparationTasteCard(
     viewModel: BrewLabViewModel
 ) {
     val tastes = listOf(
-        "Amargo" to Icons.Default.LocalFireDepartment,
-        "Ácido" to Icons.Default.Science,
-        "Equilibrado" to Icons.Default.Verified,
-        "Salado" to Icons.Default.Waves,
-        "Acuoso" to Icons.Default.WaterDrop,
-        "Aspero" to Icons.Default.Grain,
-        "Dulce" to Icons.Default.Favorite
+        "Amargo" to (Icons.Default.LocalFireDepartment to R.string.brew_taste_bitter),
+        "Ácido" to (Icons.Default.Science to R.string.brew_taste_acidic),
+        "Equilibrado" to (Icons.Default.Verified to R.string.brew_taste_balanced),
+        "Salado" to (Icons.Default.Waves to R.string.brew_taste_salty),
+        "Acuoso" to (Icons.Default.WaterDrop to R.string.brew_taste_watery),
+        "Aspero" to (Icons.Default.Grain to R.string.brew_taste_rough),
+        "Dulce" to (Icons.Default.Favorite to R.string.brew_taste_sweet)
     )
     val isDark = isSystemInDarkTheme()
     PremiumCard(
@@ -1280,9 +1292,11 @@ private fun PreparationTasteCard(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(Spacing.space3)
                     ) {
-                        rowTastes.forEach { (label, icon) ->
+                        rowTastes.forEach { (label, iconAndRes) ->
+                            val icon = iconAndRes.first
+                            val localizedTaste = stringResource(id = iconAndRes.second)
                             TasteChip(
-                                label = label.uppercase(),
+                                label = localizedTaste.uppercase(),
                                 icon = icon,
                                 isSelected = selectedTaste == label,
                                 modifier = Modifier.weight(1f)
@@ -1310,11 +1324,11 @@ private fun PreparationTasteCard(
                     ) {
                         Column(Modifier.padding(Spacing.space6)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.AutoAwesome, contentDescription = "Recomendación", tint = LocalCaramelAccent.current, modifier = Modifier.size(Spacing.space6))
+                                Icon(Icons.Default.AutoAwesome, contentDescription = stringResource(id = R.string.brew_recommendation), tint = LocalCaramelAccent.current, modifier = Modifier.size(Spacing.space6))
                                 Spacer(Modifier.width(Spacing.space3))
                                 @Suppress("DEPRECATION")
                                 Text(
-                                    "Recomendación",
+                                    stringResource(id = R.string.brew_recommendation),
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.Black,
                                     color = LocalCaramelAccent.current
@@ -1367,7 +1381,7 @@ fun ResultStep(
     ) {
         Spacer(Modifier.height(Spacing.space4))
         Text(
-            text = "Configura tu café",
+            text = stringResource(id = R.string.brew_config_your_coffee),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.SemiBold,
@@ -1396,10 +1410,11 @@ fun ResultStep(
                         contentPadding = PaddingValues(start = Spacing.space4, end = 0.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        items(BREWLAB_TIPO_OPTIONS, key = { it.label }) { option ->
-                            val isSelected = drinkType.equals(option.label, ignoreCase = true)
+                        items(BREWLAB_TIPO_OPTIONS, key = { it.key }) { option ->
+                            val localizedLabel = stringResource(id = option.labelResId)
+                            val isSelected = drinkType.equals(option.key, ignoreCase = true)
                             Surface(
-                                onClick = { viewModel.setDrinkType(option.label) },
+                                onClick = { viewModel.setDrinkType(option.key) },
                                 shape = Shapes.card,
                                 color = if (isSelected) LocalCaramelAccent.current else unselectedChipBg,
                                 border = BorderStroke(0.dp, Color.Transparent),
@@ -1415,15 +1430,15 @@ fun ResultStep(
                                     if (resId != 0) {
                                         Image(
                                             painter = painterResource(id = resId),
-                                            contentDescription = option.label,
+                                            contentDescription = localizedLabel,
                                             modifier = Modifier.size(24.dp),
                                             contentScale = ContentScale.Fit
                                         )
                                     } else {
-                                        Icon(Icons.Default.CoffeeMaker, contentDescription = option.label, tint = iconTint, modifier = Modifier.size(24.dp))
+                                        Icon(Icons.Default.CoffeeMaker, contentDescription = localizedLabel, tint = iconTint, modifier = Modifier.size(24.dp))
                                     }
                                     Text(
-                                        text = option.label,
+                                        text = localizedLabel,
                                         style = MaterialTheme.typography.labelMedium,
                                         color = if (isSelected) selectedTextColorTipo else unselectedChipContent,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
@@ -1457,12 +1472,14 @@ fun ResultStep(
                         contentPadding = PaddingValues(start = Spacing.space4, end = 0.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        items(BREWLAB_SIZE_OPTIONS, key = { it.label }) { option ->
-                            val isSelected = selectedSizeLabel == option.label
+                        items(BREWLAB_SIZE_OPTIONS, key = { it.key }) { option ->
+                            val localizedLabel = stringResource(id = option.labelResId)
+                            val localizedRange = stringResource(id = option.rangeResId)
+                            val isSelected = selectedSizeLabel == option.key
                             val chipBg = if (isSelected) LocalCaramelAccent.current else unselectedChipBgSize
                             val chipContent = if (isSelected) selectedTextColorSize else unselectedChipContent
                             Surface(
-                                onClick = { viewModel.setSelectedSize(option.label, option.defaultMl.toFloat()) },
+                                onClick = { viewModel.setSelectedSize(option.key, option.defaultMl.toFloat()) },
                                 shape = Shapes.cardSmall,
                                 color = chipBg,
                                 border = BorderStroke(0.dp, Color.Transparent)
@@ -1476,16 +1493,16 @@ fun ResultStep(
                                     if (sizeResId != 0) {
                                         Image(
                                             painter = painterResource(id = sizeResId),
-                                            contentDescription = option.label,
+                                            contentDescription = localizedLabel,
                                             modifier = Modifier.size(Spacing.space6),
                                             contentScale = ContentScale.Fit
                                         )
                                     } else {
-                                        Icon(Icons.Default.LocalCafe, contentDescription = option.label, modifier = Modifier.size(20.dp), tint = chipContent)
+                                        Icon(Icons.Default.LocalCafe, contentDescription = localizedLabel, modifier = Modifier.size(20.dp), tint = chipContent)
                                     }
                                     Column {
-                                        Text(option.label, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = chipContent)
-                                        Text(option.rangeLabel, style = MaterialTheme.typography.bodySmall, color = chipContent.copy(alpha = 0.9f))
+                                        Text(localizedLabel, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = chipContent)
+                                        Text(localizedRange, style = MaterialTheme.typography.bodySmall, color = chipContent.copy(alpha = 0.9f))
                                     }
                                 }
                             }
@@ -1496,7 +1513,7 @@ fun ResultStep(
         }
         Spacer(Modifier.height(Spacing.space6))
         Text(
-            text = "Resultado",
+            text = stringResource(id = R.string.brew_result),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.SemiBold,
@@ -1588,7 +1605,7 @@ fun PantrySelectionCard(item: PantryItemWithDetails, onClick: () -> Unit) {
                     trackColor = MaterialTheme.colorScheme.outline
                 )
             }
-            Icon(Icons.Default.ChevronRight, contentDescription = "Abrir", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Default.ChevronRight, contentDescription = stringResource(id = R.string.common_open), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

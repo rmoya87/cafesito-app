@@ -43,7 +43,7 @@ import { buildRoute, getAppRootPath, isKnownRoute, parseRoute } from "../core/ro
 import { sendEvent, sendPageView, setGa4UserId } from "../core/ga4";
 import { shouldUseRightRailDetail, sidePanelForTab } from "../core/layouts";
 import { canAccessTabAsGuest, resolveGuardedTab } from "../core/guards";
-import { getBrewMethodProfile, getBrewStepTitle, getBrewTimeProfile } from "../core/brew";
+import { getBrewMethodProfile, getBrewTimeProfile } from "../core/brew";
 import { formatMonthYear, formatWeekRange, getMondayOfWeek, type DiaryPeriod } from "../core/diaryAnalytics";
 import { normalizeLookupText } from "../core/text";
 import { copyToClipboard, shareOrCopyLink } from "../core/shareService";
@@ -59,7 +59,6 @@ import { useSearchDomain } from "../hooks/domains/useSearchDomain";
 import { useProfileDomain } from "../hooks/domains/useProfileDomain";
 import { useCoffeeDetailDomain, useCoffeeDetailDraftSync } from "../hooks/domains/useCoffeeDetailDomain";
 import { useCoffeeDetailActions } from "../hooks/domains/useCoffeeDetailActions";
-import { useTimelineComposerDomain } from "../hooks/domains/useTimelineComposerDomain";
 import { useAppNavigationDomain } from "../hooks/domains/useAppNavigationDomain";
 import { useTimelineActions } from "../hooks/domains/useTimelineActions";
 import { useCreateCoffeeDomain } from "../hooks/domains/useCreateCoffeeDomain";
@@ -88,6 +87,7 @@ import { TopBar } from "../features/topbar/TopBar";
 import { FavoritosListView } from "../features/profile/FavoritosListView";
 import { HistorialView } from "../features/profile/HistorialView";
 import { ProfileUsersListView } from "../features/profile/ProfileUsersListView";
+import { ProfileLanguageView } from "../features/profile/ProfileLanguageView";
 import {
   LazyHomeView,
   LazySearchView,
@@ -121,6 +121,7 @@ import { BrewSelectCoffeePage } from "../features/brew/BrewSelectCoffeePage";
 
 import { UiIcon } from "../ui/iconography";
 import { Button, cn, IconButton, SheetCard, SheetHandle, SheetOverlay } from "../ui/components";
+import { useI18n } from "../i18n";
 import type {
   BrewStep,
   CoffeeRow,
@@ -143,6 +144,10 @@ import type {
 } from "../types";
 
 export function AppContainer() {
+  const { t, locale } = useI18n();
+  const APP_LOADING_STATUS = "app_loading";
+  const APP_READY_STATUS = "app_ready";
+  const APP_ACCOUNT_DELETED_STATUS = "app_account_deleted_30d";
   const logShareEventBackend = useCallback(
     (
       eventName: "share_opened" | "share_target_shown" | "share_target_clicked" | "share_completed" | "share_failed",
@@ -175,7 +180,7 @@ export function AppContainer() {
     applyThemeToDocument(getThemeMode());
   }, []);
 
-  const [globalStatus, setGlobalStatus] = useState("Cargando datos...");
+  const [globalStatus, setGlobalStatus] = useState(APP_LOADING_STATUS);
 
   const [users, setUsers] = useState<UserRow[]>([]);
   const [coffees, setCoffees] = useState<CoffeeRow[]>([]);
@@ -195,7 +200,7 @@ export function AppContainer() {
   const [coffeeIdsInUserLists, setCoffeeIdsInUserLists] = useState<string[]>([]);
   const [coffeeIdsInEditableUserLists, setCoffeeIdsInEditableUserLists] = useState<string[]>([]);
   const [detailListIdsContainingCoffee, setDetailListIdsContainingCoffee] = useState<string[]>([]);
-  const [profileSubPanel, setProfileSubPanel] = useState<"historial" | "followers" | "following" | "favorites" | "list" | null>(
+  const [profileSubPanel, setProfileSubPanel] = useState<"historial" | "followers" | "following" | "favorites" | "list" | "language" | null>(
     () =>
       initialRoute.tab === "profile" && "profileSection" in initialRoute && initialRoute.profileSection
         ? initialRoute.profileSection
@@ -354,7 +359,25 @@ export function AppContainer() {
   const [diaryTab, setDiaryTab] = useState<"actividad" | "despensa">("actividad");
   const [diaryPeriod, setDiaryPeriod] = useState<DiaryPeriod>("week");
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
-  const [recommendationDateKey] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [recommendationDateKey, setRecommendationDateKey] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  useEffect(() => {
+    const syncRecommendationDateKey = () => {
+      const nextKey = new Date().toISOString().slice(0, 10);
+      setRecommendationDateKey((prev) => (prev === nextKey ? prev : nextKey));
+    };
+
+    syncRecommendationDateKey();
+    const intervalId = window.setInterval(syncRecommendationDateKey, 60_000);
+    const onVisibilityChange = () => {
+      if (!document.hidden) syncRecommendationDateKey();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, []);
   const [selectedDiaryDate, setSelectedDiaryDate] = useState<string>(() => getMondayOfWeek(new Date().toISOString().slice(0, 10)));
   const currentMonthKey = useMemo(() => {
     const d = new Date();
@@ -401,31 +424,39 @@ export function AppContainer() {
     triggerProfileEdit
   } = useProfileDomain(initialRoute.profileUsername, activeTab);
 
-  const {
-    showCreatePost,
-    newPostText,
-    setNewPostText,
-    newPostImageFile,
-    setNewPostImageFile,
-    newPostImagePreviewUrl,
-    setNewPostImagePreviewUrl,
-    newPostGalleryItems,
-    setNewPostGalleryItems,
-    newPostSelectedImageId,
-    setNewPostSelectedImageId,
-    newPostCoffeeId,
-    setNewPostCoffeeId,
-    showCreatePostCoffeeSheet,
-    setShowCreatePostCoffeeSheet,
-    createPostCoffeeQuery,
-    setCreatePostCoffeeQuery,
-    showCreatePostEmojiPanel,
-    setShowCreatePostEmojiPanel,
-    newPostImageInputRef,
-    resetCreatePostComposer,
-    openCreatePostComposer,
-    appendNewPostFiles
-  } = useTimelineComposerDomain();
+  const [showCreatePost, setShowCreatePost] = useState(false);
+  const [newPostText, setNewPostText] = useState<string>("");
+  const [newPostImageFile, setNewPostImageFile] = useState<File | null>(null);
+  const [newPostImagePreviewUrl, setNewPostImagePreviewUrl] = useState<string | null>(null);
+  const [newPostGalleryItems, setNewPostGalleryItems] = useState<any[]>([]);
+  const [newPostSelectedImageId, setNewPostSelectedImageId] = useState<string | null>(null);
+  const [newPostCoffeeId, setNewPostCoffeeId] = useState<string | null>(null);
+  const [showCreatePostCoffeeSheet, setShowCreatePostCoffeeSheet] = useState(false);
+  const [createPostCoffeeQuery, setCreatePostCoffeeQuery] = useState("");
+  const [showCreatePostEmojiPanel, setShowCreatePostEmojiPanel] = useState(false);
+  const newPostImageInputRef = useRef<HTMLInputElement | null>(null);
+  const resetCreatePostComposer = useCallback(() => {
+    setNewPostText("");
+    setNewPostImageFile(null);
+    setNewPostImagePreviewUrl(null);
+    setNewPostGalleryItems([]);
+    setNewPostSelectedImageId(null);
+    setNewPostCoffeeId(null);
+    setShowCreatePostCoffeeSheet(false);
+    setCreatePostCoffeeQuery("");
+    setShowCreatePostEmojiPanel(false);
+    if (newPostImageInputRef.current) {
+      newPostImageInputRef.current.value = "";
+    }
+  }, []);
+  const openCreatePostComposer = useCallback(() => {
+    setShowCreatePost(true);
+    setShowCreatePostEmojiPanel(false);
+  }, []);
+  const appendNewPostFiles = useCallback((files: FileList | null) => {
+    if (!files || !newPostImageInputRef.current) return;
+    newPostImageInputRef.current.files = files;
+  }, []);
   const [handledHomeDeepLink, setHandledHomeDeepLink] = useState(false);
   const [topbarScrolled, setTopbarScrolled] = useState(false);
   const mainScrollRef = useRef<HTMLDivElement>(null);
@@ -486,6 +517,22 @@ export function AppContainer() {
 
   const activeUser = useMemo(() => {
     if (!users.length) return null;
+    const isDevLocal =
+      import.meta.env.DEV &&
+      typeof window !== "undefined" &&
+      window.location.hostname !== "cafesitoapp.com";
+    if (isDevLocal) {
+      try {
+        const rawDevUserId = window.localStorage.getItem("cafesito_dev_internal_user_id");
+        const devUserId = rawDevUserId ? Number(rawDevUserId) : Number.NaN;
+        if (Number.isFinite(devUserId)) {
+          const devUser = users.find((user) => user.id === devUserId);
+          if (devUser) return devUser;
+        }
+      } catch {
+        // ignore localStorage failures
+      }
+    }
     if (sessionEmail) {
       const sessionEmailNormalized = normalizeLookupText(sessionEmail);
       const found = users.find((user) => normalizeLookupText(user.email) === sessionEmailNormalized);
@@ -854,7 +901,7 @@ export function AppContainer() {
       resetCreateCoffeeDomain();
       setDetailCoffeeId(null);
       setDetailHostTab(null);
-      setGlobalStatus("Listo");
+      setGlobalStatus(APP_READY_STATUS);
     } catch (error) {
       setAuthError((error as Error).message);
     }
@@ -878,10 +925,10 @@ export function AppContainer() {
         const outcome = await syncAccountLifecycleAfterLogin(activeUser.id);
         if (cancelled) return;
         if (outcome === "reactivated") {
-          setHomeActionBanner("Se canceló la eliminación de tu cuenta porque volviste a iniciar sesión.");
+          setHomeActionBanner(t("account.reactivatedBanner"));
         } else if (outcome === "deleted") {
           await handleSignOut();
-          if (!cancelled) setGlobalStatus("Tu cuenta se eliminó por haber superado el plazo de 30 días.");
+          if (!cancelled) setGlobalStatus(APP_ACCOUNT_DELETED_STATUS);
         }
       } catch {
         // Best effort: no bloquea la sesión si el backend aún no tiene estas columnas.
@@ -1820,7 +1867,7 @@ export function AppContainer() {
 
   const crearCafeContent = (
     <section className="create-coffee-mobile-screen">
-      <Suspense fallback={<div className="create-coffee-sheet-loading" aria-live="polite">Cargando...</div>}>
+      <Suspense fallback={<div className="create-coffee-sheet-loading" aria-live="polite">{t("common.loading")}</div>}>
         <LazyCreateCoffeeView
           draft={createCoffeeDraft}
           imagePreviewUrl={createCoffeeImagePreviewUrl}
@@ -1869,7 +1916,7 @@ export function AppContainer() {
   );
 
   const createCoffeeFormForSheet = (
-    <Suspense fallback={<div className="create-coffee-sheet-loading" aria-live="polite">Cargando...</div>}>
+    <Suspense fallback={<div className="create-coffee-sheet-loading" aria-live="polite">{t("common.loading")}</div>}>
       <LazyCreateCoffeeView
         draft={createCoffeeDraft}
         imagePreviewUrl={createCoffeeImagePreviewUrl}
@@ -1906,7 +1953,7 @@ export function AppContainer() {
     createCoffeeDraft.totalGrams > 0;
 
   const createCoffeeFormForPantrySheet = (
-    <Suspense fallback={<div className="create-coffee-sheet-loading" aria-live="polite">Cargando...</div>}>
+    <Suspense fallback={<div className="create-coffee-sheet-loading" aria-live="polite">{t("common.loading")}</div>}>
       <LazyCreateCoffeeView
         draft={createCoffeeDraft}
         imagePreviewUrl={createCoffeeImagePreviewUrl}
@@ -2029,17 +2076,17 @@ export function AppContainer() {
   useEffect(() => {
     const titles: Partial<Record<TabId, string>> = {
       home: "Cafesito",
-      search: "Explorar",
-      brewlab: "Elabora",
-      diary: "Diario",
-      profile: "Perfil",
-      coffee: detailCoffee?.nombre ? `Café · ${detailCoffee.nombre}` : "Café",
-      "crear-cafe": "Crea tu café",
-      "selecciona-cafe": "Seleccionar café"
+      search: t("nav.search"),
+      brewlab: t("nav.brewlab"),
+      diary: t("nav.diary"),
+      profile: t("nav.profile"),
+      coffee: detailCoffee?.nombre ? `${t("top.coffee")} · ${detailCoffee.nombre}` : t("top.coffee"),
+      "crear-cafe": t("top.createCoffee"),
+      "selecciona-cafe": t("top.selectCoffee")
     };
     const pageTitle = titles[guardedActiveTab] ?? "Cafesito";
     sendPageView(gaPagePath, `Cafesito - ${pageTitle}`);
-  }, [gaPagePath, guardedActiveTab]);
+  }, [detailCoffee?.nombre, gaPagePath, guardedActiveTab, t]);
 
   // GA4: mismo usuario en todas las sesiones cuando está logueado (unifica analíticas por user_id)
   useEffect(() => {
@@ -2282,7 +2329,7 @@ export function AppContainer() {
           suggestionIndices={homeSuggestionIndices}
           followingIds={followingIds}
           followerCounts={followerCounts}
-          loading={globalStatus === "Cargando datos..."}
+          loading={globalStatus === APP_LOADING_STATUS}
           errorMessage={globalStatus.startsWith("Error") ? globalStatus : null}
           refreshing={homeRefreshing}
           activeUserId={activeUser?.id ?? null}
@@ -2403,7 +2450,7 @@ export function AppContainer() {
         />
       ) : (
         <article className="coffee-detail-empty coffee-detail-empty-full">
-          <h2 className="title">Café no encontrado</h2>
+          <h2 className="title">{t("coffee.notFound")}</h2>
           <p className="coffee-sub">La URL no corresponde a ningún café disponible.</p>
           <Button
             variant="primary"
@@ -2420,7 +2467,7 @@ export function AppContainer() {
     guardedActiveTab === "brewlab" ? (
       showCreateCoffeeComposer && mode !== "desktop" ? (
         <section className="create-coffee-mobile-screen">
-          <Suspense fallback={<div className="create-coffee-sheet-loading" aria-live="polite">Cargando...</div>}>
+          <Suspense fallback={<div className="create-coffee-sheet-loading" aria-live="polite">{t("common.loading")}</div>}>
             {createCoffeePanel}
           </Suspense>
         </section>
@@ -2519,7 +2566,8 @@ export function AppContainer() {
         />
       ) : profileSubPanel === "followers" ? (
         <ProfileUsersListView
-          title="Seguidores"
+          title={t("top.followers")}
+          emptyState="followers"
           users={profileFollowersUsers}
           followerCounts={followerCounts}
           followingCounts={followingCounts}
@@ -2529,7 +2577,8 @@ export function AppContainer() {
         />
       ) : profileSubPanel === "following" ? (
         <ProfileUsersListView
-          title="Siguiendo"
+          title={t("top.following")}
+          emptyState="following"
           users={profileFollowingUsers}
           followerCounts={followerCounts}
           followingCounts={followingCounts}
@@ -2557,6 +2606,8 @@ export function AppContainer() {
             });
           }}
         />
+      ) : profileSubPanel === "language" ? (
+        <ProfileLanguageView />
       ) : profileSubPanel === "list" && profileListId && joinListInfo && typeof joinListInfo === "object" ? (
         <JoinListView
           listName={joinListInfo.name}
@@ -2587,12 +2638,12 @@ export function AppContainer() {
           isJoining={joinListJoining}
         />
       ) : profileSubPanel === "list" && profileListId && joinListInfo === "not_found" ? (
-        <section className="join-list-view profile-users-list-view" aria-label="Lista no encontrada">
-          <p className="join-list-view-title">Lista no encontrada</p>
-          <p className="join-list-view-owner">El enlace no es válido o la lista ya no permite unirse.</p>
+        <section className="join-list-view profile-users-list-view" aria-label={t("lists.join.notFound")}>
+          <p className="join-list-view-title">{t("lists.join.notFound")}</p>
+          <p className="join-list-view-owner">{t("lists.join.notFoundHint")}</p>
           <Button variant="plain" className="join-list-view-back" onClick={() => navigateToTab("home", { replace: true })}>
             <UiIcon name="arrow-left" aria-hidden="true" />
-            Volver
+            {t("common.back")}
           </Button>
         </section>
       ) : profileSubPanel === "list" && profileListId && listOptionsView ? (
@@ -2693,8 +2744,8 @@ export function AppContainer() {
                     });
                   }
                   const result = await shareOrCopyLink({
-                    title: "Lista de Cafesito",
-                    text: "Te comparto esta lista",
+                    title: t("share.listTitle"),
+                    text: t("share.listText"),
                     url: shareUrl
                   });
                   if (result.ok) {
@@ -3073,7 +3124,17 @@ export function AppContainer() {
           scrolled={topbarScrolled}
           hidden={false}
           brewStep={brewStep}
-          brewStepTitle={getBrewStepTitle(brewStep)}
+          brewStepTitle={
+            brewStep === "method"
+              ? (locale === "es" ? "ELABORACION" : "BREWING")
+              : brewStep === "coffee"
+                ? t("top.selectCoffee").toUpperCase()
+                : brewStep === "config"
+                  ? t("brew.configureCoffee").toUpperCase()
+                  : brewStep === "brewing"
+                    ? (locale === "es" ? "PROCESO EN CURSO" : "BREW IN PROGRESS")
+                    : t("diary.consumption").toUpperCase()
+          }
           onBrewBack={topbarActions.onBrewBack}
           onBrewForward={topbarActions.onBrewForward}
           brewCanGoToConfig={guardedActiveTab === "brewlab" && brewStep === "method" && (brewMethod === "Agua" ? waterMl > 0 : Boolean(brewMethod))}
@@ -3117,6 +3178,7 @@ export function AppContainer() {
           onProfileDeleteAccount={handleDeleteAccount}
           profileMenuEnabled={Boolean(profileUser && activeUser && profileUser.id === activeUser.id)}
           onProfileOpenEdit={triggerProfileEdit}
+          onProfileOpenLanguage={() => navigateToTab("profile", { profileSection: "language" })}
           onHistorialClick={() => {
             navigateToTab("profile", { profileSection: "historial" });
           }}
@@ -3124,8 +3186,8 @@ export function AppContainer() {
           profileListName={
             profileListId
               ? listOptionsView
-                ? "Opciones"
-                : (profileListMeta?.name ?? userLists.find((l) => l.id === profileListId)?.name ?? "Lista")
+                ? t("top.listOptions")
+                : (profileListMeta?.name ?? userLists.find((l) => l.id === profileListId)?.name ?? t("top.listDefault"))
               : undefined
           }
           onOpenListOptionsSheet={
@@ -3267,7 +3329,7 @@ export function AppContainer() {
         const initialPrivacy: ListPrivacy = list.privacy ?? (list.is_public ? "public" : "private");
         return typeof document !== "undefined"
           ? createPortal(
-              <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar lista" onDismiss={() => { sendEvent("modal_close", { modal_id: "list_edit" }); setShowEditListSheet(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "list_edit" }); setShowEditListSheet(false); }}>
+              <SheetOverlay role="dialog" aria-modal="true" aria-label={t("lists.editList")} onDismiss={() => { sendEvent("modal_close", { modal_id: "list_edit" }); setShowEditListSheet(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "list_edit" }); setShowEditListSheet(false); }}>
                 <EditListSheet
                   listId={list.id}
                   initialName={list.name}
@@ -3283,17 +3345,17 @@ export function AppContainer() {
       })()}
       {showDeleteListConfirmSheet && profileListId && typeof document !== "undefined"
         ? createPortal(
-            <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar lista" onDismiss={() => { sendEvent("modal_close", { modal_id: "delete_confirm_list" }); setShowDeleteListConfirmSheet(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "delete_confirm_list" }); setShowDeleteListConfirmSheet(false); }}>
+            <SheetOverlay role="dialog" aria-modal="true" aria-label={t("lists.deleteList")} onDismiss={() => { sendEvent("modal_close", { modal_id: "delete_confirm_list" }); setShowDeleteListConfirmSheet(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "delete_confirm_list" }); setShowDeleteListConfirmSheet(false); }}>
               <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(e) => e.stopPropagation()}>
                 <SheetHandle aria-hidden="true" />
                 <div className="diary-delete-confirm-body">
-                  <h2 className="diary-delete-confirm-title">Eliminar lista</h2>
+                  <h2 className="diary-delete-confirm-title">{t("lists.deleteList")}</h2>
                   <p className="diary-delete-confirm-text">
                     ¿Estás seguro de que quieres eliminar esta lista? Se quitarán todos los cafés que contiene.
                   </p>
                   <div className="diary-delete-confirm-actions">
                     <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => { sendEvent("modal_close", { modal_id: "delete_confirm_list" }); setShowDeleteListConfirmSheet(false); }}>
-                      Cancelar
+                      {t("common.cancel")}
                     </Button>
                     <Button
                       variant="plain"
@@ -3301,7 +3363,7 @@ export function AppContainer() {
                       className="diary-delete-confirm-submit"
                       onClick={() => { sendEvent("modal_close", { modal_id: "delete_confirm_list" }); void handleDeleteListConfirm(); }}
                     >
-                      Eliminar
+                      {t("top.delete")}
                     </Button>
                   </div>
                 </div>
@@ -3312,17 +3374,17 @@ export function AppContainer() {
         : null}
       {showLeaveListConfirmSheet && profileListId && typeof document !== "undefined"
         ? createPortal(
-            <SheetOverlay role="dialog" aria-modal="true" aria-label="Abandonar lista" onDismiss={() => { sendEvent("modal_close", { modal_id: "leave_list_confirm" }); setShowLeaveListConfirmSheet(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "leave_list_confirm" }); setShowLeaveListConfirmSheet(false); }}>
+            <SheetOverlay role="dialog" aria-modal="true" aria-label={t("lists.leaveList")} onDismiss={() => { sendEvent("modal_close", { modal_id: "leave_list_confirm" }); setShowLeaveListConfirmSheet(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "leave_list_confirm" }); setShowLeaveListConfirmSheet(false); }}>
               <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(e) => e.stopPropagation()}>
                 <SheetHandle aria-hidden="true" />
                 <div className="diary-delete-confirm-body">
-                  <h2 className="diary-delete-confirm-title">Abandonar lista</h2>
+                  <h2 className="diary-delete-confirm-title">{t("lists.leaveList")}</h2>
                   <p className="diary-delete-confirm-text">
                     ¿Estás seguro de que quieres abandonar esta lista? Dejarás de tener acceso a ella y ya no aparecerá en tu sección de listas.
                   </p>
                   <div className="diary-delete-confirm-actions">
                     <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => { sendEvent("modal_close", { modal_id: "leave_list_confirm" }); setShowLeaveListConfirmSheet(false); }}>
-                      Cancelar
+                      {t("common.cancel")}
                     </Button>
                     <Button
                       variant="plain"
@@ -3330,7 +3392,7 @@ export function AppContainer() {
                       className="diary-delete-confirm-submit"
                       onClick={() => { sendEvent("modal_close", { modal_id: "leave_list_confirm" }); void handleLeaveListConfirm(); }}
                     >
-                      Abandonar
+                      {t("lists.leaveList")}
                     </Button>
                   </div>
                 </div>

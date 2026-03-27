@@ -141,16 +141,8 @@ class SocialRepository @Inject constructor(
     }
 
     suspend fun createPost(post: PostEntity) = withContext(Dispatchers.IO) {
-        socialDao.insertPost(post)
-        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            try {
-                supabaseDataSource.insertPost(post)
-            } catch (e: Exception) {
-                Log.e("SocialRepository", "Error creating post in Supabase", e)
-            }
-        }
-        userRepository.touchUserInteraction()
-        triggerRefresh()
+        // Funcionalidad social legacy (posts) deshabilitada: no-op.
+        Log.w("SocialRepository", "createPost() llamado pero la funcionalidad social legacy está deshabilitada.")
     }
 
     suspend fun upsertPostCoffeeTag(tag: PostCoffeeTagEntity?) = withContext(Dispatchers.IO) {
@@ -195,94 +187,40 @@ class SocialRepository @Inject constructor(
     }
 
     suspend fun toggleLike(postId: String, userId: Int) = withContext(Dispatchers.IO) {
-        val like = LikeEntity(postId, userId)
-        val isLiked = socialDao.isPostLikedByUser(postId, userId).first()
-        
-        if (isLiked) socialDao.deleteLike(like) else socialDao.insertLike(like)
-
-        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch {
-                try {
-                    if (isLiked) supabaseDataSource.deleteLike(postId, userId)
-                    else supabaseDataSource.insertLike(like)
-                } catch (e: Exception) { }
-            }
-        }
-        triggerRefresh()
+        // Funcionalidad social legacy (likes) deshabilitada: no-op.
+        @Suppress("UNUSED_PARAMETER")
+        val ignored = LikeEntity(postId, userId)
+        Log.w("SocialRepository", "toggleLike() llamado pero la funcionalidad social legacy está deshabilitada.")
     }
 
     suspend fun savePost(postId: String, userId: Int) = withContext(Dispatchers.IO) {
-        val alreadyLiked = socialDao.isPostLikedByUser(postId, userId).first()
-        if (alreadyLiked) return@withContext
-
-        val like = LikeEntity(postId, userId)
-        socialDao.insertLike(like)
-
-        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch {
-                try {
-                    supabaseDataSource.insertLike(like)
-                } catch (_: Exception) {
-                    // Best-effort en background; el refresco reintentará en siguiente sync.
-                }
-            }
-        }
-        triggerRefresh()
+        // Funcionalidad social legacy (guardar post) deshabilitada: no-op.
+        @Suppress("UNUSED_PARAMETER")
+        val ignored = LikeEntity(postId, userId)
+        Log.w("SocialRepository", "savePost() llamado pero la funcionalidad social legacy está deshabilitada.")
     }
 
     suspend fun addComment(comment: CommentEntity) = withContext(Dispatchers.IO) {
-        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch {
-                try {
-                    val stored = supabaseDataSource.insertComment(
-                        CommentInsert(
-                            postId = comment.postId,
-                            userId = comment.userId,
-                            text = comment.text,
-                            timestamp = comment.timestamp
-                        )
-                    )
-                    socialDao.insertComment(stored)
-                    val mentionedUsernames = notifyMentionsIfNeeded(stored)
-                    val postOwnerId = notifyPostOwnerIfNeeded(stored)
-                    notifyCommentParticipantsIfNeeded(
-                        comment = stored,
-                        postOwnerId = postOwnerId,
-                        excludedUsernames = mentionedUsernames
-                    )
-                } catch (e: Exception) {
-                    socialDao.insertComment(comment)
-                }
-                userRepository.touchUserInteraction()
-                triggerRefresh()
-            }
-        } else {
-            socialDao.insertComment(comment)
-            triggerRefresh()
-        }
+        // Funcionalidad social legacy (comentarios) deshabilitada: no-op.
+        @Suppress("UNUSED_PARAMETER")
+        val ignored = comment
+        Log.w("SocialRepository", "addComment() llamado pero la funcionalidad social legacy está deshabilitada.")
     }
 
     suspend fun deleteComment(commentId: Int) = withContext(Dispatchers.IO) {
-        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            try {
-                supabaseDataSource.deleteComment(commentId)
-                socialDao.deleteComment(commentId)
-            } catch (e: Exception) {
-                triggerRefresh()
-                return@withContext
-            }
-        } else {
-            socialDao.deleteComment(commentId)
-        }
-        triggerRefresh()
+        // Funcionalidad social legacy (comentarios) deshabilitada: no-op.
+        @Suppress("UNUSED_PARAMETER")
+        val ignored = commentId
+        Log.w("SocialRepository", "deleteComment() llamado pero la funcionalidad social legacy está deshabilitada.")
     }
 
     suspend fun updateComment(commentId: Int, newText: String) = withContext(Dispatchers.IO) {
-        socialDao.updateComment(commentId, newText)
-        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            externalScope.launch { try { supabaseDataSource.updateComment(commentId, newText) } catch (e: Exception) { } }
-        }
-        triggerRefresh()
+        // Funcionalidad social legacy (comentarios) deshabilitada: no-op.
+        @Suppress("UNUSED_PARAMETER")
+        val ignoredId = commentId
+        @Suppress("UNUSED_PARAMETER")
+        val ignoredText = newText
+        Log.w("SocialRepository", "updateComment() llamado pero la funcionalidad social legacy está deshabilitada.")
     }
 
     fun getCommentsForPost(postId: String): Flow<List<CommentWithAuthor>> = socialDao.getCommentsWithAuthorForPost(postId)
@@ -318,18 +256,10 @@ class SocialRepository @Inject constructor(
     }
 
     suspend fun deletePost(postId: String) = withContext(Dispatchers.IO) {
-        val post = socialDao.getAllPostsWithDetails().first().find { it.post.id == postId }?.post
-        if (post != null) socialDao.deletePost(post)
-        socialDao.deletePostCoffeeTag(postId)
-        if (connectivityObserver.observe().first() == ConnectivityObserver.Status.Available) {
-            try {
-                supabaseDataSource.deletePostCoffeeTag(postId)
-                supabaseDataSource.deletePost(postId)
-                triggerRefresh()
-            } catch (e: Exception) { }
-        } else {
-            triggerRefresh()
-        }
+        // Funcionalidad social legacy (posts) deshabilitada: no-op.
+        @Suppress("UNUSED_PARAMETER")
+        val ignored = postId
+        Log.w("SocialRepository", "deletePost() llamado pero la funcionalidad social legacy está deshabilitada.")
     }
 
     private suspend fun notifyPostOwnerIfNeeded(comment: CommentEntity): Int? {

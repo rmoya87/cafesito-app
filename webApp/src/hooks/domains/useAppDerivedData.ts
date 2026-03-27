@@ -7,15 +7,11 @@ import type {
   CoffeeReviewRow,
   CoffeeRow,
   CoffeeSensoryProfileRow,
-  CommentRow,
   DiaryEntryRow,
   FavoriteRow,
   FollowRow,
-  LikeRow,
   NotificationRow,
   PantryItemRow,
-  PostCoffeeTagRow,
-  PostRow,
   ProfileActivityItem,
   HomeCard,
   UserRow
@@ -29,10 +25,6 @@ export function useAppDerivedData({
   customCoffees,
   coffeeReviews,
   coffeeSensoryProfiles,
-  posts,
-  likes,
-  comments,
-  postCoffeeTags,
   diaryEntries,
   pantryItems,
   favorites,
@@ -50,10 +42,14 @@ export function useAppDerivedData({
   searchSelectedSpecialties,
   searchSelectedFormats,
   searchMinRating,
-  newPostCoffeeId,
-  createPostCoffeeQuery,
+  posts = [],
+  likes = [],
+  comments = [],
+  postCoffeeTags = [],
+  newPostCoffeeId = null,
+  createPostCoffeeQuery = "",
   brewCoffeeId,
-  newPostText,
+  newPostText = "",
   dismissedNotificationIds,
   notificationsLastSeenAt,
   detailCoffeeId,
@@ -65,10 +61,6 @@ export function useAppDerivedData({
   customCoffees: CoffeeRow[];
   coffeeReviews: CoffeeReviewRow[];
   coffeeSensoryProfiles: CoffeeSensoryProfileRow[];
-  posts: PostRow[];
-  likes: LikeRow[];
-  comments: CommentRow[];
-  postCoffeeTags: PostCoffeeTagRow[];
   diaryEntries: DiaryEntryRow[];
   pantryItems: PantryItemRow[];
   favorites: FavoriteRow[];
@@ -94,10 +86,14 @@ export function useAppDerivedData({
   searchSelectedSpecialties: Set<string>;
   searchSelectedFormats: Set<string>;
   searchMinRating: number;
-  newPostCoffeeId: string | null;
-  createPostCoffeeQuery: string;
+  posts?: Array<{ id: string }>;
+  likes?: Array<{ post_id: string; user_id: number }>;
+  comments?: Array<{ post_id: string }>;
+  postCoffeeTags?: Array<{ post_id: string; coffee_id?: string | null; coffee_name?: string | null; coffee_brand?: string | null }>;
+  newPostCoffeeId?: string | null;
+  createPostCoffeeQuery?: string;
   brewCoffeeId: string;
-  newPostText: string;
+  newPostText?: string;
   dismissedNotificationIds: Set<string>;
   notificationsLastSeenAt: number;
   detailCoffeeId: string | null;
@@ -105,6 +101,10 @@ export function useAppDerivedData({
   /** Clave de fecha (YYYY-MM-DD) para que las recomendaciones del día varíen cada día */
   recommendationDateKey?: string;
 }) {
+  void posts;
+  void likes;
+  void comments;
+  void postCoffeeTags;
   const brewCoffeeCatalog = useMemo(() => {
     if (!customCoffees.length) return coffees;
     const byId = new Map<string, CoffeeRow>();
@@ -124,47 +124,6 @@ export function useAppDerivedData({
     users.forEach((user) => map.set(normalizeLookupText(user.username), user));
     return map;
   }, [users]);
-
-  const tagsByPostId = useMemo(() => {
-    const map = new Map<string, PostCoffeeTagRow>();
-    postCoffeeTags.forEach((tag) => {
-      if (!map.has(tag.post_id)) map.set(tag.post_id, tag);
-    });
-    return map;
-  }, [postCoffeeTags]);
-
-  const likesByPostId = useMemo(() => {
-    const map = new Map<string, number>();
-    likes.forEach((like) => {
-      map.set(like.post_id, (map.get(like.post_id) ?? 0) + 1);
-    });
-    return map;
-  }, [likes]);
-
-  const commentsByPostId = useMemo(() => {
-    const map = new Map<string, CommentRow[]>();
-    comments.forEach((comment) => {
-      const bucket = map.get(comment.post_id);
-      if (bucket) bucket.push(comment);
-      else map.set(comment.post_id, [comment]);
-    });
-    return map;
-  }, [comments]);
-
-  const coffeeIdByNameBrand = useMemo(() => {
-    const map = new Map<string, string>();
-    const nameOnlyMap = new Map<string, string>();
-    coffees.forEach((coffee) => {
-      const normalizedBrand = normalizeLookupText(coffee.marca);
-      const normalizedName = normalizeLookupText(coffee.nombre);
-      const key = `${normalizedBrand}|${normalizedName}`;
-      map.set(key, coffee.id);
-      if (normalizedName && !nameOnlyMap.has(normalizedName)) {
-        nameOnlyMap.set(normalizedName, coffee.id);
-      }
-    });
-    return { byNameBrand: map, byName: nameOnlyMap };
-  }, [coffees]);
 
   const coffeesById = useMemo(() => {
     const map = new Map<string, CoffeeRow>();
@@ -199,47 +158,8 @@ export function useAppDerivedData({
   }, [coffees]);
 
   const homeCards: HomeCard[] = useMemo(() => {
-    const postCards: HomeCard[] = posts.map((post) => {
-      const user = usersById.get(post.user_id);
-      const postLikes = likesByPostId.get(post.id) ?? 0;
-      const postComments = commentsByPostId.get(post.id)?.length ?? 0;
-      const likedByActiveUser =
-        activeUser != null &&
-        likes.some((like) => like.post_id === post.id && like.user_id === activeUser.id);
-      const tag = tagsByPostId.get(post.id);
-      const normalizedTagBrand = normalizeLookupText(tag?.coffee_brand);
-      const normalizedTagName = normalizeLookupText(tag?.coffee_name);
-      const coffeeKey = tag ? `${normalizedTagBrand}|${normalizedTagName}` : "";
-      const coffeeId =
-        (tag?.coffee_id ? tag.coffee_id : null) ??
-        (coffeeKey ? coffeeIdByNameBrand.byNameBrand.get(coffeeKey) : null) ??
-        (normalizedTagName ? coffeeIdByNameBrand.byName.get(normalizedTagName) : null) ??
-        null;
-      const coffee = coffeeId ? coffeesById.get(coffeeId) ?? null : null;
+    const combined: HomeCard[] = [];
 
-      return {
-        id: post.id,
-        userId: post.user_id,
-        userName: user?.full_name ?? `Usuario ${post.user_id}`,
-        username: user?.username ?? `user${post.user_id}`,
-        avatarUrl: user?.avatar_url ?? "",
-        text: post.comment,
-        imageUrl: post.image_url,
-        minsAgoLabel: toRelativeMinutes(post.timestamp ?? 0),
-        timestamp: post.timestamp ?? 0,
-        likes: postLikes,
-        comments: postComments,
-        coffeeId,
-        coffeeTagName: tag?.coffee_name ?? null,
-        coffeeTagBrand: tag?.coffee_brand ?? null,
-        coffeeImageUrl: coffee?.image_url ?? null,
-        likedByActiveUser
-      };
-    });
-
-    const combined = [...postCards];
-
-    // Map reviews as cards too
     coffeeReviews.forEach((review) => {
       const user = usersById.get(review.user_id ?? -1);
       const coffee = coffeesById.get(review.coffee_id);
@@ -270,18 +190,7 @@ export function useAppDerivedData({
     });
 
     return combined.sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
-  }, [
-    activeUser,
-    coffeeIdByNameBrand,
-    coffeesById,
-    commentsByPostId,
-    likes,
-    likesByPostId,
-    posts,
-    tagsByPostId,
-    usersById,
-    coffeeReviews
-  ]);
+  }, [coffeeReviews, coffeesById, usersById]);
 
   const filteredCoffees = useMemo(() => {
     const q = normalizeLookupText(searchQuery);

@@ -7,6 +7,7 @@ import type { CoffeeReviewRow, CoffeeRow, ListPrivacy, PantryItemRow, UserListRo
 import { Button, ComposerInputShell, IconButton, Input, SheetCard, SheetHandle, SheetHeader, SheetOverlay } from "../../ui/components";
 import { UiIcon, type IconName } from "../../ui/iconography";
 import { CreateListSheet } from "../lists/CreateListSheet";
+import { useI18n } from "../../i18n";
 export function CoffeeDetailView({
   coffee,
   reviews,
@@ -89,6 +90,7 @@ export function CoffeeDetailView({
   /** Al abrir el modal: refrescar listas y qué listas contienen este café (dueño/listas por invitación). */
   onRefreshAddToListModal?: () => Promise<void>;
 }) {
+  const { t } = useI18n();
   const ADD_TO_LIST_FAVORITES_ID = "__favorites";
   const [showSensorySheet, setShowSensorySheet] = useState(false);
   const [showStockSheet, setShowStockSheet] = useState(false);
@@ -155,7 +157,7 @@ export function CoffeeDetailView({
 
   const sensoryKeys: Array<keyof typeof sensoryDraft> = ["aroma", "sabor", "cuerpo", "acidez", "dulzura"];
   const sensoryLabels: Record<keyof typeof sensoryDraft, string> = {
-    aroma: "Aroma",
+    aroma: t("coffee.sensoryProfile").includes("Sensory") ? "Aroma" : "Aroma",
     sabor: "Sabor",
     cuerpo: "Cuerpo",
     acidez: "Acidez",
@@ -199,9 +201,9 @@ export function CoffeeDetailView({
       const host = new URL(coffee.product_url).hostname.replace(/^www\./i, "");
       return host.toUpperCase();
     } catch {
-      return "ADQUIRIR";
+      return t("coffee.acquire").toUpperCase();
     }
-  }, [coffee.product_url]);
+  }, [coffee.product_url, t]);
 
   useEffect(() => {
     if (!fullPage || externalOpenStockSignal <= 0) return;
@@ -214,14 +216,14 @@ export function CoffeeDetailView({
     <article className={`coffee-detail ${fullPage ? "is-full-page" : "is-side-panel"}`.trim()}>
       <header className="coffee-detail-hero">
         <div className="coffee-detail-hero-top-actions">
-          <IconButton tone="topbar" className="coffee-detail-topbar-icon" aria-label={fullPage ? "Volver" : "Cerrar detalle"} onClick={onClose}>
+          <IconButton tone="topbar" className="coffee-detail-topbar-icon" aria-label={fullPage ? t("coffee.back") : t("coffee.closeDetail")} onClick={onClose}>
             <UiIcon name={fullPage ? "arrow-left" : "close"} className="ui-icon" />
           </IconButton>
           <div className="coffee-detail-topbar-actions">
             <IconButton
               tone="topbar"
               className={`coffee-detail-topbar-icon coffee-topbar-favorite ${(isListActive ?? isFavorite) ? "is-active" : ""}`.trim()}
-              aria-label={(isListActive ?? isFavorite) ? "Quitar de listas" : "Añadir a listas"}
+              aria-label={(isListActive ?? isFavorite) ? t("top.removeFromLists") : t("top.addToLists")}
               onClick={() => {
                 if (isGuest) {
                   onRequireAuth();
@@ -236,7 +238,7 @@ export function CoffeeDetailView({
             <IconButton
               tone="topbar"
               className={`coffee-detail-topbar-icon ${pantry ? "is-active" : ""}`.trim()}
-              aria-label="Añadir a stock"
+              aria-label={t("top.addStock")}
               onClick={() => {
                 if (isGuest) {
                   onRequireAuth();
@@ -252,7 +254,7 @@ export function CoffeeDetailView({
             <IconButton
               tone="topbar"
               className="coffee-detail-topbar-icon"
-              aria-label="Compartir café"
+              aria-label={t("coffee.share")}
               onClick={() => {
                 const shareBase = "https://cafesitoapp.com";
                 const url = typeof window !== "undefined" ? `${shareBase}${window.location.pathname}` : "";
@@ -273,12 +275,12 @@ export function CoffeeDetailView({
           {coffee.image_url ? <img className="coffee-detail-image" src={coffee.image_url} alt={coffee.nombre} loading="lazy" decoding="async" /> : null}
           <div className="coffee-detail-overlay" />
           <div className="coffee-detail-headline">
-            <p className="coffee-origin">{(coffee.marca ?? "Marca").toUpperCase()}</p>
+            <p className="coffee-origin">{(coffee.marca ?? t("coffee.brandFallback")).toUpperCase()}</p>
             <h1 className="coffee-detail-title">{coffee.nombre}</h1>
           </div>
           {avgRating > 0 && reviews.length > 0 ? (
-            <div className="coffee-detail-nota-block" aria-label="Nota del café">
-              <p className="coffee-detail-nota-title">NOTA</p>
+            <div className="coffee-detail-nota-block" aria-label={t("coffee.ratingAria")}>
+              <p className="coffee-detail-nota-title">{t("coffee.ratingTitle")}</p>
               <p className="coffee-detail-nota-value">{avgRating.toFixed(1)}</p>
             </div>
           ) : null}
@@ -286,12 +288,12 @@ export function CoffeeDetailView({
       </header>
 
       <section className="coffee-detail-section coffee-detail-section-first">
-        {coffee.descripcion ? <p className="feed-text coffee-detail-description">{coffee.descripcion}</p> : <p className="coffee-sub coffee-detail-opinion-empty">Sin descripción.</p>}
+        {coffee.descripcion ? <p className="feed-text coffee-detail-description">{coffee.descripcion}</p> : <p className="coffee-sub coffee-detail-opinion-empty">{t("coffee.noDescription")}</p>}
       </section>
 
       {techRows.length > 0 ? (
         <section className="coffee-detail-section">
-          <h3 className="section-title">Detalles técnicos</h3>
+          <h3 className="section-title">{t("coffee.technicalDetails")}</h3>
           <ul className="coffee-detail-tech-list">
             {techRows.map((row) => (
               <li key={row.label} className="coffee-detail-tech-item">
@@ -310,7 +312,7 @@ export function CoffeeDetailView({
 
       <section className="coffee-detail-section">
         <div className="coffee-detail-section-head">
-          <h3 className="section-title">Perfil sensorial</h3>
+          <h3 className="section-title">{t("coffee.sensoryProfile")}</h3>
           <Button variant="text"
             className="coffee-detail-inline-action"
             onClick={() => {
@@ -323,12 +325,12 @@ export function CoffeeDetailView({
               setShowSensorySheet(true);
             }}
           >
-            Editar
+            {t("coffee.edit")}
           </Button>
         </div>
         {sensoryEditorsCount > 0 ? (
           <p className="coffee-detail-sensory-note">
-            Basado en los comentarios de {sensoryEditorsCount} usuarios. {sensoryEditorsCount} son las personas que lo han editado.
+            {t("coffee.sensoryBasedOn", { count: sensoryEditorsCount })}
           </p>
         ) : null}
         <div className="coffee-detail-sensory-summary">
@@ -349,7 +351,7 @@ export function CoffeeDetailView({
       {coffee.product_url ? (
         <section className="coffee-detail-section">
           <div className="coffee-detail-acquire">
-            <h3 className="section-title">Adquirir</h3>
+            <h3 className="section-title">{t("coffee.acquire")}</h3>
             <a className="coffee-detail-acquire-row" href={coffee.product_url} target="_blank" rel="noreferrer">
               <span className="coffee-detail-acquire-main">
                 <UiIcon name="shop" className="ui-icon coffee-detail-acquire-icon" />
@@ -363,7 +365,7 @@ export function CoffeeDetailView({
 
       <section className="coffee-detail-section coffee-detail-opinions-section">
         <div className="coffee-detail-section-head">
-          <h3 className="section-title">Opiniones</h3>
+          <h3 className="section-title">{t("coffee.opinions")}</h3>
           {!currentUserReview ? (
             <Button variant="plain"
               className="coffee-detail-opinions-cta"
@@ -377,7 +379,7 @@ export function CoffeeDetailView({
                 setShowReviewSheet(true);
               }}
             >
-              + AÑADIR
+              {t("coffee.add")}
             </Button>
           ) : null}
         </div>
@@ -447,7 +449,7 @@ export function CoffeeDetailView({
                   <UiIcon name="star-filled" className="ui-icon coffee-detail-opinion-chip-star" />{Math.round(currentUserReview.rating)} / 5
                 </span>
                 {currentUserReview.comment ? <p className="feed-text coffee-detail-opinion-comment">{currentUserReview.comment}</p> : null}
-                {currentUserReview.image_url ? <img className="coffee-detail-review-image" src={currentUserReview.image_url} alt="Tu reseña" loading="lazy" decoding="async" /> : null}
+                {currentUserReview.image_url ? <img className="coffee-detail-review-image" src={currentUserReview.image_url} alt={t("coffee.yourReview")} loading="lazy" decoding="async" /> : null}
               </div>
               <Button variant="plain"
                 className="coffee-detail-opinions-cta coffee-detail-opinion-editar"
@@ -461,7 +463,7 @@ export function CoffeeDetailView({
                   setShowReviewSheet(true);
                 }}
               >
-                Editar
+                {t("coffee.edit")}
               </Button>
             </div>
           </article>
@@ -530,7 +532,7 @@ export function CoffeeDetailView({
                     <UiIcon name="star-filled" className="ui-icon coffee-detail-opinion-chip-star" />{Math.round(review.rating)} / 5
                   </span>
                   {review.comment ? <p className="feed-text coffee-detail-opinion-comment">{review.comment}</p> : null}
-                  {review.image_url ? <img className="coffee-detail-review-image" src={review.image_url} alt="Imagen reseña" loading="lazy" decoding="async" /> : null}
+                  {review.image_url ? <img className="coffee-detail-review-image" src={review.image_url} alt={t("coffee.reviewImageAlt")} loading="lazy" decoding="async" /> : null}
                 </div>
               </div>
             </li>
@@ -543,7 +545,7 @@ export function CoffeeDetailView({
             <SheetOverlay
               role="dialog"
               aria-modal="true"
-              aria-label="Editar perfil sensorial"
+              aria-label={t("coffee.editSensoryProfile")}
               onDismiss={() => {
                 if (savingSensory) return;
                 sendEvent("modal_close", { modal_id: "sensory_profile" });
@@ -561,7 +563,7 @@ export function CoffeeDetailView({
                 <SheetHandle aria-hidden="true" />
                 <header className="coffee-detail-sensory-sheet-head">
                   <div className="coffee-detail-sensory-sheet-head-slot" />
-                  <h3 className="coffee-detail-sensory-sheet-title">Perfil sensorial</h3>
+                  <h3 className="coffee-detail-sensory-sheet-title">{t("coffee.sensoryProfile")}</h3>
                   <div className="coffee-detail-sensory-sheet-head-slot coffee-detail-sensory-sheet-head-actions">
                     <Button variant="plain"
                       className="action-button coffee-detail-sensory-submit coffee-detail-sensory-submit-topbar"
@@ -574,13 +576,13 @@ export function CoffeeDetailView({
                           setSensorySheetError(null);
                           setShowSensorySheet(false);
                         } catch {
-                          setSensorySheetError("No se pudo guardar el perfil sensorial.");
+                          setSensorySheetError(t("coffee.saveSensoryError"));
                         } finally {
                           setSavingSensory(false);
                         }
                       }}
                     >
-                      {savingSensory ? "Guardando..." : "Guardar"}
+                      {savingSensory ? t("common.saving") : t("common.save")}
                     </Button>
                   </div>
                 </header>
@@ -621,7 +623,7 @@ export function CoffeeDetailView({
             <SheetOverlay
               role="dialog"
               aria-modal="true"
-              aria-label="Editar stock"
+              aria-label={t("timeline.editStock")}
               onDismiss={() => {
                 if (savingStock) return;
                 sendEvent("modal_close", { modal_id: "stock_edit" });
@@ -638,11 +640,11 @@ export function CoffeeDetailView({
               <SheetCard className="coffee-detail-sheet" onClick={(event) => event.stopPropagation()}>
                 <SheetHandle aria-hidden="true" />
                 <SheetHeader>
-                  <strong className="sheet-title coffee-detail-stock-title">Editar Stock</strong>
+                  <strong className="sheet-title coffee-detail-stock-title">{t("timeline.editStockTitle")}</strong>
                 </SheetHeader>
                 <div className="coffee-detail-sheet-body coffee-detail-stock">
               <section className="coffee-detail-stock-field">
-                <p className="coffee-detail-stock-label">Cantidad de cafe total (g)</p>
+                <p className="coffee-detail-stock-label">{t("timeline.totalCoffeeGrams")}</p>
                 <Input
                   className="coffee-detail-stock-value-input search-wide"
                   type="text"
@@ -656,7 +658,7 @@ export function CoffeeDetailView({
                     });
                     if (stockSheetError) setStockSheetError(null);
                   }}
-                  aria-label="Cantidad de cafe total"
+                  aria-label={t("timeline.totalCoffeeGrams")}
                 />
                 <Input
                   className="coffee-detail-stock-slider app-range app-range--caramel search-wide"
@@ -683,7 +685,7 @@ export function CoffeeDetailView({
               </section>
 
               <section className="coffee-detail-stock-field">
-                <p className="coffee-detail-stock-label">Cantidad de cafe restante (g)</p>
+                <p className="coffee-detail-stock-label">{t("timeline.remainingCoffeeGrams")}</p>
                 <Input
                   className="coffee-detail-stock-value-input search-wide"
                   type="text"
@@ -697,7 +699,7 @@ export function CoffeeDetailView({
                     });
                     if (stockSheetError) setStockSheetError(null);
                   }}
-                  aria-label="Cantidad de cafe restante"
+                  aria-label={t("timeline.remainingCoffeeGrams")}
                 />
                 <Input
                   className="coffee-detail-stock-slider app-range app-range--caramel search-wide"
@@ -734,14 +736,14 @@ export function CoffeeDetailView({
                   setShowStockSheet(false);
                 }}
               >
-                CANCELAR
+                {t("timeline.cancelUpper")}
               </Button>
               <Button variant="plain"
                 className="action-button coffee-detail-stock-save"
                 disabled={!canSaveStock || savingStock}
                 onClick={async () => {
                   if (isStockDraftInvalid) {
-                    setStockSheetError("El restante no puede superar el total.");
+                    setStockSheetError(t("timeline.remainingNoMoreThanTotal"));
                     return;
                   }
                   if (!isStockDirty) return;
@@ -753,13 +755,13 @@ export function CoffeeDetailView({
                     setStockSheetError(null);
                     setShowStockSheet(false);
                   } catch {
-                    setStockSheetError("No se pudo guardar el stock.");
+                    setStockSheetError(t("coffee.saveStockError"));
                   } finally {
                     setSavingStock(false);
                   }
                 }}
               >
-                {savingStock ? "GUARDANDO..." : "GUARDAR"}
+                {savingStock ? t("timeline.savingUpper") : t("timeline.saveUpper")}
               </Button>
             </div>
               </SheetCard>
@@ -773,7 +775,7 @@ export function CoffeeDetailView({
             <SheetOverlay
               role="dialog"
               aria-modal="true"
-              aria-label="Tu opinión"
+              aria-label={t("coffee.reviewSheetAria")}
               onDismiss={() => {
                 sendEvent("modal_close", { modal_id: "review" });
                 setReviewSheetError(null);
@@ -788,11 +790,11 @@ export function CoffeeDetailView({
               <SheetCard className="coffee-detail-sheet coffee-detail-review-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <SheetHeader>
-              <strong className="sheet-title">TU OPINIÓN</strong>
+              <strong className="sheet-title">{t("coffee.reviewTitle")}</strong>
             </SheetHeader>
             <div className="coffee-detail-sheet-body coffee-detail-review-editor">
               <label className="coffee-detail-rating-field coffee-detail-review-rating-field">
-                <div className="coffee-detail-rating-stars" role="radiogroup" aria-label="Seleccionar nota">
+                <div className="coffee-detail-rating-stars" role="radiogroup" aria-label={t("coffee.selectRating")}>
                   {[1, 2, 3, 4, 5].map((value) => (
                     <Button variant="plain"
                       key={value}
@@ -841,13 +843,13 @@ export function CoffeeDetailView({
                   onReviewTextChange(value);
                   if (reviewSheetError) setReviewSheetError(null);
                 }}
-                placeholder="Escribe tu reseña"
+                placeholder={t("coffee.reviewPlaceholder")}
                 rows={3}
                 shellClassName="coffee-detail-review-input-shell"
                 textareaClassName="coffee-detail-review-textarea"
                 bottomClassName="coffee-detail-review-input-tools"
                 toolsContent={
-                  <label className="coffee-detail-file coffee-detail-review-camera" aria-label="Adjuntar imagen">
+                  <label className="coffee-detail-file coffee-detail-review-camera" aria-label={t("coffee.attachImage")}>
                     <UiIcon name="camera" className="ui-icon" />
                     <Input
                       type="file"
@@ -871,7 +873,7 @@ export function CoffeeDetailView({
                       <img
                         className="comment-image-thumb"
                         src={reviewDraftImagePreviewUrl}
-                        alt="Previsualización reseña"
+                        alt={t("coffee.reviewPreviewAlt")}
                         loading="lazy"
                         decoding="async"
                       />
@@ -879,7 +881,7 @@ export function CoffeeDetailView({
                         variant="plain"
                         className="comment-image-remove"
                         onClick={() => onReviewImagePick(null, "")}
-                        aria-label="Quitar imagen"
+                        aria-label={t("coffee.removeImage")}
                       >
                         x
                       </Button>
@@ -908,7 +910,7 @@ export function CoffeeDetailView({
                     }
                   }}
                 >
-                  {deletingReview ? "Borrando..." : "Eliminar"}
+                  {deletingReview ? t("coffee.deleting") : t("coffee.delete")}
                 </Button>
               ) : (
                 <Button
@@ -922,7 +924,7 @@ export function CoffeeDetailView({
                     setShowReviewSheet(false);
                   }}
                 >
-                  Cancelar
+                  {t("common.cancel")}
                 </Button>
               )}
               <Button variant="primary"
@@ -930,11 +932,11 @@ export function CoffeeDetailView({
                 disabled={!canSaveReview || savingReview || deletingReview}
                 onClick={async () => {
                   if (reviewDraftRating <= 0) {
-                    setReviewSheetError("Selecciona una nota para guardar.");
+                    setReviewSheetError(t("coffee.selectRatingError"));
                     return;
                   }
                   if (draftReviewText.length === 0) {
-                    setReviewSheetError("Escribe tu reseña antes de publicar.");
+                    setReviewSheetError(t("coffee.writeReviewError"));
                     return;
                   }
                   if (!isReviewDirty) return;
@@ -949,7 +951,7 @@ export function CoffeeDetailView({
                   }
                 }}
               >
-                {savingReview ? "Publicando..." : "Publicar"}
+                {savingReview ? t("coffee.publishing") : t("coffee.publish")}
               </Button>
             </div>
               </SheetCard>
@@ -963,7 +965,7 @@ export function CoffeeDetailView({
               className="profile-topbar-options-overlay"
               role="dialog"
               aria-modal="true"
-              aria-label="Añadir a lista"
+              aria-label={t("coffee.addToList")}
               onDismiss={() => {
                 sendEvent("modal_close", { modal_id: "add_to_list" });
                 setShowAddToListModal(false);
@@ -979,7 +981,7 @@ export function CoffeeDetailView({
               >
                 <SheetHandle aria-hidden="true" />
                 <header className="sheet-header sheet-header-with-action">
-                  <strong className="sheet-title add-to-list-sheet-title">Añadir a lista</strong>
+                  <strong className="sheet-title add-to-list-sheet-title">{t("coffee.addToList")}</strong>
                   <Button
                     variant="plain"
                     className="modal-action-btn"
@@ -1006,7 +1008,7 @@ export function CoffeeDetailView({
                       }
                     }}
                   >
-                    {addToListSaving ? "Aplicando…" : "Aplicar"}
+                    {addToListSaving ? t("coffee.applying") : t("coffee.applyChanges")}
                   </Button>
                 </header>
                 <div className="diary-sheet-list">
@@ -1019,7 +1021,7 @@ export function CoffeeDetailView({
                   }}
                   >
                     <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">add</span>
-                    <span>Crear una lista</span>
+                    <span>{t("coffee.createList")}</span>
                     <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
                   </Button>
                   {userLists.map((list) => {
@@ -1029,7 +1031,7 @@ export function CoffeeDetailView({
                         key={list.id}
                         variant="plain"
                         className={`diary-sheet-action diary-sheet-action-pantry add-to-list-row ${checked ? "is-checked" : ""}`.trim()}
-                        aria-label={`${checked ? "Quitar de" : "Añadir a"} ${list.name}`}
+                        aria-label={t("coffee.addOrRemoveFromList", { action: checked ? t("top.removeFromLists") : t("top.addToLists"), name: list.name })}
                         onClick={() => {
                           addToListUserEditedRef.current = true;
                           setAddToListSelectedIds((prev) => {
@@ -1073,7 +1075,7 @@ export function CoffeeDetailView({
                       )}
                     </span>
                     <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">favorite</span>
-                    <span>Favoritos</span>
+                    <span>{t("coffee.favorites")}</span>
                   </Button>
                 </div>
               </SheetCard>
@@ -1083,7 +1085,7 @@ export function CoffeeDetailView({
         : null}
       {showCreateListInModal && showAddToListModal && typeof document !== "undefined"
         ? createPortal(
-            <SheetOverlay role="dialog" aria-modal="true" aria-label="Nueva lista" onDismiss={() => { sendEvent("modal_close", { modal_id: "create_list" }); setShowCreateListInModal(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "create_list" }); setShowCreateListInModal(false); }}>
+            <SheetOverlay role="dialog" aria-modal="true" aria-label={t("lists.newList")} onDismiss={() => { sendEvent("modal_close", { modal_id: "create_list" }); setShowCreateListInModal(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "create_list" }); setShowCreateListInModal(false); }}>
               <CreateListSheet
                 onDismiss={() => { sendEvent("modal_close", { modal_id: "create_list" }); setShowCreateListInModal(false); }}
                 onCreate={(name, privacy) =>

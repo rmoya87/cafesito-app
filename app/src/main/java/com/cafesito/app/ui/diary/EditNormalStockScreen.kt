@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -41,6 +42,7 @@ fun EditNormalStockScreen(
     onBackClick: () -> Unit,
     viewModel: DiaryViewModel = hiltViewModel()
 ) {
+    val isSpanish = remember { Locale.getDefault().language.startsWith("es") }
     val coffees by viewModel.availableCoffees.collectAsState()
     val coffeeDetails = remember(coffees) { coffees.find { it.coffee.id == coffeeId } }
     
@@ -79,7 +81,7 @@ fun EditNormalStockScreen(
                 }
                 Surface(modifier = Modifier.padding(end = 24.dp, bottom = 48.dp).align(Alignment.BottomEnd), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f), shape = Shapes.card) {
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Nota Media", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(if (isSpanish) "Nota Media" else "Average rating", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(text = String.format(Locale.getDefault(), "%.1f", coffeeDetails.averageRating), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
@@ -96,19 +98,19 @@ fun EditNormalStockScreen(
                     ) {
                         Column(modifier = Modifier.padding(24.dp)) {
                             // SECCIÓN DE EDICIÓN DE STOCK (PREMIUM)
-                            Text("Mi Stock", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Text(if (isSpanish) "Mi Stock" else "My stock", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                             Spacer(Modifier.height(16.dp))
                             OutlinedTextField(
                                 value = gramsRemaining,
                                 onValueChange = { if (it.all { c -> c.isDigit() } || it.isEmpty()) gramsRemaining = it },
-                                label = { Text("Gramos restantes en la bolsa (g)") },
+                                label = { Text(if (isSpanish) "Gramos restantes en la bolsa (g)" else "Remaining grams in bag (g)") },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = Shapes.card,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 trailingIcon = {
                                     Icon(
                                         painter = painterResource(R.drawable.portafiltro),
-                                        contentDescription = "Gramos",
+                                        contentDescription = if (isSpanish) "Gramos" else "Grams",
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 },
@@ -125,7 +127,7 @@ fun EditNormalStockScreen(
                                 shape = Shapes.card,
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                             ) {
-                                Text("ACTUALIZAR STOCK", fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onPrimary)
+                                Text(if (isSpanish) "ACTUALIZAR STOCK" else "UPDATE STOCK", fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onPrimary)
                             }
 
                             Spacer(Modifier.height(32.dp))
@@ -133,7 +135,7 @@ fun EditNormalStockScreen(
                             Spacer(Modifier.height(32.dp))
 
                             // DESCRIPCIÓN
-                            Text("Descripción", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Text(if (isSpanish) "Descripción" else "Description", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                             Spacer(Modifier.height(12.dp))
                             Text(
                                 text = coffee.descripcion, 
@@ -144,7 +146,7 @@ fun EditNormalStockScreen(
                                 modifier = Modifier.animateContentSize()
                             )
                             Text(
-                                text = if (isDescExpanded) "Leer menos" else "Leer más",
+                                text = if (isSpanish) { if (isDescExpanded) "Leer menos" else "Leer más" } else { if (isDescExpanded) "Read less" else "Read more" },
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(vertical = 8.dp).clickable { isDescExpanded = !isDescExpanded }
@@ -153,9 +155,14 @@ fun EditNormalStockScreen(
                             Spacer(Modifier.height(32.dp))
 
                             // CARACTERÍSTICAS
-                            Text("Características", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Text(if (isSpanish) "Características" else "Characteristics", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                             Spacer(Modifier.height(16.dp))
-                            listOf("Aroma" to coffee.aroma, "Sabor" to coffee.sabor, "Cuerpo" to coffee.cuerpo, "Acidez" to coffee.acidez).forEach { (label, value) ->
+                            listOf(
+                                (if (isSpanish) "Aroma" else "Aroma") to coffee.aroma,
+                                (if (isSpanish) "Sabor" else "Flavor") to coffee.sabor,
+                                (if (isSpanish) "Cuerpo" else "Body") to coffee.cuerpo,
+                                (if (isSpanish) "Acidez" else "Acidity") to coffee.acidez
+                            ).forEach { (label, value) ->
                                 Column {
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                         Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
@@ -182,7 +189,7 @@ fun EditNormalStockScreen(
                 onClick = onBackClick,
                 modifier = Modifier.statusBarsPadding().padding(16.dp).size(44.dp).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f), CircleShape)
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = MaterialTheme.colorScheme.onSurface)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = if (isSpanish) "Volver" else "Back", tint = MaterialTheme.colorScheme.onSurface)
             }
         }
     }

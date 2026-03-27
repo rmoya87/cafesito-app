@@ -17,35 +17,7 @@ import { UiIcon, type IconName } from "../../ui/iconography";
 import { Button, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
 import type { CoffeeRow, DiaryEntryRow, PantryItemRow } from "../../types";
 import { DiaryLineChart } from "./DiaryLineChart";
-
-// Strings con acentos generados en runtime para evitar problemas de encoding del archivo
-const _c = (code: number) => String.fromCharCode(code);
-const DIARY_STR = {
-  CAFEINA_ESTIMADA: "CAFE" + _c(0x00CD) + "NA ESTIMADA",
-  ARIA_CAFEINA: "Informaci" + _c(0x00F3) + "n de cafe" + _c(0x00ED) + "na estimada",
-  TOOLTIP_ESTIMACION: "Estimaci" + _c(0x00F3) + "n basada en tus registros de consumo en el periodo seleccionado.",
-  HIDRATACION: "HIDRATACI" + _c(0x00D3) + "N",
-  GRAFICO_CONSUMO: "Gr" + _c(0x00E1) + "fico de consumo",
-  CONFIRMAR_ELIMINACION: "Confirmar eliminaci" + _c(0x00F3) + "n",
-  EDITAR_REGISTRO_CAFE: "Editar registro de caf" + _c(0x00E9),
-  TIPO: "Tipo",
-  TIPO_UPPER: "TIPO",
-  CAFEINA: "Cafe" + _c(0x00ED) + "na",
-  CAFEINA_UPPER: "CAFE" + _c(0x00CD) + "NA",
-  CAFEINA_MG: "Cafe" + _c(0x00ED) + "na (mg)",
-  TAMANO: "Tama" + _c(0x00F1) + "o",
-  TAMANO_UPPER: "TAMA" + _c(0x00D1) + "O",
-  PEQUENO: "Peque" + _c(0x00F1) + "o",
-  SIN_METODO: "Sin m" + _c(0x00E9) + "todo",
-  SIN_CAFE_AGUA: "Sin caf" + _c(0x00E9) + " o agua registrada",
-  NO_HAY_CAFE_DESPENSA: "No hay caf" + _c(0x00E9) + " en tu despensa",
-  SIFON: "Sif" + _c(0x00F3) + "n",
-  CAFE_LABEL: "Caf" + _c(0x00E9),
-  REGISTRO_RAPIDO: "Registro r" + _c(0x00E1) + "pido",
-  CAFE_BRAND: "CAF" + _c(0x00C9),
-  CANTIDAD: "Cantidad",
-  METODO_UPPER: "M" + _c(0x00E9) + "todo",
-} as const;
+import { useI18n } from "../../i18n";
 
 const CHART_COL_WIDTH = 42;
 
@@ -127,6 +99,8 @@ export function DiaryView({
   /** Al pulsar "Cafés probados": abrir página completa (mapa + listado). Si no se pasa, se abre el sheet actual. */
   onOpenCafesProbados?: () => void;
 }) {
+  const { t, locale } = useI18n();
+  const localeTag = locale === "en" ? "en-US" : locale === "fr" ? "fr-FR" : locale === "pt" ? "pt-PT" : locale === "de" ? "de-DE" : "es-ES";
   const [deletingEntryId, setDeletingEntryId] = useState<number | null>(null);
   const [editEntryId, setEditEntryId] = useState<number | null>(null);
   const [editAmountMl, setEditAmountMl] = useState("");
@@ -296,12 +270,15 @@ export function DiaryView({
       sizeCount.set(size, (sizeCount.get(size) ?? 0) + 1);
       const prep = (entry.preparation_type || "").trim();
       const rawMethod = prep.includes("|") ? prep.split("|")[0].trim() : prep;
-      const methodKey = stripLabPrefix(rawMethod) || DIARY_STR.SIN_METODO;
+      const methodKey = stripLabPrefix(rawMethod) || t("diary.noMethod");
       methodCount.set(methodKey, (methodCount.get(methodKey) ?? 0) + 1);
       const d = new Date(entry.timestamp).getDay();
       dayCount.set(d, (dayCount.get(d) ?? 0) + 1);
     });
-    const DAY_NAMES = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    const DAY_NAMES = Array.from({ length: 7 }).map((_, day) => {
+      const d = new Date(Date.UTC(2026, 0, 4 + day)); // Sunday-based reference week
+      return d.toLocaleDateString(localeTag, { weekday: "long" });
+    });
     let mostSize = "—";
     let maxSize = 0;
     sizeCount.forEach((count, size) => {
@@ -310,7 +287,7 @@ export function DiaryView({
         mostSize = size;
       }
     });
-    let mostMethod = DIARY_STR.SIN_METODO;
+    let mostMethod = t("diary.noMethod");
     let maxMethod = 0;
     methodCount.forEach((count, method) => {
       if (count > maxMethod) {
@@ -599,7 +576,7 @@ export function DiaryView({
         rows.push({
           type: "header",
           key: `header-${dayKey}`,
-          label: date.toLocaleDateString("es-ES", { day: "numeric", month: "long" }),
+          label: date.toLocaleDateString(localeTag, { day: "numeric", month: "long" }),
           isToday: dayKey === todayKey
         });
         lastDayKey = dayKey;
@@ -618,7 +595,7 @@ export function DiaryView({
   );
   const editEntryIsWater = (editEntryTarget?.type || "").toUpperCase() === "WATER";
   const editEntryTime = editEntryTarget
-    ? new Date(editEntryTarget.timestamp).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
+    ? new Date(editEntryTarget.timestamp).toLocaleTimeString(localeTag, { hour: "2-digit", minute: "2-digit" })
     : "";
   const stripDoseFromPreparation = (value: string) =>
     value.replace(/\s*(?:\(?\d+(?:[.,]\d+)?\s*g\)?)\s*$/i, "").trim();
@@ -643,7 +620,7 @@ export function DiaryView({
   ];
   const editSizeOptions = [
     { label: "Espresso", range: "25-30 ml", ml: 30, drawable: "taza_espresso.png" },
-    { label: DIARY_STR.PEQUENO, range: "150-200 ml", ml: 175, drawable: "taza_pequeno.png" },
+    { label: "Pequeño", range: "150-200 ml", ml: 175, drawable: "taza_pequeno.png" },
     { label: "Mediano", range: "250-300 ml", ml: 275, drawable: "taza_mediano.png" },
     { label: "Grande", range: "320-400 ml", ml: 360, drawable: "taza_grande.png" },
     { label: "Tazón XL", range: "450-500 ml", ml: 475, drawable: "taza_xl.png" }
@@ -658,13 +635,13 @@ export function DiaryView({
     parsedStockRemaining <= parsedStockTotal;
   const stockValidationMessage =
     (!Number.isFinite(parsedStockTotal) || !Number.isFinite(parsedStockRemaining))
-      ? "Introduce valores v�lidos."
+      ? t("diary.enterValidValues")
       : parsedStockTotal < 1
-      ? "El total debe ser mayor que 0."
+      ? t("diary.totalMustBeGreaterThanZero")
       : parsedStockRemaining < 0
-        ? "El restante no puede ser negativo."
+        ? t("diary.remainingNotNegative")
         : parsedStockRemaining > parsedStockTotal
-          ? "El restante no puede superar el total."
+          ? t("diary.remainingNotExceedTotal")
           : "";
   const parsedEditAmount = Number(editAmountMl || 0);
   const parsedEditCaffeine = Number(editCaffeineMg || 0);
@@ -687,17 +664,17 @@ export function DiaryView({
     (editEntryIsWater || (Number.isFinite(parsedEditCaffeine) && parsedEditCaffeine >= 0 && Number.isFinite(parsedEditDose) && parsedEditDose > 0));
   const editValidationMessage =
     !Number.isFinite(parsedEditAmount)
-      ? "Introduce una cantidad v�lida."
+      ? t("diary.enterValidAmount")
       : parsedEditAmount <= 0
-      ? "La cantidad debe ser mayor que 0 ml."
+      ? t("diary.amountMustBeGreaterThanZero")
       : parsedEditTime == null
         ? "Introduce una hora válida (HH:mm)."
       : (!editEntryIsWater && !Number.isFinite(parsedEditCaffeine))
-        ? "Introduce una cafe�na v�lida."
+        ? t("diary.enterValidCaffeine")
       : (!editEntryIsWater && parsedEditCaffeine < 0)
-        ? "La cafe�na no puede ser negativa."
+        ? t("diary.caffeineCannotBeNegative")
         : (!editEntryIsWater && (!Number.isFinite(parsedEditDose) || parsedEditDose <= 0))
-          ? "Introduce una dosis válida."
+          ? t("diary.enterValidDose")
         : "";
   const handleSaveEditEntry = async () => {
     if (!editEntryTarget) return;
@@ -705,7 +682,7 @@ export function DiaryView({
     setSavingEditEntry(true);
     try {
       const preparationTypeToSave = editEntryIsWater
-        ? "Agua"
+        ? t("diary.water")
         : (() => {
             if (editBrewMethod.trim()) {
               const methodPart = editBrewTaste.trim()
@@ -859,12 +836,12 @@ export function DiaryView({
               if (labMatch) {
                 setEditBrewMethod(labMatch[1].trim());
                 setEditBrewTaste(labMatch[2].trim());
-                setEditPreparationType(tipoPart || (isWater ? "Agua" : ""));
+                setEditPreparationType(tipoPart || (isWater ? t("diary.water") : ""));
               } else {
                 const methodName = orderedBrewMethods.find((m) => normalizeLookupText(m.name) === normalizeLookupText(methodPart))?.name ?? "";
                 setEditBrewMethod(methodName);
                 setEditBrewTaste("");
-                setEditPreparationType(pipeIdx >= 0 ? tipoPart : (stripDoseFromPreparation(rawPreparation) || (isWater ? "Agua" : DIARY_STR.SIN_METODO)));
+                setEditPreparationType(pipeIdx >= 0 ? tipoPart : (stripDoseFromPreparation(rawPreparation) || (isWater ? t("diary.water") : t("diary.noMethod"))));
               }
             }}
             onDelete={async () => {
@@ -889,12 +866,12 @@ export function DiaryView({
         <div className="diary-analytics-top">
           <div className="diary-analytics-head-block">
             <p className="metric-label diary-analytics-label">
-              {DIARY_STR.CAFEINA_ESTIMADA}
+                {t("diary.estimatedCaffeineUpper")}
               <span className="diary-analytics-info-wrap">
                 <Button variant="plain"
                   type="button"
                   className="diary-analytics-info"
-                  aria-label={DIARY_STR.ARIA_CAFEINA}
+                  aria-label={t("diary.estimatedCaffeineAria")}
                   aria-expanded={showCaffeineInfo}
                   onClick={() => setShowCaffeineInfo((value) => !value)}
                   onMouseEnter={() => setShowCaffeineInfo(true)}
@@ -905,7 +882,7 @@ export function DiaryView({
                 </Button>
                 {showCaffeineInfo ? (
                   <span className="diary-analytics-tooltip" role="tooltip">
-                    {DIARY_STR.TOOLTIP_ESTIMACION}
+                    {t("diary.estimatedCaffeineTooltip")}
                   </span>
                 ) : null}
               </span>
@@ -916,7 +893,7 @@ export function DiaryView({
             </span>
           </div>
           <div className="diary-analytics-head-block diary-analytics-hydration">
-            <p className="metric-label diary-analytics-label">{DIARY_STR.HIDRATACION}</p>
+            <p className="metric-label diary-analytics-label">{t("diary.hydrationUpper")}</p>
             <p className="analytics-value diary-analytics-main-value">{analytics.hydrationMl} ml</p>
             <span className={`diary-analytics-trend is-water ${hydrationTrendPct >= 0 ? "is-up" : "is-down"}`.trim()} aria-hidden="true">
               {hydrationTrendPct >= 0 ? "\u2191" : "\u2193"} {Math.abs(hydrationTrendPct)}%
@@ -926,7 +903,7 @@ export function DiaryView({
         <div
           ref={chartScrollRef}
           className={`diary-chart-scroll ${chartDragging ? "is-dragging" : ""}`.trim()}
-          aria-label={DIARY_STR.GRAFICO_CONSUMO}
+          aria-label={t("diary.consumptionChartAria")}
           onPointerDown={(event) => {
             const node = chartScrollRef.current;
             if (!node) return;
@@ -983,68 +960,68 @@ export function DiaryView({
         </div>
       </article>
 
-      <section className="diary-stats-section" aria-label="Hábito">
-        <h3 className="diary-section-title">Hábito</h3>
+      <section className="diary-stats-section" aria-label={t("diary.habit")}>
+        <h3 className="diary-section-title">{t("diary.habit")}</h3>
         <article className="card diary-stats-card diary-habit-card">
         <ul className="diary-stats-card-list">
           <li className="diary-stats-card-row">
-            <span className="diary-stats-card-label">Tazas</span>
+            <span className="diary-stats-card-label">{t("diary.cups")}</span>
             <span className="diary-stats-card-value">{habitStats.avgCups}</span>
           </li>
           <li className="diary-stats-card-row">
-            <span className="diary-stats-card-label">Tamaño tazas</span>
+            <span className="diary-stats-card-label">{t("diary.cupSize")}</span>
             <span className="diary-stats-card-value">{habitStats.mostSize}</span>
           </li>
           <li className="diary-stats-card-row">
-            <span className="diary-stats-card-label">Método</span>
+            <span className="diary-stats-card-label">{t("diary.method")}</span>
             <span className="diary-stats-card-value">{habitStats.mostMethod}</span>
           </li>
           <li className="diary-stats-card-row">
-            <span className="diary-stats-card-label">Día cafetero</span>
+            <span className="diary-stats-card-label">{t("diary.coffeeDay")}</span>
             <span className="diary-stats-card-value">{habitStats.busiestDay}</span>
           </li>
         </ul>
       </article>
       </section>
 
-      <section className="diary-stats-section" aria-label="Consumo">
-        <h3 className="diary-section-title">Consumo</h3>
+      <section className="diary-stats-section" aria-label={t("diary.consumption")}>
+        <h3 className="diary-section-title">{t("diary.consumption")}</h3>
         <article className="card diary-stats-card diary-consumption-card">
         <ul className="diary-stats-card-list">
           <li className="diary-stats-card-row diary-stats-card-row-momento">
-            <span className="diary-stats-card-label">Momento</span>
+            <span className="diary-stats-card-label">{t("diary.moment")}</span>
             <span className="diary-stats-card-value diary-stats-card-value-momento">
-              Mañana {consumptionStats.momentPct.morning}% · Tarde {consumptionStats.momentPct.afternoon}% · Noche {consumptionStats.momentPct.evening}%
+              {t("diary.morning")} {consumptionStats.momentPct.morning}% · {t("diary.afternoon")} {consumptionStats.momentPct.afternoon}% · {t("diary.night")} {consumptionStats.momentPct.evening}%
             </span>
           </li>
           <li className="diary-stats-card-row">
-            <span className="diary-stats-card-label">Cafeína</span>
+            <span className="diary-stats-card-label">{t("diary.caffeine")}</span>
             <span className="diary-stats-card-value">{consumptionStats.avgCaffeine} mg</span>
           </li>
           <li className="diary-stats-card-row">
-            <span className="diary-stats-card-label">Dosis por café</span>
+            <span className="diary-stats-card-label">{t("diary.dosePerCoffee")}</span>
             <span className="diary-stats-card-value">{consumptionStats.avgDose} g</span>
           </li>
           <li className="diary-stats-card-row">
-            <span className="diary-stats-card-label">Formato</span>
+            <span className="diary-stats-card-label">{t("diary.format")}</span>
             <span className="diary-stats-card-value">{consumptionStats.mostFormat}</span>
           </li>
           <li className="diary-stats-card-row">
-            <span className="diary-stats-card-label">Previsión despensa</span>
+            <span className="diary-stats-card-label">{t("diary.pantryForecast")}</span>
             <span className="diary-stats-card-value">
-              {consumptionStats.pantryDaysLeft != null ? `~${consumptionStats.pantryDaysLeft} días` : "—"}
+              {consumptionStats.pantryDaysLeft != null ? t("diary.daysApprox", { days: consumptionStats.pantryDaysLeft }) : "—"}
             </span>
           </li>
         </ul>
       </article>
       </section>
 
-      <section className="diary-stats-section" aria-label="Barista">
-        <h3 className="diary-section-title">Barista</h3>
+      <section className="diary-stats-section" aria-label={t("diary.barista")}>
+        <h3 className="diary-section-title">{t("diary.barista")}</h3>
         <article className="card diary-stats-card diary-barista-card">
         <ul className="diary-stats-card-list">
           <li className="diary-stats-card-row diary-stats-card-row-clickable">
-            <span className="diary-stats-card-label">Cafés probados</span>
+            <span className="diary-stats-card-label">{t("diary.coffeesTried")}</span>
             <span className="diary-stats-card-value">
               {baristaStats.distinctCoffees}
               <UiIcon name="chevron-right" className="ui-icon diary-stats-card-arrow" aria-hidden="true" />
@@ -1052,16 +1029,16 @@ export function DiaryView({
             <button
               type="button"
               className="diary-stats-card-row-tap"
-              aria-label="Ver listado de cafés probados"
+              aria-label={t("diary.viewCoffeesTried")}
               onClick={() => { if (onOpenCafesProbados) onOpenCafesProbados(); else { sendEvent("modal_open", { modal_id: "diary_barista_list" }); setShowBaristaCoffeeList(true); } }}
             />
           </li>
           <li className="diary-stats-card-row">
-            <span className="diary-stats-card-label">Tostadores probados</span>
+            <span className="diary-stats-card-label">{t("diary.roastersTried")}</span>
             <span className="diary-stats-card-value">{baristaStats.distinctRoasters}</span>
           </li>
           <li className="diary-stats-card-row">
-            <span className="diary-stats-card-label">Origen favorito</span>
+            <span className="diary-stats-card-label">{t("diary.favoriteOrigin")}</span>
             <span className="diary-stats-card-value diary-stats-card-value-origin">
               {(() => {
                 const iso = getCountryIso(baristaStats.favoriteOrigin);
@@ -1092,7 +1069,7 @@ export function DiaryView({
         <SheetOverlay
           role="dialog"
           aria-modal="true"
-          aria-label="Cafés probados"
+          aria-label={t("diary.coffeesTried")}
           onDismiss={() => { sendEvent("modal_close", { modal_id: "diary_barista_list" }); setShowBaristaCoffeeList(false); }}
           onClick={() => { sendEvent("modal_close", { modal_id: "diary_barista_list" }); setShowBaristaCoffeeList(false); }}
         >
@@ -1100,8 +1077,8 @@ export function DiaryView({
             <SheetHandle aria-hidden="true" />
             <header className="sheet-header">
               <span className="sheet-header-spacer" aria-hidden="true" />
-              <h2 className="sheet-title">Cafés probados</h2>
-              <Button variant="plain" type="button" className="sheet-header-close" onClick={() => { sendEvent("modal_close", { modal_id: "diary_barista_list" }); setShowBaristaCoffeeList(false); }} aria-label="Cerrar">
+              <h2 className="sheet-title">{t("diary.coffeesTried")}</h2>
+              <Button variant="plain" type="button" className="sheet-header-close" onClick={() => { sendEvent("modal_close", { modal_id: "diary_barista_list" }); setShowBaristaCoffeeList(false); }} aria-label={t("diary.close")}>
                 <UiIcon name="close" className="ui-icon" />
               </Button>
             </header>
@@ -1125,7 +1102,7 @@ export function DiaryView({
                     <div className="diary-barista-coffee-copy">
                       <span className="diary-barista-coffee-name">{coffee.nombre}</span>
                       <span className="diary-barista-coffee-meta">
-                        Primera vez: {new Date(firstTriedTs).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })}
+                        {t("diary.firstTime", { date: new Date(firstTriedTs).toLocaleDateString(localeTag, { day: "numeric", month: "short", year: "numeric" }) })}
                       </span>
                     </div>
                     <UiIcon name="chevron-right" className="ui-icon" aria-hidden="true" />
@@ -1137,18 +1114,18 @@ export function DiaryView({
         </SheetOverlay>
       ) : null}
 
-      <section className="diary-activity-section" aria-label="Actividad">
-        <h3 className="diary-section-title">Actividad</h3>
+      <section className="diary-activity-section" aria-label={t("diary.activity")}>
+        <h3 className="diary-section-title">{t("diary.activity")}</h3>
         {activityList}
       </section>
 
       {pantryOptionsPantryItemId ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Opciones despensa" onDismiss={() => { sendEvent("modal_close", { modal_id: "diary_pantry_options" }); setPantryOptionsPantryItemId(null); }} onClick={() => { sendEvent("modal_close", { modal_id: "diary_pantry_options" }); setPantryOptionsPantryItemId(null); }}>
+        <SheetOverlay role="dialog" aria-modal="true" aria-label={t("diary.pantryOptions")} onDismiss={() => { sendEvent("modal_close", { modal_id: "diary_pantry_options" }); setPantryOptionsPantryItemId(null); }} onClick={() => { sendEvent("modal_close", { modal_id: "diary_pantry_options" }); setPantryOptionsPantryItemId(null); }}>
           <SheetCard className="diary-sheet diary-sheet-pantry-options list-options-general-wrap" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <div className="diary-sheet-list list-options-general-wrap">
               <div className="list-options-page-section">
-                <h3 className="create-list-privacy-subtitle">Organiza</h3>
+                <h3 className="create-list-privacy-subtitle">{t("diary.organize")}</h3>
                 <div className="list-options-general-card">
                   <Button variant="plain"
                     type="button"
@@ -1165,7 +1142,7 @@ export function DiaryView({
                     }}
                   >
                     <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">edit</span>
-                    <span>Editar stock</span>
+                    <span>{t("diary.editStock")}</span>
                     <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">chevron_right</span>
                   </Button>
                   {onMarkPantryCoffeeFinished ? (
@@ -1180,14 +1157,14 @@ export function DiaryView({
                       }}
                     >
                       <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">check_circle</span>
-                      <span>Café terminado</span>
+                      <span>{t("diary.coffeeFinished")}</span>
                       <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">chevron_right</span>
                     </Button>
                   ) : null}
                 </div>
               </div>
               <div className="list-options-page-section list-options-section-spaced">
-                <h3 className="create-list-privacy-subtitle">General</h3>
+                <h3 className="create-list-privacy-subtitle">{t("diary.general")}</h3>
                 <div className="list-options-general-card">
                   <Button variant="plain"
                     type="button"
@@ -1201,7 +1178,7 @@ export function DiaryView({
                     }}
                   >
                     <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">delete</span>
-                    <span>Eliminar de la despensa</span>
+                    <span>{t("diary.removeFromPantry")}</span>
                     <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">chevron_right</span>
                   </Button>
                 </div>
@@ -1212,17 +1189,17 @@ export function DiaryView({
       ) : null}
 
       {pantryFinishedConfirmPantryId && onMarkPantryCoffeeFinished ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Café terminado" onDismiss={() => { sendEvent("modal_close", { modal_id: "diary_finished_confirm" }); setPantryFinishedConfirmPantryId(null); }} onClick={() => { sendEvent("modal_close", { modal_id: "diary_finished_confirm" }); setPantryFinishedConfirmPantryId(null); }}>
+        <SheetOverlay role="dialog" aria-modal="true" aria-label={t("diary.coffeeFinished")} onDismiss={() => { sendEvent("modal_close", { modal_id: "diary_finished_confirm" }); setPantryFinishedConfirmPantryId(null); }} onClick={() => { sendEvent("modal_close", { modal_id: "diary_finished_confirm" }); setPantryFinishedConfirmPantryId(null); }}>
           <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <div className="diary-delete-confirm-body">
               <h2 className="diary-delete-confirm-title">Café terminado</h2>
               <p className="diary-delete-confirm-text">
-                ¿Marcar este café como terminado? Se quitará de tu despensa y se guardará en Historial.
+                {t("diary.finishedCoffeeConfirmText")}
               </p>
               <div className="diary-delete-confirm-actions">
                 <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => { sendEvent("modal_close", { modal_id: "diary_finished_confirm" }); setPantryFinishedConfirmPantryId(null); }} disabled={markingFinished}>
-                  Cancelar
+                  {t("diary.cancel")}
                 </Button>
                 <Button variant="plain"
                   type="button"
@@ -1240,7 +1217,7 @@ export function DiaryView({
                     }
                   }}
                 >
-                  {markingFinished ? "Guardando..." : "Confirmar"}
+                  {markingFinished ? t("profile.saving") : t("diary.confirm")}
                 </Button>
               </div>
             </div>
@@ -1249,17 +1226,17 @@ export function DiaryView({
       ) : null}
 
       {pantryDeleteConfirmPantryId ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Eliminar de la despensa" onDismiss={() => { sendEvent("modal_close", { modal_id: "diary_delete_confirm_pantry" }); setPantryDeleteConfirmPantryId(null); }} onClick={() => { sendEvent("modal_close", { modal_id: "diary_delete_confirm_pantry" }); setPantryDeleteConfirmPantryId(null); }}>
+        <SheetOverlay role="dialog" aria-modal="true" aria-label={t("diary.removeFromPantry")} onDismiss={() => { sendEvent("modal_close", { modal_id: "diary_delete_confirm_pantry" }); setPantryDeleteConfirmPantryId(null); }} onClick={() => { sendEvent("modal_close", { modal_id: "diary_delete_confirm_pantry" }); setPantryDeleteConfirmPantryId(null); }}>
           <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <div className="diary-delete-confirm-body">
               <h2 className="diary-delete-confirm-title">Eliminar de la despensa</h2>
               <p className="diary-delete-confirm-text">
-                ¿Estás seguro de eliminar este café? Se borrará tu stock actual.
+                {t("diary.removePantryConfirmText")}
               </p>
               <div className="diary-delete-confirm-actions">
                 <Button variant="plain" type="button" className="diary-delete-confirm-cancel" onClick={() => { sendEvent("modal_close", { modal_id: "diary_delete_confirm_pantry" }); setPantryDeleteConfirmPantryId(null); }} disabled={removingStock}>
-                  Cancelar
+                  {t("diary.cancel")}
                 </Button>
                 <Button variant="plain"
                   type="button"
@@ -1277,7 +1254,7 @@ export function DiaryView({
                     }
                   }}
                 >
-                  {removingStock ? "Eliminando..." : "Eliminar"}
+                  {removingStock ? t("diary.removing") : t("diary.delete")}
                 </Button>
               </div>
             </div>
@@ -1286,15 +1263,15 @@ export function DiaryView({
       ) : null}
 
       {stockEditTarget ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar stock" onDismiss={() => { sendEvent("modal_close", { modal_id: "diary_stock_edit" }); setStockEditPantryItemId(null); }} onClick={() => { sendEvent("modal_close", { modal_id: "diary_stock_edit" }); setStockEditPantryItemId(null); }}>
+        <SheetOverlay role="dialog" aria-modal="true" aria-label={t("diary.editStock")} onDismiss={() => { sendEvent("modal_close", { modal_id: "diary_stock_edit" }); setStockEditPantryItemId(null); }} onClick={() => { sendEvent("modal_close", { modal_id: "diary_stock_edit" }); setStockEditPantryItemId(null); }}>
           <SheetCard className="diary-sheet diary-stock-edit-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <header className="sheet-header diary-stock-edit-header">
-              <strong className="sheet-title">Editar Stock</strong>
+              <strong className="sheet-title">{t("diary.editStock")}</strong>
             </header>
             <div className="diary-sheet-form diary-stock-edit-form">
               <label className="diary-stock-edit-field">
-                <span>Cantidad de café total (g)</span>
+                <span>{t("diary.totalCoffeeAmount")}</span>
                 <Input
                   className="diary-stock-edit-value search-wide"
                   type="text"
@@ -1333,7 +1310,7 @@ export function DiaryView({
                 />
               </label>
               <label className="diary-stock-edit-field">
-                <span>Cantidad de café restante (g)</span>
+                <span>{t("diary.remainingCoffeeAmount")}</span>
                 <Input
                   className="diary-stock-edit-value search-wide"
                   type="text"
@@ -1366,7 +1343,7 @@ export function DiaryView({
               {!canSaveStock && stockValidationMessage ? <p className="diary-inline-error">{stockValidationMessage}</p> : null}
               <div className="diary-sheet-form-actions diary-stock-edit-actions">
                 <Button variant="plain" type="button" className="action-button diary-stock-edit-cancel" onClick={() => { sendEvent("modal_close", { modal_id: "diary_stock_edit" }); setStockEditPantryItemId(null); }} disabled={savingStock}>
-                  CANCELAR
+                  {t("diary.cancel").toUpperCase()}
                 </Button>
                 <Button variant="plain"
                   type="button"
@@ -1388,7 +1365,7 @@ export function DiaryView({
                     }
                   }}
                 >
-                  {savingStock ? "GUARDANDO..." : "GUARDAR"}
+                  {savingStock ? t("profile.saving").toUpperCase() : t("profile.save").toUpperCase()}
                 </Button>
               </div>
             </div>
@@ -1397,12 +1374,12 @@ export function DiaryView({
       ) : null}
 
       {editEntryTarget ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Editar entrada" onDismiss={() => setEditEntryId(null)} onClick={() => setEditEntryId(null)}>
+        <SheetOverlay role="dialog" aria-modal="true" aria-label={t("diary.editEntry")} onDismiss={() => setEditEntryId(null)} onClick={() => setEditEntryId(null)}>
           <SheetCard className="diary-sheet diary-edit-entry-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <header className="sheet-header diary-edit-entry-header">
               <span className="diary-edit-entry-header-spacer" aria-hidden="true" />
-              <strong className="sheet-title">Editar</strong>
+              <strong className="sheet-title">{t("diary.edit")}</strong>
               <Button
                 variant="plain"
                 type="button"
@@ -1410,14 +1387,14 @@ export function DiaryView({
                 onClick={() => void handleSaveEditEntry()}
                 disabled={savingEditEntry || !canSaveEditEntry}
               >
-                {savingEditEntry ? "Guardando..." : "Guardar"}
+                {savingEditEntry ? t("profile.saving") : t("profile.save")}
               </Button>
             </header>
             <div className="diary-sheet-form">
               {editEntryIsWater ? (
                 <div className="diary-edit-entry-metrics-grid diary-edit-water-grid">
                   <label className="diary-edit-entry-metric-field is-caffeine">
-                    <span>Cantidad (ml)</span>
+                    <span>{t("diary.quantityMl")}</span>
                     <div className="diary-edit-entry-metric-value">
                       <UiIcon name="water" className="ui-icon diary-water-drop-icon" />
                       <Input
@@ -1432,14 +1409,14 @@ export function DiaryView({
                     </div>
                   </label>
                   <label className="diary-edit-entry-metric-field is-time">
-                    <span>Tiempo (hh:mm)</span>
+                    <span>{t("diary.timeHhMm")}</span>
                     <div className="diary-edit-entry-metric-value is-time-input">
                       <UiIcon name="clock" className="ui-icon" />
                       <Input
                         className="diary-edit-entry-metric-input"
                         type="text"
                         inputMode="numeric"
-                        placeholder="HH:mm"
+                        placeholder={t("diary.hhmmPlaceholder")}
                         value={editTimeText}
                         onChange={(event) => setEditTimeText(formatTimeInputToHhMm(event.target.value))}
                       />
@@ -1450,7 +1427,7 @@ export function DiaryView({
                 <div className="diary-edit-entry-coffee-layout">
                   {orderedBrewMethods.length > 0 ? (
                     <section className="diary-edit-entry-block">
-                      <h4 className="diary-edit-entry-block-title">{DIARY_STR.METODO_UPPER}</h4>
+                      <h4 className="diary-edit-entry-block-title">{t("diary.methodUpper")}</h4>
                       <div
                         ref={editMethodScrollRef}
                         className={`diary-edit-entry-presets is-coffee ${editChipsDragging ? "is-dragging" : ""}`.trim()}
@@ -1479,7 +1456,7 @@ export function DiaryView({
                     </section>
                   ) : null}
                   <section className="diary-edit-entry-block">
-                    <h4 className="diary-edit-entry-block-title">{DIARY_STR.TIPO}</h4>
+                    <h4 className="diary-edit-entry-block-title">{t("diary.type")}</h4>
                     <div
                       ref={editPrepScrollRef}
                       className={`diary-edit-entry-presets diary-edit-entry-tipo-presets is-coffee ${editChipsDragging ? "is-dragging" : ""}`.trim()}
@@ -1512,7 +1489,7 @@ export function DiaryView({
 
                   <section className="diary-edit-entry-metrics-grid">
                     <label className="diary-edit-entry-metric-field is-caffeine">
-                      <span>{DIARY_STR.CAFEINA_MG}</span>
+                      <span>{t("diary.caffeineMg")}</span>
                       <div className="diary-edit-entry-metric-value">
                         <UiIcon name="caffeine" className="ui-icon" />
                         <Input
@@ -1528,7 +1505,7 @@ export function DiaryView({
                       </div>
                     </label>
                     <div className="diary-edit-entry-metric-field is-readonly is-dose">
-                      <span>Dosis (g)</span>
+                      <span>{t("diary.doseGrams")}</span>
                       <div className="diary-edit-entry-metric-value">
                         <UiIcon name="dose" className="ui-icon" />
                         <Input
@@ -1543,7 +1520,7 @@ export function DiaryView({
                   </section>
 
                   <section className="diary-edit-entry-block">
-                    <h4 className="diary-edit-entry-block-title">{DIARY_STR.TAMANO}</h4>
+                    <h4 className="diary-edit-entry-block-title">{t("diary.size")}</h4>
                     <div
                       ref={editSizeScrollRef}
                       className={`diary-coffee-size-presets diary-edit-entry-size-presets ${editChipsDragging ? "is-dragging" : ""}`.trim()}
@@ -1567,14 +1544,14 @@ export function DiaryView({
                   </section>
 
                   <label className="diary-edit-entry-metric-field is-readonly is-time">
-                    <span>Tiempo (hh:mm)</span>
+                    <span>{t("diary.timeHhMm")}</span>
                     <div className="diary-edit-entry-metric-value is-time-input">
                       <UiIcon name="clock" className="ui-icon" />
                       <Input
                         className="diary-edit-entry-metric-input"
                         type="text"
                         inputMode="numeric"
-                        placeholder="HH:mm"
+                        placeholder={t("diary.hhmmPlaceholder")}
                         value={editTimeText}
                         onChange={(event) => setEditTimeText(formatTimeInputToHhMm(event.target.value))}
                       />
@@ -1606,24 +1583,25 @@ function DiaryActivityRow({
   onOpenEdit: () => void;
   onDelete: () => Promise<void>;
 }) {
+  const { t } = useI18n();
   const isWaterEntry = (entry.type || "").toUpperCase() === "WATER";
   const coffeeNameNorm = (entry.coffee_name || "").trim().toLowerCase();
   const isRegistroRapido = !isWaterEntry && (
     (entry.coffee_id == null || entry.coffee_id === "") ||
-    coffeeNameNorm === DIARY_STR.REGISTRO_RAPIDO.toLowerCase() ||
+    coffeeNameNorm === t("diary.quickLog").toLowerCase() ||
     /registro\s*rapido/i.test(coffeeNameNorm)
   );
   const isBrewSinCafe = !isWaterEntry && (entry.coffee_id == null || entry.coffee_id === "") && (entry.coffee_name || "").trim() === "Café";
   const entryTitle = isBrewSinCafe
-    ? DIARY_STR.CAFE_LABEL
+    ? t("top.coffee")
     : isRegistroRapido
-      ? (entry.preparation_type || "").trim() || DIARY_STR.REGISTRO_RAPIDO
-      : entry.coffee_name || (isWaterEntry ? "Agua" : "Entrada");
+      ? (entry.preparation_type || "").trim() || t("diary.quickLog")
+      : entry.coffee_name || (isWaterEntry ? t("diary.water") : t("diary.entry"));
   const entrySubtitle = isWaterEntry
     ? `${Math.max(0, entry.amount_ml || 0)} ml`
     : isRegistroRapido
-      ? DIARY_STR.CAFE_BRAND
-      : (brand || DIARY_STR.CAFE_LABEL).toUpperCase();
+      ? t("diary.coffeeBrandUpper")
+      : (brand || t("top.coffee")).toUpperCase();
   const rawPreparationValue = (entry.preparation_type || "").trim();
   const pipeIdx = rawPreparationValue.indexOf("|");
   const methodPart = pipeIdx >= 0 ? rawPreparationValue.slice(0, pipeIdx).trim() : rawPreparationValue;
@@ -1636,7 +1614,7 @@ function DiaryActivityRow({
   })();
   const hasLabFormat = /^Lab:\s*.+\s*\(/i.test(methodPart);
   const tipoDisplayValue = tipoPart || (!hasLabFormat && methodPart && pipeIdx < 0 ? methodPart : "");
-  const prepValue = rawPreparationValue || (isWaterEntry ? "Agua" : "-");
+  const prepValue = rawPreparationValue || (isWaterEntry ? t("diary.water") : "-");
   const doseFromPrep = ((entry.preparation_type || "").match(/(\d+(?:[.,]\d+)?)\s*g/i)?.[1] || "").replace(",", ".");
   const gramsFromField = Math.max(0, Number(entry.coffee_grams || 0));
   const doseValue = gramsFromField > 0 ? `${Math.round(gramsFromField)} g` : doseFromPrep ? `${Math.round(Number(doseFromPrep))} g` : (isWaterEntry ? "-" : "15 g");

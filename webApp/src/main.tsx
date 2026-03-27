@@ -6,6 +6,7 @@ import { initGa4 } from "./core/ga4";
 import { getConsent } from "./core/consent";
 import { registerSW } from "virtual:pwa-register";
 import { applyThemeToDocument, getThemeMode } from "./core/theme";
+import { I18nProvider } from "./i18n";
 import "./fonts-material-symbols.css";
 import "./styles.css";
 
@@ -155,8 +156,10 @@ if (import.meta.env.DEV && "serviceWorker" in navigator) {
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <RootErrorBoundary>
-      <App />
-    </RootErrorBoundary>
+    <I18nProvider>
+      <RootErrorBoundary>
+        <App />
+      </RootErrorBoundary>
+    </I18nProvider>
   </React.StrictMode>
 );

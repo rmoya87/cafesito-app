@@ -293,7 +293,7 @@ export default defineConfig(({ mode }) => {
       }
       try {
         const parsed = new URL(url, "http://localhost");
-        const userId = parsed.searchParams.get("userId") ?? "1924119502";
+        const userId = parsed.searchParams.get("userId") ?? "cb1720cd-c6f8-498e-8763-f45c935f46f6";
         const host = req.headers.host ?? "localhost:4173";
         const redirectTo = `https://${host}/home`;
         const { createClient } = await import("@supabase/supabase-js");

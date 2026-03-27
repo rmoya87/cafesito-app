@@ -6,6 +6,7 @@ import { COFFEE_SIZE_OPTIONS, COFFEE_TIPO_OPTIONS } from "../../data/diaryBrewOp
 import type { CoffeeRow, DiaryEntryRow, PantryItemRow } from "../../types";
 import { UiIcon } from "../../ui/iconography";
 import { Button, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
+import { useI18n } from "../../i18n";
 
 type PantryCoffeeRow = { item: PantryItemRow; coffee: CoffeeRow };
 type CoffeeSheetStep = "select" | "dose" | "tipo" | "tamaño" | "createCoffee";
@@ -273,6 +274,7 @@ function DiarySheets({
   barcodeDetectedValue?: string | null;
   onClearBarcodeDetectedValue?: () => void;
 }) {
+  const { t } = useI18n();
   const [coffeeSearchQuery, setCoffeeSearchQuery] = useState("");
   const [coffeeSearchFocus, setCoffeeSearchFocus] = useState(false);
   const [pantrySearchQuery, setPantrySearchQuery] = useState("");
@@ -358,17 +360,17 @@ function DiarySheets({
   return (
     <>
       {showPeriodSheet ? (
-        <SheetOverlay role="dialog" aria-modal="true" aria-label="Seleccionar periodo" onDismiss={onClosePeriodSheet} onClick={onClosePeriodSheet}>
+        <SheetOverlay role="dialog" aria-modal="true" aria-label={t("diary.selectPeriod")} onDismiss={onClosePeriodSheet} onClick={onClosePeriodSheet}>
           <SheetCard className="diary-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <header className="sheet-header">
-              <strong className="sheet-title">SELECCIONAR PERIODO</strong>
+              <strong className="sheet-title">{t("diary.selectPeriod")}</strong>
             </header>
             <div className="diary-sheet-list">
               {([
-                { value: "hoy", label: "HOY" },
-                { value: "7d", label: "SEMANA" },
-                { value: "30d", label: "MES" }
+                { value: "hoy", label: t("diary.periodToday") },
+                { value: "7d", label: t("diary.periodWeek") },
+                { value: "30d", label: t("diary.periodMonth") }
               ] as const).map((option) => (
                 <Button variant="plain"
                   key={option.value}
@@ -395,7 +397,7 @@ function DiarySheets({
                     d.setMonth(d.getMonth() - 1);
                     setSelectedDiaryMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
                   }}
-                  aria-label="Mes anterior"
+                  aria-label={t("diary.prevMonth")}
                 >
                   <UiIcon name="arrow-left" className="ui-icon" />
                 </Button>
@@ -411,7 +413,7 @@ function DiarySheets({
                       d.setMonth(d.getMonth() + 1);
                       setSelectedDiaryMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
                     }}
-                    aria-label="Mes siguiente"
+                    aria-label={t("diary.nextMonth")}
                   >
                     <UiIcon name="arrow-right" className="ui-icon" />
                   </Button>
@@ -425,15 +427,15 @@ function DiarySheets({
       ) : null}
 
       {showCalendarSheet && onCloseCalendarSheet && setSelectedDiaryDate && diaryTodayStr ? (
-        <SheetOverlay className="diary-calendar-sheet-overlay" role="dialog" aria-modal="true" aria-label="Selecciona" onDismiss={onCloseCalendarSheet} onClick={onCloseCalendarSheet}>
+        <SheetOverlay className="diary-calendar-sheet-overlay" role="dialog" aria-modal="true" aria-label={t("diary.select")} onDismiss={onCloseCalendarSheet} onClick={onCloseCalendarSheet}>
           <SheetCard className="diary-sheet diary-calendar-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <header className="sheet-header diary-calendar-sheet-header">
               <span className="diary-calendar-sheet-header-spacer" aria-hidden="true" />
-              <strong className="sheet-title">Selecciona</strong>
+              <strong className="sheet-title">{t("diary.select")}</strong>
               <div className="diary-calendar-sheet-header-end">
                 <Button variant="primary" className="diary-calendar-today-btn" onClick={() => setSelectedDiaryDate(getMondayOfWeek(diaryTodayStr))}>
-                  Ir a hoy
+                  {t("diary.goToday")}
                 </Button>
               </div>
             </header>
@@ -443,16 +445,16 @@ function DiarySheets({
       ) : null}
 
       {showWaterSheet ? (
-        <SheetOverlay className="diary-water-sheet-overlay" role="dialog" aria-modal="true" aria-label="Registrar agua" onDismiss={onCloseWaterSheet} onClick={onCloseWaterSheet}>
+        <SheetOverlay className="diary-water-sheet-overlay" role="dialog" aria-modal="true" aria-label={t("diary.logWater")} onDismiss={onCloseWaterSheet} onClick={onCloseWaterSheet}>
           <SheetCard className="diary-sheet diary-water-sheet" onClick={(event) => event.stopPropagation()}>
             <SheetHandle aria-hidden="true" />
             <header className="sheet-header diary-water-sheet-header">
-              <Button variant="plain" type="button" className="diary-water-sheet-close" onClick={onCloseWaterSheet} aria-label="Cerrar">
+              <Button variant="plain" type="button" className="diary-water-sheet-close" onClick={onCloseWaterSheet} aria-label={t("diary.close")}>
                 <UiIcon name="close" className="ui-icon" />
               </Button>
-              <strong className="sheet-title">Agua</strong>
+              <strong className="sheet-title">{t("diary.water")}</strong>
               <Button variant="plain" type="button" className="action-button diary-water-sheet-register-btn" onClick={() => void onSaveWater()}>
-                Registrar
+                {t("diary.log")}
               </Button>
             </header>
             <div className="diary-sheet-form">
@@ -473,7 +475,7 @@ function DiarySheets({
                         const v = event.target.value;
                         if (v === "" || /^\d+$/.test(v)) setDiaryWaterMlDraft(v);
                       }}
-                      aria-label="Cantidad en ml"
+                      aria-label={t("diary.amountMl")}
                     />
                     <span className="diary-water-card-unit" aria-hidden="true">ml</span>
                   </label>
@@ -507,13 +509,13 @@ function DiarySheets({
       ) : null}
 
       {showCoffeeSheet ? (
-        <SheetOverlay className="diary-coffee-sheet-overlay" role="dialog" aria-modal="true" aria-label="Seleccionar café" onDismiss={onCloseCoffeeSheet} onClick={onCloseCoffeeSheet}>
+        <SheetOverlay className="diary-coffee-sheet-overlay" role="dialog" aria-modal="true" aria-label={t("diary.selectCoffee")} onDismiss={onCloseCoffeeSheet} onClick={onCloseCoffeeSheet}>
           <SheetCard className="diary-sheet diary-coffee-sheet" onClick={(event) => event.stopPropagation()}>
             {coffeeSheetStep === "select" ? (
               <>
                 <SheetHandle aria-hidden="true" />
                 <header className="sheet-header diary-coffee-select-header">
-                  <Button variant="plain" type="button" className="diary-coffee-select-close" onClick={onCloseCoffeeSheet} aria-label="Cerrar">
+                  <Button variant="plain" type="button" className="diary-coffee-select-close" onClick={onCloseCoffeeSheet} aria-label={t("diary.close")}>
                     <UiIcon name="close" className="ui-icon" />
                   </Button>
                   <strong className="sheet-title">SELECCIONA</strong>
@@ -521,10 +523,10 @@ function DiarySheets({
                 </header>
                 <div className="diary-coffee-select-body">
                   <section className="diary-coffee-select-section">
-                    <h3 className="diary-coffee-select-section-title">TU DESPENSA</h3>
+                    <h3 className="diary-coffee-select-section-title">{t("diary.yourPantry")}</h3>
                     {userPantryRows.length === 0 ? (
                       <div className="diary-coffee-select-pantry-empty">
-                        <p>Tu despensa está vacía</p>
+                        <p>{t("diary.pantryEmpty")}</p>
                       </div>
                     ) : (
                       <div className="diary-coffee-select-pantry-row">
@@ -568,19 +570,19 @@ function DiarySheets({
                         variant="search"
                         type="search"
                         className="search-coffee-input"
-                        placeholder="Busca un café o marca"
+                        placeholder={t("diary.searchCoffeeBrand")}
                         value={coffeeSearchQuery}
                         onFocus={() => setCoffeeSearchFocus(true)}
                         onBlur={() => setCoffeeSearchFocus(false)}
                         onChange={(event) => setCoffeeSearchQuery(event.target.value)}
-                        aria-label="Buscar café o marca"
+                        aria-label={t("diary.searchCoffeeBrandAria")}
                       />
                       {showBarcodeButton && onBarcodeClick ? (
                         <Button
                           variant="plain"
                           type="button"
                           className="search-coffee-trailing-button"
-                          aria-label="Escanear código de barras"
+                          aria-label={t("diary.scanBarcode")}
                           onClick={() => onBarcodeClick()}
                         >
                           <UiIcon name="barcode" className="ui-icon" />
@@ -600,12 +602,12 @@ function DiarySheets({
                       aria-hidden={!showSearchCancel}
                       tabIndex={showSearchCancel ? 0 : -1}
                     >
-                      Cancelar
+                      {t("diary.cancel")}
                     </Button>
                   </div>
                   <section className="diary-coffee-select-section">
                     <div className="diary-coffee-select-section-head">
-                      <h3 className="diary-coffee-select-section-title">SUGERENCIAS</h3>
+                      <h3 className="diary-coffee-select-section-title">{t("diary.suggestions")}</h3>
                       <Button
                         variant="plain"
                         type="button"
@@ -613,7 +615,7 @@ function DiarySheets({
                         onClick={() => setCoffeeSheetStep("createCoffee")}
                       >
                         <UiIcon name="add" className="ui-icon" />
-                        <span>Crear mi café</span>
+                        <span>{t("diary.createMyCoffee")}</span>
                       </Button>
                     </div>
                     <ul className="diary-coffee-select-list" role="listbox" aria-label="Sugerencias de café">
@@ -655,7 +657,7 @@ function DiarySheets({
               <>
                 <SheetHandle aria-hidden="true" />
                 <header className="sheet-header diary-create-coffee-sheet-header">
-                  <Button variant="plain" type="button" className="diary-create-coffee-back" onClick={() => setCoffeeSheetStep("select")} aria-label="Volver">
+                  <Button variant="plain" type="button" className="diary-create-coffee-back" onClick={() => setCoffeeSheetStep("select")} aria-label={t("common.back")}>
                     <UiIcon name="arrow-left" className="ui-icon" />
                   </Button>
                   <strong className="sheet-title">DATOS DEL CAFÉ</strong>
@@ -664,7 +666,7 @@ function DiarySheets({
                     type="button"
                     className="diary-create-coffee-next"
                     onClick={() => void onCreateCoffeeNext?.()}
-                    aria-label="Siguiente"
+                    aria-label={t("common.next")}
                   >
                     <UiIcon name="arrow-right" className="ui-icon" />
                   </Button>
@@ -678,7 +680,7 @@ function DiarySheets({
                 <SheetHandle aria-hidden="true" />
                 <header className="sheet-header diary-dose-sheet-header">
                   {coffeeSheetOpenedDirectlyToDose ? (
-                    <Button variant="plain" type="button" className="diary-dose-back diary-dose-close" onClick={onCloseCoffeeSheet} aria-label="Cerrar">
+                    <Button variant="plain" type="button" className="diary-dose-back diary-dose-close" onClick={onCloseCoffeeSheet} aria-label={t("common.close")}>
                       <UiIcon name="close" className="ui-icon" />
                     </Button>
                   ) : (
@@ -690,13 +692,13 @@ function DiarySheets({
                         setDiarySelectedPantryItemIdDraft("");
                         setCoffeeSheetStep("select");
                       }}
-                      aria-label="Volver"
+                      aria-label={t("common.back")}
                     >
                       <UiIcon name="arrow-left" className="ui-icon" />
                     </Button>
                   )}
                   <strong className="sheet-title">DOSIS</strong>
-                  <Button variant="plain" type="button" className="diary-dose-next" onClick={() => setCoffeeSheetStep("tipo")} aria-label="Siguiente">
+                  <Button variant="plain" type="button" className="diary-dose-next" onClick={() => setCoffeeSheetStep("tipo")} aria-label={t("common.next")}>
                     <UiIcon name="arrow-right" className="ui-icon" />
                   </Button>
                 </header>
@@ -754,11 +756,11 @@ function DiarySheets({
               <>
                 <SheetHandle aria-hidden="true" />
                 <header className="sheet-header diary-dose-sheet-header">
-                  <Button variant="plain" type="button" className="diary-dose-back" onClick={() => setCoffeeSheetStep("dose")} aria-label="Volver">
+                  <Button variant="plain" type="button" className="diary-dose-back" onClick={() => setCoffeeSheetStep("dose")} aria-label={t("common.back")}>
                     <UiIcon name="arrow-left" className="ui-icon" />
                   </Button>
                   <strong className="sheet-title">TIPO</strong>
-                  <Button variant="plain" type="button" className="diary-dose-next" onClick={() => { setDiaryCoffeeMlDraft("275"); setCoffeeSheetStep("tamaño"); }} aria-label="Siguiente">
+                  <Button variant="plain" type="button" className="diary-dose-next" onClick={() => { setDiaryCoffeeMlDraft("275"); setCoffeeSheetStep("tamaño"); }} aria-label={t("common.next")}>
                     <UiIcon name="arrow-right" className="ui-icon" />
                   </Button>
                 </header>
@@ -790,7 +792,7 @@ function DiarySheets({
               <>
                 <SheetHandle aria-hidden="true" />
                 <header className="sheet-header diary-tamaño-sheet-header">
-                  <Button variant="plain" type="button" className="diary-dose-back" onClick={() => setCoffeeSheetStep("tipo")} aria-label="Volver">
+                  <Button variant="plain" type="button" className="diary-dose-back" onClick={() => setCoffeeSheetStep("tipo")} aria-label={t("common.back")}>
                     <UiIcon name="arrow-left" className="ui-icon" />
                   </Button>
                   <strong className="sheet-title">TAMAÑO</strong>
@@ -816,13 +818,13 @@ function DiarySheets({
                         pantryItemId: diarySelectedPantryItemIdDraft || null
                       });
                     }}
-                    aria-label="Registrar"
+                    aria-label={t("common.register")}
                   >
                     REGISTRAR
                   </Button>
                 </header>
                 <div className="diary-sheet-form diary-tamaño-sheet-form">
-                  <div className="diary-tamaño-list" role="listbox" aria-label="Tamaño de la taza">
+                  <div className="diary-tamaño-list" role="listbox" aria-label={t("diary.cupSize")}>
                     {COFFEE_SIZE_OPTIONS.map((size) => {
                       const currentMl = Number(diaryCoffeeMlDraft || 0);
                       const isSelected = Math.abs(currentMl - size.ml) <= 15;
@@ -857,7 +859,7 @@ function DiarySheets({
           className={pantrySheetStep === "form" ? "diary-add-stock-overlay" : "diary-pantry-sheet-overlay"}
           role="dialog"
           aria-modal="true"
-          aria-label="Añadir a despensa"
+          aria-label={t("timeline.addCoffeeToPantry")}
           onDismiss={onCloseAddPantrySheet}
           onClick={onCloseAddPantrySheet}
         >
@@ -866,18 +868,18 @@ function DiarySheets({
               <>
                 <SheetHandle aria-hidden="true" />
                 <header className="sheet-header diary-pantry-select-header">
-                  <Button variant="plain" type="button" className="diary-pantry-select-back" onClick={onCloseAddPantrySheet} aria-label="Cerrar">
+                  <Button variant="plain" type="button" className="diary-pantry-select-back" onClick={onCloseAddPantrySheet} aria-label={t("common.close")}>
                     <UiIcon name="arrow-left" className="ui-icon" />
                   </Button>
-                  <strong className="sheet-title">{hideAddPantrySheetBolt ? "SELECCIONA CAFÉ" : "SELECCIONAR"}</strong>
+                  <strong className="sheet-title">{hideAddPantrySheetBolt ? t("top.selectCoffee").toUpperCase() : t("diary.select")}</strong>
                   <Button
                     variant="plain"
                     type="button"
                     className="diary-pantry-select-action diary-pantry-select-action-crea"
-                    aria-label="Crea tu café"
+                    aria-label={t("top.createCoffee")}
                     onClick={() => setPantrySheetStep("createCoffee")}
                   >
-                    Crea tu café
+                    {t("top.createCoffee")}
                   </Button>
                 </header>
                 <div className="diary-pantry-select-body">
@@ -888,19 +890,19 @@ function DiarySheets({
                         variant="search"
                         type="search"
                         className="search-coffee-input"
-                        placeholder="Busca un café o marca"
+                        placeholder={t("diary.searchCoffeeBrand")}
                         value={pantrySearchQuery}
                         onChange={(event) => setPantrySearchQuery(event.target.value)}
-                        aria-label="Buscar café o marca"
+                        aria-label={t("diary.searchCoffeeBrandAria")}
                       />
                       {showBarcodeButton && onBarcodeClick ? (
-                        <Button variant="plain" type="button" className="search-coffee-trailing-button" aria-label="Escanear código de barras" onClick={() => onBarcodeClick()}>
+                        <Button variant="plain" type="button" className="search-coffee-trailing-button" aria-label={t("diary.scanBarcode")} onClick={() => onBarcodeClick()}>
                           <UiIcon name="barcode" className="ui-icon" />
                         </Button>
                       ) : null}
                     </div>
                   </div>
-                  <ul className="diary-pantry-select-list" role="listbox" aria-label="Seleccionar café para despensa">
+                  <ul className="diary-pantry-select-list" role="listbox" aria-label={t("diary.selectCoffee")}>
                     {filteredPantryCoffees.map((coffee) => (
                       <li key={coffee.id}>
                         <Button
@@ -923,7 +925,7 @@ function DiarySheets({
                           </span>
                           <div className="diary-pantry-select-card-copy">
                             <strong>{coffee.nombre}</strong>
-                            <span>{(coffee.marca || "CAFÉ").toUpperCase()}</span>
+                            <span>{(coffee.marca || t("search.brandFallback")).toUpperCase()}</span>
                           </div>
                         </Button>
                       </li>
@@ -935,19 +937,19 @@ function DiarySheets({
               <>
                 <SheetHandle aria-hidden="true" />
                 <header className="sheet-header diary-pantry-create-coffee-header">
-                  <Button variant="plain" type="button" className="diary-pantry-create-coffee-back" onClick={() => setPantrySheetStep("select")} aria-label="Volver">
+                  <Button variant="plain" type="button" className="diary-pantry-create-coffee-back" onClick={() => setPantrySheetStep("select")} aria-label={t("common.back")}>
                     <UiIcon name="arrow-left" className="ui-icon" />
                   </Button>
-                  <strong className="sheet-title">NUEVO CAFÉ</strong>
+                  <strong className="sheet-title">{t("top.createCoffee").toUpperCase()}</strong>
                   <Button
                     variant="plain"
                     type="button"
                     className="diary-pantry-create-coffee-next"
                     disabled={!isCreateCoffeeFormValid}
                     onClick={() => void onCreateCoffeeNextForPantry?.()}
-                    aria-label="Añadir a despensa"
+                    aria-label={t("timeline.addCoffeeToPantry")}
                   >
-                    Añadir
+                    {t("notifications.addList")}
                   </Button>
                 </header>
                 <div className="diary-sheet-form diary-pantry-create-coffee-body">
@@ -958,11 +960,11 @@ function DiarySheets({
               <>
                 <SheetHandle aria-hidden="true" />
                 <header className="sheet-header diary-add-stock-header">
-                  <strong className="sheet-title">AÑADIR STOCK</strong>
+                  <strong className="sheet-title">{t("top.addStock").toUpperCase()}</strong>
                 </header>
                 <div className="diary-sheet-form">
                   <div className="diary-add-stock-simple" aria-hidden="true">
-                    <p className="diary-add-stock-simple-label">Peso total (g)</p>
+                    <p className="diary-add-stock-simple-label">{t("diary.totalCoffeeAmount")}</p>
                     <Input
                       className="diary-add-stock-simple-input"
                       type="number"
@@ -970,7 +972,7 @@ function DiarySheets({
                       min={1}
                       value={diaryPantryGramsDraft}
                       onChange={(event) => setDiaryPantryGramsDraft(event.target.value)}
-                      aria-label="Peso total en gramos"
+                      aria-label={t("diary.totalCoffeeAmount")}
                     />
                     <Input
                       className="app-range app-range--caramel"
@@ -981,7 +983,7 @@ function DiarySheets({
                       value={Math.max(1, Number(diaryPantryGramsDraft || 1))}
                       style={{ "--range-progress": `${((Math.max(1, Number(diaryPantryGramsDraft || 1)) - 1) / 1999) * 100}%` } as React.CSSProperties}
                       onChange={(event) => setDiaryPantryGramsDraft(String(Math.max(1, Number(event.target.value || 1))))}
-                      aria-label="Selector de peso total"
+                      aria-label={t("diary.totalCoffeeAmount")}
                     />
                   </div>
                   <div className="diary-sheet-form-actions">
@@ -992,7 +994,7 @@ function DiarySheets({
                       disabled={!diaryPantryCoffeeIdDraft}
                       onClick={() => void onSavePantry()}
                     >
-                      GUARDAR EN DESPENSA
+                      {t("timeline.saveUpper")}
                     </Button>
                   </div>
                 </div>

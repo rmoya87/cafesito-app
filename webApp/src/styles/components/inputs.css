@@ -1,6 +1,5 @@
 .search-wide {
   width: 100%;
-  border: 1px solid var(--search-border-inactive);
   border-radius: var(--radius-pill);
   background: var(--surface);
   color: inherit;

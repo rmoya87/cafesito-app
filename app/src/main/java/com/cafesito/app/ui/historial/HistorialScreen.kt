@@ -10,8 +10,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.cafesito.app.R
 import com.cafesito.app.data.FinishedCoffeeWithDetails
 import com.cafesito.app.ui.components.CoffeeListRowWithChevron
 import com.cafesito.app.ui.components.GlassyTopBar
@@ -37,7 +39,7 @@ fun HistorialScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             GlassyTopBar(
-                title = "HISTORIAL",
+                title = stringResource(id = R.string.historial_title).uppercase(),
                 onBackClick = onBackClick,
                 navigationContent = null
             )
@@ -54,13 +56,13 @@ fun HistorialScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
                         Icons.Default.History,
-                        contentDescription = "Sin cafés terminados",
+                        contentDescription = stringResource(id = R.string.historial_empty),
                         modifier = Modifier.size(64.dp),
                         tint = MaterialTheme.colorScheme.outline
                     )
                     Spacer(Modifier.height(16.dp))
                     Text(
-                        "No hay cafés terminados",
+                        stringResource(id = R.string.historial_empty),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

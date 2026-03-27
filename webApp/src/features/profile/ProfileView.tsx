@@ -7,6 +7,7 @@ import { Button, IconButton, Input, SheetCard, SheetHandle, SheetOverlay, TabBut
 import { CreateListSheet } from "../lists/CreateListSheet";
 import { toRelativeMinutes } from "../../core/time";
 import type { CoffeeRow, ListPrivacy, CoffeeReviewRow, CoffeeSensoryProfileRow, ProfileActivityItem, UserListRow, UserRow, ViewMode } from "../../types";
+import { useI18n } from "../../i18n";
 
 const SWIPE_THRESHOLD_PX = 3;
 const VERTICAL_LOCK_PX = 2;
@@ -273,6 +274,127 @@ export function ProfileView({
   /** IDs de cafés en listas del usuario del perfil, para ADN */
   profileListCoffeeIds?: string[];
 }) {
+  const { t, locale } = useI18n();
+  const profileCopy = useMemo(() => {
+    if (locale === "en") {
+      return {
+        brandFallback: "Brand",
+        me: "You",
+        ownProfile: "Open your profile",
+        userProfile: (name: string) => `Open profile of ${name}`,
+        dnaNoData: "There is not enough data yet to calculate your palate.",
+        dnaNoDataCta: "Consume coffees, add them to lists or favorites and leave reviews to build your sensory DNA.",
+        dnaAcidity: "You seek brightness in every cup. You love citrus and vibrant profiles from high-altitude coffees (1500m+).",
+        dnaSweetness: "You love sweetness. You prefer natural-process coffees with chocolate, caramel and ripe fruit notes.",
+        dnaBody: "For you, texture is everything. You enjoy that velvety and dense mouthfeel, typical of medium roasts and classic profiles.",
+        dnaAroma: "Your ritual starts with smell. You are drawn to complex, floral and spicy fragrances that fill the room.",
+        dnaFlavor: "You seek maximum intensity and gustatory complexity. You value lingering notes after each sip.",
+        dnaDefault: "You enjoy exceptional complexity and a perfectly balanced coffee DNA.",
+        adnCaption: "Your tastes are based on coffees you consume, keep in lists/favorites, and review.",
+        preferenceAnalysisTitle: "PREFERENCE ANALYSIS",
+        shouldTry: "You should try:",
+        suggestedOrigins: "Suggested origins:",
+        openPreferenceAnalysis: "Open preference analysis",
+        radarAria: "Sensory radar profile",
+        continueExploring: "CONTINUE EXPLORING",
+        viewList: (name: string) => `Open list ${name}`
+      };
+    }
+    if (locale === "fr") {
+      return {
+        brandFallback: "Marque",
+        me: "Toi",
+        ownProfile: "Voir ton profil",
+        userProfile: (name: string) => `Voir le profil de ${name}`,
+        dnaNoData: "Il n'y a pas encore assez de donnees pour calculer ton palais.",
+        dnaNoDataCta: "Consomme des cafes, ajoute-les a des listes ou favoris et laisse des avis pour construire ton ADN sensoriel.",
+        dnaAcidity: "Tu recherches l'eclat dans chaque tasse. Tu aimes les profils vifs et agrumes des cafes d'altitude.",
+        dnaSweetness: "Tu adores la douceur. Tu preferes les cafes naturels aux notes de chocolat, caramel et fruits murs.",
+        dnaBody: "Pour toi, la texture est essentielle. Tu apprecies une sensation dense et veloutee.",
+        dnaAroma: "Ton rituel commence par l'odorat. Tu es attire par les aromes floraux et epices.",
+        dnaFlavor: "Tu recherches une intensite et une complexite gustative elevees.",
+        dnaDefault: "Tu apprecies un ADN cafe equilibre et complexe.",
+        adnCaption: "Tes gouts selon les cafes que tu consommes, en listes/favoris et que tu notes.",
+        preferenceAnalysisTitle: "ANALYSE DES PRÉFÉRENCES",
+        shouldTry: "Tu devrais essayer :",
+        suggestedOrigins: "Origines suggérées :",
+        openPreferenceAnalysis: "Ouvrir l'analyse des préférences",
+        radarAria: "Profil sensoriel radar",
+        continueExploring: "CONTINUER À EXPLORER",
+        viewList: (name: string) => `Voir la liste ${name}`
+      };
+    }
+    if (locale === "pt") {
+      return {
+        brandFallback: "Marca",
+        me: "Voce",
+        ownProfile: "Ver seu perfil",
+        userProfile: (name: string) => `Ver perfil de ${name}`,
+        dnaNoData: "Ainda nao ha dados suficientes para calcular seu paladar.",
+        dnaNoDataCta: "Consuma cafes, adicione a listas ou favoritos e deixe avaliacoes para construir seu DNA sensorial.",
+        dnaAcidity: "Voce busca brilho em cada xicara. Gosta de perfis citricos e vibrantes.",
+        dnaSweetness: "Voce gosta de doçura. Prefere cafes com notas de chocolate e caramelo.",
+        dnaBody: "Para voce, textura e essencial. Gosta de uma sensacao aveludada e densa.",
+        dnaAroma: "Seu ritual comeca pelo aroma. Voce busca fragrancias complexas.",
+        dnaFlavor: "Voce busca intensidade e complexidade de sabor.",
+        dnaDefault: "Voce aprecia um DNA de cafe equilibrado e complexo.",
+        adnCaption: "Seus gostos com base nos cafes que voce consome, salva em listas/favoritos e avalia.",
+        preferenceAnalysisTitle: "ANÁLISE DE PREFERÊNCIAS",
+        shouldTry: "Você deveria provar:",
+        suggestedOrigins: "Origens sugeridas:",
+        openPreferenceAnalysis: "Abrir análise de preferências",
+        radarAria: "Perfil sensorial radar",
+        continueExploring: "CONTINUAR EXPLORANDO",
+        viewList: (name: string) => `Ver lista ${name}`
+      };
+    }
+    if (locale === "de") {
+      return {
+        brandFallback: "Marke",
+        me: "Du",
+        ownProfile: "Dein Profil ansehen",
+        userProfile: (name: string) => `Profil von ${name} ansehen`,
+        dnaNoData: "Es gibt noch nicht genug Daten, um deinen Geschmack zu berechnen.",
+        dnaNoDataCta: "Trinke Kaffee, fuege ihn zu Listen/Favoriten hinzu und schreibe Bewertungen fuer deine sensorische DNA.",
+        dnaAcidity: "Du suchst Helligkeit in jeder Tasse und magst lebendige Profile.",
+        dnaSweetness: "Du liebst Suesse und bevorzugst Schokoladen- und Karamellnoten.",
+        dnaBody: "Fuer dich ist die Textur entscheidend. Du magst ein samtiges Mundgefuehl.",
+        dnaAroma: "Dein Ritual beginnt mit dem Geruchssinn. Du magst komplexe Aromen.",
+        dnaFlavor: "Du suchst hohe Intensitaet und geschmackliche Komplexitaet.",
+        dnaDefault: "Du geniesst eine ausgewogene und komplexe Kaffee-DNA.",
+        adnCaption: "Dein Geschmack basiert auf konsumierten Kaffees, Listen/Favoriten und Bewertungen.",
+        preferenceAnalysisTitle: "PRÄFERENZANALYSE",
+        shouldTry: "Du solltest probieren:",
+        suggestedOrigins: "Empfohlene Herkünfte:",
+        openPreferenceAnalysis: "Präferenzanalyse öffnen",
+        radarAria: "Sensorisches Radarprofil",
+        continueExploring: "WEITER ENTDECKEN",
+        viewList: (name: string) => `Liste anzeigen ${name}`
+      };
+    }
+    return {
+      brandFallback: "Marca",
+      me: "Tú",
+      ownProfile: "Ver tu perfil",
+      userProfile: (name: string) => `Ver perfil de ${name}`,
+      dnaNoData: "Aún no hay datos suficientes para calcular tu paladar.",
+      dnaNoDataCta: "Consume cafés, añádelos a listas o favoritos y deja reseñas para construir tu ADN sensorial.",
+      dnaAcidity: "Buscas brillo en cada taza. Te apasionan los perfiles cítricos y vibrantes de cafés de altura (1500m+).",
+      dnaSweetness: "Eres amante de lo meloso. Prefieres cafés con procesos naturales que resaltan notas de chocolate, caramelo y frutas maduras.",
+      dnaBody: "Para ti, la textura lo es todo. Disfrutas de esa sensación aterciopelada y densa, típica de tuestes medios y perfiles clásicos.",
+      dnaAroma: "Tu ritual empieza con el olfato. Te atraen las fragancias complejas, florales y especiadas que inundan la habitación.",
+      dnaFlavor: "Buscas la máxima intensidad y complejidad gustativa. Valoras la persistencia de las notas tras cada sorbo.",
+      dnaDefault: "Disfrutas de una complejidad excepcional y un balance perfectamente equilibrado en tu ADN cafetero.",
+      adnCaption: "Tus gustos basados en los cafés que consumes, tienes en listas o favoritos y has reseñado.",
+      preferenceAnalysisTitle: "ANÁLISIS DE PREFERENCIAS",
+      shouldTry: "Deberías probar:",
+      suggestedOrigins: "Orígenes sugeridos:",
+      openPreferenceAnalysis: "Abrir análisis de preferencia",
+      radarAria: "Perfil sensorial radar",
+      continueExploring: "CONTINUAR EXPLORANDO",
+      viewList: (name: string) => `Ver lista ${name}`
+    };
+  }, [locale]);
   const [showCreateListModal, setShowCreateListModal] = useState(false);
   const initials = user.full_name
     .split(" ")
@@ -522,20 +644,20 @@ export function ProfileView({
       ? second && second.value > 3
         ? `Tu paladar es una combinación experta de ${highest.label.toLowerCase()} y ${second.label.toLowerCase()}.`
         : `Tu paladar destaca principalmente por preferir notas de ${highest.label.toLowerCase()}.`
-      : "Aún no hay datos suficientes para calcular tu paladar.";
+      : profileCopy.dnaNoData;
     const description = highest
       ? highest.label === "Acidez"
-        ? "Buscas brillo en cada taza. Te apasionan los perfiles cítricos y vibrantes de cafés de altura (1500m+)."
+        ? profileCopy.dnaAcidity
         : highest.label === "Dulzura"
-          ? "Eres amante de lo meloso. Prefieres cafés con procesos naturales que resaltan notas de chocolate, caramelo y frutas maduras."
+          ? profileCopy.dnaSweetness
           : highest.label === "Cuerpo"
-            ? "Para ti, la textura lo es todo. Disfrutas de esa sensación aterciopelada y densa, típica de tuestes medios y perfiles clásicos."
+            ? profileCopy.dnaBody
             : highest.label === "Aroma"
-              ? "Tu ritual empieza con el olfato. Te atraen las fragancias complejas, florales y especiadas que inundan la habitación."
+              ? profileCopy.dnaAroma
               : highest.label === "Sabor"
-                ? "Buscas la máxima intensidad y complejidad gustativa. Valoras la persistencia de las notas tras cada sorbo."
-                : "Disfrutas de una complejidad excepcional y un balance perfectamente equilibrado en tu ADN cafetero."
-      : "Consume cafés, añádelos a listas o favoritos y deja reseñas para construir tu ADN sensorial.";
+                ? profileCopy.dnaFlavor
+                : profileCopy.dnaDefault
+      : profileCopy.dnaNoDataCta;
     const recommendation = highest
       ? highest.label === "Acidez"
         ? { type: "Lavados de alta montaña", origin: "Etiopía o Colombia (Nariño)" }
@@ -596,7 +718,7 @@ export function ProfileView({
               className="action-button action-button-ghost profile-inline-change-photo"
               onClick={() => editAvatarInputRef.current?.click()}
             >
-              Cambiar foto
+              {t("profile.changePhoto")}
             </Button>
           ) : null}
           <div className="profile-head-copy">
@@ -604,7 +726,7 @@ export function ProfileView({
               <div className="profile-inline-edit">
                 <section className="diary-edit-entry-metrics-grid profile-inline-metrics">
                   <label className="diary-edit-entry-metric-field is-caffeine profile-inline-name-field">
-                    <span>Nombre</span>
+                    <span>{t("profile.name")}</span>
                     <div className="diary-edit-entry-metric-value">
                       <Input
                         className="search-wide diary-edit-entry-metric-input profile-inline-name-input"
@@ -617,7 +739,7 @@ export function ProfileView({
                     </div>
                   </label>
                   <label className="diary-edit-entry-metric-field is-caffeine profile-inline-bio-field">
-                    <span>Bio</span>
+                    <span>{t("profile.bio")}</span>
                     <div className="diary-edit-entry-metric-value">
                       <Textarea
                         className="search-wide diary-edit-entry-metric-input profile-inline-bio-input"
@@ -654,7 +776,7 @@ export function ProfileView({
                 }
               }}
             >
-              {togglingFollow ? "..." : isFollowingProfile ? "Siguiendo" : "Seguir"}
+              {togglingFollow ? "..." : isFollowingProfile ? t("profile.following") : t("profile.follow")}
             </Button>
           </div>
         ) : canEditProfile && showEditProfile ? (
@@ -673,20 +795,20 @@ export function ProfileView({
                 }
               }}
             >
-              {savingProfile ? "Guardando..." : "Guardar"}
+              {savingProfile ? t("profile.saving") : t("profile.save")}
             </Button>
           </div>
         ) : null}
       </article>
 
-      <section className="profile-stats-row" aria-label="Estadisticas de perfil">
-        <button type="button" className="profile-stat-item profile-stat-clickable" onClick={onOpenFollowers} aria-label="Ver seguidores">
+      <section className="profile-stats-row" aria-label={t("profile.stats")}>
+        <button type="button" className="profile-stat-item profile-stat-clickable" onClick={onOpenFollowers} aria-label={t("top.followers")}>
           <strong className="profile-stat-value">{followers}</strong>
-          <span className="profile-stat-label">SEGUIDORES</span>
+          <span className="profile-stat-label">{t("profile.seguidores")}</span>
         </button>
-        <button type="button" className="profile-stat-item profile-stat-clickable" onClick={onOpenFollowing} aria-label="Ver siguiendo">
+        <button type="button" className="profile-stat-item profile-stat-clickable" onClick={onOpenFollowing} aria-label={t("profile.following")}>
           <strong className="profile-stat-value">{following}</strong>
-          <span className="profile-stat-label">SIGUIENDO</span>
+          <span className="profile-stat-label">{t("profile.following").toUpperCase()}</span>
         </button>
       </section>
 
@@ -698,7 +820,7 @@ export function ProfileView({
           onTouchEnd={onProfilePanelsTouchEnd}
           onTouchCancel={onProfilePanelsTouchEnd}
         >
-        <Tabs className="profile-tabs" aria-label="Tabs perfil">
+        <Tabs className="profile-tabs" aria-label={t("profile.tabProfile")}>
           <span
             className="tab-sliding-indicator"
             style={{
@@ -715,9 +837,9 @@ export function ProfileView({
             }}
             aria-hidden="true"
           />
-          <TabButton active={tab === "actividad"} role="tab" aria-selected={tab === "actividad"} onClick={() => setTab("actividad")}>Actividad</TabButton>
-          <TabButton active={tab === "adn"} role="tab" aria-selected={tab === "adn"} onClick={() => setTab("adn")}>ADN</TabButton>
-          <TabButton active={tab === "favoritos"} role="tab" aria-selected={tab === "favoritos"} onClick={() => setTab("favoritos")}>Listas</TabButton>
+          <TabButton active={tab === "actividad"} role="tab" aria-selected={tab === "actividad"} onClick={() => setTab("actividad")}>{t("profile.tabActivity")}</TabButton>
+          <TabButton active={tab === "adn"} role="tab" aria-selected={tab === "adn"} onClick={() => setTab("adn")}>{t("profile.tabAdn")}</TabButton>
+          <TabButton active={tab === "favoritos"} role="tab" aria-selected={tab === "favoritos"} onClick={() => setTab("favoritos")}>{t("profile.tabLists")}</TabButton>
         </Tabs>
         </div>
         <div ref={profilePanelsWrapRef} className="profile-tab-panels-wrap">
@@ -729,12 +851,12 @@ export function ProfileView({
             }}
           >
             <div className="profile-tab-panel" aria-hidden={tab !== "actividad"}>
-              <ul className="profile-activity-list" aria-label={activityIsProfileUser ? "Actividad de este usuario" : "Tu actividad y la de personas que sigues"}>
+              <ul className="profile-activity-list" aria-label={activityIsProfileUser ? t("profile.activityOfThisUser") : t("profile.activityMineAndFollowing")}>
                 {followedActivity.length
                   ? followedActivity.map((item) => {
                       const coffee = item.coffeeId != null ? coffeesById.get(item.coffeeId) : null;
                       const isOwnActivity = activeUserId != null && item.userId === activeUserId;
-                      const displayName = isOwnActivity ? "Tú" : item.userName;
+                      const displayName = isOwnActivity ? profileCopy.me : item.userName;
                       const displayLabel = isOwnActivity ? (ACTIVITY_LABEL_SECOND[item.label] ?? item.label) : item.label;
                       return (
                       <li key={item.id} className="profile-activity-item">
@@ -744,17 +866,17 @@ export function ProfileView({
                             type="button"
                             className="profile-activity-avatar-link"
                             onClick={() => onOpenUserProfile(item.userId)}
-                            aria-label={isOwnActivity ? "Ver tu perfil" : `Ver perfil de ${item.userName}`}
+                            aria-label={isOwnActivity ? profileCopy.ownProfile : profileCopy.userProfile(item.userName)}
                           >
                             {item.avatarUrl ? (
-                              <img className="avatar avatar-photo profile-activity-avatar" src={item.avatarUrl} alt={`Avatar de ${displayName}`} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                              <img className="avatar avatar-photo profile-activity-avatar" src={item.avatarUrl} alt={`${displayName}`} loading="lazy" decoding="async" referrerPolicy="no-referrer" crossOrigin="anonymous" />
                             ) : (
                               <div className="avatar profile-activity-avatar" aria-hidden="true">{displayName.slice(0, 2).toUpperCase()}</div>
                             )}
                           </Button>
                           <div className="profile-activity-copy">
                             <p className="profile-activity-text">
-                              <Button variant="plain" type="button" className="profile-activity-coffee-link profile-activity-user-name-link" onClick={() => onOpenUserProfile(item.userId)} aria-label={isOwnActivity ? "Ver tu perfil" : `Ver perfil de ${item.userName}`}>
+                              <Button variant="plain" type="button" className="profile-activity-coffee-link profile-activity-user-name-link" onClick={() => onOpenUserProfile(item.userId)} aria-label={isOwnActivity ? profileCopy.ownProfile : profileCopy.userProfile(item.userName)}>
                                 <strong>{displayName}</strong>
                               </Button>
                               {" "}
@@ -808,7 +930,7 @@ export function ProfileView({
                                   </span>
                                   <span className="profile-activity-coffee-card-copy">
                                     <strong className="profile-activity-coffee-card-name">{coffee.nombre}</strong>
-                                    <em className="profile-activity-coffee-card-brand">{coffee.marca || "Marca"}</em>
+                                    <em className="profile-activity-coffee-card-brand">{coffee.marca || profileCopy.brandFallback}</em>
                                   </span>
                                   <UiIcon name="chevron-right" className="ui-icon profile-activity-coffee-card-arrow" aria-hidden="true" />
                                 </Button>
@@ -870,17 +992,17 @@ export function ProfileView({
                   ))}
                 </svg>
               </div>
-              <p className="profile-adn-caption">Tus gustos basados en los cafés que consumes, tienes en listas o favoritos y has reseñado.</p>
+              <p className="profile-adn-caption">{profileCopy.adnCaption}</p>
             </article>
           ) : (
             <Button variant="plain"
               type="button"
               className="config-card profile-adn-card profile-adn-radar-card profile-adn-open"
               onClick={() => { sendEvent("modal_open", { modal_id: "sensory_detail" }); setShowAdnAnalysisSheet(true); }}
-              aria-label="Abrir análisis de preferencia"
+              aria-label={profileCopy.openPreferenceAnalysis}
             >
               <div className="profile-adn-radar-wrap">
-                <svg className="profile-adn-radar" viewBox="0 0 240 190" aria-label="Perfil sensorial radar">
+                <svg className="profile-adn-radar" viewBox="0 0 240 190" aria-label={profileCopy.radarAria}>
                   {adnRadar.rings.map((ring, index) => (
                     <polygon
                       key={`ring-${index}`}
@@ -905,22 +1027,22 @@ export function ProfileView({
                   ))}
                 </svg>
               </div>
-              <p className="profile-adn-caption">Tus gustos basados en los cafés que consumes, tienes en listas o favoritos y has reseñado.</p>
+              <p className="profile-adn-caption">{profileCopy.adnCaption}</p>
             </Button>
           )}
           {mode === "desktop" ? (
             <article className="config-card profile-adn-analysis-panel">
-              <h3 className="profile-adn-analysis-title">ANÁLISIS DE PREFERENCIAS</h3>
+              <h3 className="profile-adn-analysis-title">{profileCopy.preferenceAnalysisTitle}</h3>
               <div className="profile-adn-analysis-body">
                 <p className="profile-adn-analysis-lead">{adnAnalysis.lead}</p>
                 <p className="profile-adn-analysis-text">{adnAnalysis.description}</p>
                 <article className="profile-adn-recommend-card">
                   <div className="profile-adn-recommend-head">
                     <UiIcon name="sparkles" className="ui-icon" />
-                    <strong>RECOMENDACIÓN IDEAL</strong>
+                    <strong>{t("brew.recommendation").toUpperCase()}</strong>
                   </div>
-                  <p className="profile-adn-recommend-title">Deberías probar: {adnAnalysis.recommendation.type}</p>
-                  <p className="profile-adn-recommend-origin">Orígenes sugeridos: {adnAnalysis.recommendation.origin}</p>
+                  <p className="profile-adn-recommend-title">{profileCopy.shouldTry} {adnAnalysis.recommendation.type}</p>
+                  <p className="profile-adn-recommend-origin">{profileCopy.suggestedOrigins} {adnAnalysis.recommendation.origin}</p>
                 </article>
               </div>
             </article>
@@ -938,19 +1060,19 @@ export function ProfileView({
                       sendEvent("modal_open", { modal_id: "profile_create_list" });
                       setShowCreateListModal(true);
                     }}
-                      aria-label="Crear una lista nueva"
+                      aria-label={t("lists.newList")}
                     >
                       <UiIcon name="add" className="ui-icon profile-list-icon" />
-                      <span>Crea una lista nueva</span>
+                      <span>{t("lists.newList")}</span>
                     </button>
                     <button
                       type="button"
                       className="profile-list-row profile-list-row-favorites"
                       onClick={() => onOpenFavoritesList?.()}
-                      aria-label="Ver lista de favoritos"
+                      aria-label={t("top.favorites")}
                     >
                       <UiIcon name="favorite-filled" className="ui-icon profile-list-icon profile-list-icon-favorite" />
-                      <span>Favoritos</span>
+                      <span>{t("top.favorites")}</span>
                       <UiIcon name="chevron-right" className="ui-icon" />
                     </button>
                     {userLists.map((list) => (
@@ -959,7 +1081,7 @@ export function ProfileView({
                         type="button"
                         className="profile-list-row"
                         onClick={() => onOpenList?.(list.id)}
-                        aria-label={`Ver lista ${list.name}`}
+                        aria-label={profileCopy.viewList(list.name)}
                       >
                         <UiIcon name="list-alt" className="ui-icon profile-list-icon" />
                         <span>{list.name}</span>
@@ -973,16 +1095,16 @@ export function ProfileView({
                     type="button"
                     className="profile-list-row profile-list-row-favorites"
                     onClick={() => onOpenFavoritesList?.()}
-                    aria-label="Ver lista de favoritos"
+                      aria-label={t("top.favorites")}
                   >
                     <UiIcon name="favorite-filled" className="ui-icon profile-list-icon profile-list-icon-favorite" />
-                    <span>Favoritos</span>
+                    <span>{t("top.favorites")}</span>
                     <UiIcon name="chevron-right" className="ui-icon" />
                   </button>
                 )}
               </div>
               {showCreateListModal && typeof document !== "undefined" && createPortal(
-                <SheetOverlay role="dialog" aria-modal="true" aria-label="Nueva lista" onDismiss={() => { sendEvent("modal_close", { modal_id: "profile_create_list" }); setShowCreateListModal(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "profile_create_list" }); setShowCreateListModal(false); }}>
+                <SheetOverlay role="dialog" aria-modal="true" aria-label={t("lists.newList")} onDismiss={() => { sendEvent("modal_close", { modal_id: "profile_create_list" }); setShowCreateListModal(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "profile_create_list" }); setShowCreateListModal(false); }}>
                   <CreateListSheet
                     onDismiss={() => { sendEvent("modal_close", { modal_id: "profile_create_list" }); setShowCreateListModal(false); }}
                     onCreate={(name, privacy) => (onCreateList?.(name, privacy) ?? Promise.resolve()).then(() => { sendEvent("modal_close", { modal_id: "profile_create_list" }); setShowCreateListModal(false); })}
@@ -997,11 +1119,11 @@ export function ProfileView({
 
       {showAdnAnalysisSheet && mode !== "desktop" && typeof document !== "undefined"
         ? createPortal(
-            <SheetOverlay role="dialog" aria-modal="true" aria-label="Análisis de preferencia" onDismiss={() => { sendEvent("modal_close", { modal_id: "sensory_detail" }); setShowAdnAnalysisSheet(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "sensory_detail" }); setShowAdnAnalysisSheet(false); }}>
+            <SheetOverlay role="dialog" aria-modal="true" aria-label={t("profile.preferenceAnalysis")} onDismiss={() => { sendEvent("modal_close", { modal_id: "sensory_detail" }); setShowAdnAnalysisSheet(false); }} onClick={() => { sendEvent("modal_close", { modal_id: "sensory_detail" }); setShowAdnAnalysisSheet(false); }}>
               <SheetCard className="profile-adn-analysis-sheet" onClick={(event) => event.stopPropagation()}>
                 <SheetHandle aria-hidden="true" />
                 <header className="sheet-header">
-                  <strong className="sheet-title">ANÁLISIS DE PREFERENCIAS</strong>
+                  <strong className="sheet-title">{t("profile.preferenceAnalysis").toUpperCase()}</strong>
                 </header>
                 <div className="profile-adn-analysis-body">
                   <p className="profile-adn-analysis-lead">{adnAnalysis.lead}</p>
@@ -1009,16 +1131,16 @@ export function ProfileView({
                   <article className="profile-adn-recommend-card">
                     <div className="profile-adn-recommend-head">
                       <UiIcon name="sparkles" className="ui-icon" />
-                      <strong>RECOMENDACIÓN IDEAL</strong>
+                      <strong>{t("brew.recommendation").toUpperCase()}</strong>
                     </div>
-                    <p className="profile-adn-recommend-title">Deberías probar: {adnAnalysis.recommendation.type}</p>
-                    <p className="profile-adn-recommend-origin">Orígenes sugeridos: {adnAnalysis.recommendation.origin}</p>
+                    <p className="profile-adn-recommend-title">{profileCopy.shouldTry} {adnAnalysis.recommendation.type}</p>
+                    <p className="profile-adn-recommend-origin">{profileCopy.suggestedOrigins} {adnAnalysis.recommendation.origin}</p>
                   </article>
                   <Button variant="primary"
                     className="action-button profile-adn-continue-button"
                     onClick={() => { sendEvent("modal_close", { modal_id: "sensory_detail" }); setShowAdnAnalysisSheet(false); }}
                   >
-                    CONTINUAR EXPLORANDO
+                    {profileCopy.continueExploring}
                   </Button>
                 </div>
               </SheetCard>

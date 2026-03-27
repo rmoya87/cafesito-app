@@ -17,16 +17,18 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import android.util.Log
 import java.time.Instant
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.delay
 
 @Singleton
 class SupabaseDataSource @Inject constructor(
     private val client: SupabaseClient
 ) {
-    // --- Caché recomendaciones (RPC): TTL 1h; en error o expirado, fuente de verdad = Supabase ---
+    // --- Caché recomendaciones (RPC): diaria; en cambio de día o error, fuente de verdad = Supabase ---
     private val recommendationsCacheLock = Any()
-    private val recommendationsCache = mutableMapOf<Int, Pair<List<Coffee>, Long>>()
-    private val RECOMMENDATIONS_TTL_MS = 60 * 60 * 1000L
+    private val recommendationsCache = mutableMapOf<Int, Pair<List<Coffee>, String>>()
 
     // --- Caché listas por usuario: TTL 5 min; en error o expirado, fuente de verdad = Supabase ---
     private val userListsCacheLock = Any()
@@ -142,21 +144,6 @@ class SupabaseDataSource @Inject constructor(
             .decodeSingleOrNull<AccountLifecycleInfo>()
 
     suspend fun hardDeleteAccountData(userId: Int) {
-        val postIds = client.postgrest["posts_db"]
-            .select {
-                filter { eq("user_id", userId) }
-            }
-            .decodeList<PostEntity>()
-            .map { it.id }
-
-        if (postIds.isNotEmpty()) {
-            client.postgrest["post_coffee_tags"].delete {
-                filter { isIn("post_id", postIds) }
-            }
-        }
-
-        client.postgrest["comments_db"].delete { filter { eq("user_id", userId) } }
-        client.postgrest["likes_db"].delete { filter { eq("user_id", userId) } }
         client.postgrest["local_favorites"].delete { filter { eq("user_id", userId) } }
         client.postgrest["reviews_db"].delete { filter { eq("user_id", userId) } }
         client.postgrest["coffee_sensory_profiles"].delete { filter { eq("user_id", userId) } }
@@ -165,7 +152,6 @@ class SupabaseDataSource @Inject constructor(
         client.postgrest["notifications_db"].delete { filter { eq("user_id", userId) } }
         client.postgrest["follows"].delete { filter { eq("follower_id", userId) } }
         client.postgrest["follows"].delete { filter { eq("followed_id", userId) } }
-        client.postgrest["posts_db"].delete { filter { eq("user_id", userId) } }
         client.postgrest["users_db"].delete { filter { eq("id", userId) } }
     }
 
@@ -283,10 +269,10 @@ class SupabaseDataSource @Inject constructor(
     }
 
     suspend fun getRecommendationsWithCache(userId: Int): List<Coffee> {
-        val now = System.currentTimeMillis()
+        val todayKey = currentLocalDateKey()
         synchronized(recommendationsCacheLock) {
-            recommendationsCache[userId]?.let { (list, ts) ->
-                if (now - ts < RECOMMENDATIONS_TTL_MS) return list
+            recommendationsCache[userId]?.let { (list, dateKey) ->
+                if (dateKey == todayKey) return list
             }
         }
         return runRecommendationsWithRetry(userId)
@@ -296,7 +282,7 @@ class SupabaseDataSource @Inject constructor(
         return try {
             val list = getRecommendationsRpc(userId)
             synchronized(recommendationsCacheLock) {
-                recommendationsCache[userId] = list to System.currentTimeMillis()
+                recommendationsCache[userId] = list to currentLocalDateKey()
             }
             list
         } catch (e: Exception) {
@@ -305,7 +291,7 @@ class SupabaseDataSource @Inject constructor(
             try {
                 val list = getRecommendationsRpc(userId)
                 synchronized(recommendationsCacheLock) {
-                    recommendationsCache[userId] = list to System.currentTimeMillis()
+                    recommendationsCache[userId] = list to currentLocalDateKey()
                 }
                 list
             } catch (e2: Exception) {
@@ -321,6 +307,9 @@ class SupabaseDataSource @Inject constructor(
         if (userId == null) return
         synchronized(recommendationsCacheLock) { recommendationsCache.remove(userId) }
     }
+
+    private fun currentLocalDateKey(): String =
+        SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
 
     // --- CAFÉS PERSONALIZADOS (tabla coffees con is_custom = true y user_id) ---
     suspend fun getCustomCoffees(userId: Int): List<Coffee> = client.postgrest["coffees"].select {
@@ -367,67 +356,52 @@ class SupabaseDataSource @Inject constructor(
     }
 
     // --- PUBLICACIONES ---
-    suspend fun getAllPosts(): List<PostEntity> = client.postgrest["posts_db"].select { order("timestamp", Order.DESCENDING) }.decodeList<PostEntity>()
+    suspend fun getAllPosts(): List<PostEntity> = emptyList()
     
-    suspend fun getPostsByUserId(userId: Int): List<PostEntity> = client.postgrest["posts_db"].select {
-        filter {
-            eq("user_id", userId)
-        }
-        order("timestamp", Order.DESCENDING)
-        limit(50) 
-    }.decodeList<PostEntity>()
-    
-    suspend fun insertPost(post: PostEntity) = client.postgrest["posts_db"].upsert(post)
-    suspend fun deletePost(postId: String) {
-        client.postgrest["posts_db"].delete { filter { eq("id", postId) } }
+    suspend fun getPostsByUserId(userId: Int): List<PostEntity> {
+        @Suppress("UNUSED_VARIABLE")
+        val ignored = userId
+        return emptyList()
     }
+    
+    suspend fun insertPost(post: PostEntity) { @Suppress("UNUSED_VARIABLE") val ignored = post }
+    suspend fun deletePost(postId: String) { @Suppress("UNUSED_VARIABLE") val ignored = postId }
 
     suspend fun getAllPostCoffeeTags(): List<PostCoffeeTagEntity> =
-        client.postgrest["post_coffee_tags"].select().decodeList<PostCoffeeTagEntity>()
+        emptyList()
 
-    suspend fun upsertPostCoffeeTag(tag: PostCoffeeTagEntity) {
-        client.postgrest["post_coffee_tags"].upsert(tag)
-    }
+    suspend fun upsertPostCoffeeTag(tag: PostCoffeeTagEntity) { @Suppress("UNUSED_VARIABLE") val ignored = tag }
 
-    suspend fun deletePostCoffeeTag(postId: String) {
-        client.postgrest["post_coffee_tags"].delete {
-            filter { eq("post_id", postId) }
-        }
-    }
+    suspend fun deletePostCoffeeTag(postId: String) { @Suppress("UNUSED_VARIABLE") val ignored = postId }
 
     // --- COMENTARIOS ---
-    suspend fun getAllComments(): List<CommentEntity> = client.postgrest["comments_db"].select().decodeList<CommentEntity>()
-    suspend fun getCommentsForPost(postId: String): List<CommentEntity> = client.postgrest["comments_db"].select { filter { eq("post_id", postId) }; order("timestamp", Order.ASCENDING) }.decodeList<CommentEntity>()
+    suspend fun getAllComments(): List<CommentEntity> = emptyList()
+    suspend fun getCommentsForPost(postId: String): List<CommentEntity> {
+        @Suppress("UNUSED_VARIABLE")
+        val ignored = postId
+        return emptyList()
+    }
     suspend fun insertComment(comment: CommentInsert): CommentEntity {
-        return client.postgrest["comments_db"].insert(comment) { select() }.decodeSingle()
+        throw IllegalStateException("La funcionalidad social legacy (likes/posts/comments) está deshabilitada.")
     }
-    suspend fun upsertComment(comment: CommentEntity) = client.postgrest["comments_db"].upsert(comment)
-    suspend fun deleteComment(commentId: Int) {
-        try {
-            client.postgrest.rpc(
-                "delete_comment",
-                buildJsonObject {
-                    put("p_comment_id", commentId)
-                }
-            )
-        } catch (_: Exception) {
-            client.postgrest["comments_db"].delete { filter { eq("id", commentId) } }
-        }
-    }
+    suspend fun upsertComment(comment: CommentEntity) { @Suppress("UNUSED_VARIABLE") val ignored = comment }
+    suspend fun deleteComment(commentId: Int) { @Suppress("UNUSED_VARIABLE") val ignored = commentId }
     suspend fun updateComment(commentId: Int, newText: String) {
-        client.postgrest["comments_db"].update(
-            {
-                set("text", newText)
-            }
-        ) {
-            filter { eq("id", commentId) }
-        }
+        @Suppress("UNUSED_VARIABLE")
+        val ignoredId = commentId
+        @Suppress("UNUSED_VARIABLE")
+        val ignoredText = newText
     }
 
     // --- LIKES ---
-    suspend fun getAllLikes(): List<LikeEntity> = client.postgrest["likes_db"].select().decodeList<LikeEntity>()
-    suspend fun insertLike(like: LikeEntity) = client.postgrest["likes_db"].upsert(like)
-    suspend fun deleteLike(postId: String, userId: Int) { client.postgrest["likes_db"].delete { filter { eq("post_id", postId); eq("user_id", userId) } } }
+    suspend fun getAllLikes(): List<LikeEntity> = emptyList()
+    suspend fun insertLike(like: LikeEntity) { @Suppress("UNUSED_VARIABLE") val ignored = like }
+    suspend fun deleteLike(postId: String, userId: Int) {
+        @Suppress("UNUSED_VARIABLE")
+        val ignoredPost = postId
+        @Suppress("UNUSED_VARIABLE")
+        val ignoredUser = userId
+    }
 
     // --- RESEÑAS ---
     suspend fun getAllReviews(): List<ReviewEntity> = client.postgrest["reviews_db"].select().decodeList<ReviewEntity>()

@@ -5,9 +5,10 @@ import type { UserRow } from "../../types";
 import type { ListInvitationRow, ListMemberRow } from "../../data/supabaseApi";
 import { resolveAvatarUrl } from "../../core/avatarUrl";
 import { normalizeLookupText } from "../../core/text";
+import { useI18n } from "../../i18n";
 
-function getDisplayName(users: UserRow[], userId: number, isCurrentUser: boolean): string {
-  if (isCurrentUser) return "Tú";
+function getDisplayName(users: UserRow[], userId: number, isCurrentUser: boolean, selfLabel: string): string {
+  if (isCurrentUser) return selfLabel;
   const u = users.find((x) => x.id === userId);
   return u?.full_name?.trim() || (u?.username ? `@${u.username}` : "") || `#${userId}`;
 }
@@ -59,6 +60,7 @@ export function ListOptionsMembersBlock({
   /** Si se define, solo se muestran en la lista los miembros cuyo user_id está en este Set (p. ej. mutual follow en listas públicas). */
   visibleMemberIds?: Set<number>;
 }) {
+  const { t, locale } = useI18n();
   const [search, setSearch] = useState("");
   const [swipedUserId, setSwipedUserId] = useState<number | null>(null);
   /** IDs de miembros cuyo avatar falló al cargar; se muestra inicial en su lugar. */
@@ -118,10 +120,54 @@ export function ListOptionsMembersBlock({
   };
 
   const isPage = variant === "page";
+  const l =
+    locale === "es"
+      ? {
+          me: "Tú",
+          members: "Miembros",
+          searchUsers: "Buscar usuarios...",
+          searchUsersAria: "Buscar usuarios para añadir",
+          noUsers: "No hay usuarios que coincidan.",
+          alreadyInList: "Ya está en la lista",
+          invitationSent: "Invitación enviada",
+          inviteTo: (u: string) => `Invitar a ${u}`,
+          sending: "Enviando…",
+          invite: "Invitar",
+          copyInviteLink: "Copiar enlace de invitación",
+          copyLink: "Copiar enlace",
+          shareInviteLink: "Compartir enlace de invitación",
+          share: "Compartir",
+          admin: "Admin.",
+          member: "Miembro",
+          removeFromList: (u: string) => `Eliminar a ${u} de la lista`,
+          remove: "Eliminar",
+          linkCopied: "Enlace copiado"
+        }
+      : {
+          me: "You",
+          members: "Members",
+          searchUsers: "Search users...",
+          searchUsersAria: "Search users to add",
+          noUsers: "No matching users.",
+          alreadyInList: "Already in list",
+          invitationSent: "Invitation sent",
+          inviteTo: (u: string) => `Invite ${u}`,
+          sending: "Sending…",
+          invite: "Invite",
+          copyInviteLink: "Copy invite link",
+          copyLink: "Copy link",
+          shareInviteLink: "Share invite link",
+          share: "Share",
+          admin: "Admin",
+          member: "Member",
+          removeFromList: (u: string) => `Remove ${u} from list`,
+          remove: "Remove",
+          linkCopied: "Link copied"
+        };
 
   return (
     <div className={cn("list-options-members", isPage && "list-options-members--page")}>
-      <h3 className="create-list-privacy-subtitle">Miembros</h3>
+      <h3 className="create-list-privacy-subtitle">{l.members}</h3>
       <div className="list-options-members-box">
         <div className="list-options-members-add">
           <UiIcon name="search" className="list-options-members-search-icon" aria-hidden="true" />
@@ -129,16 +175,16 @@ export function ListOptionsMembersBlock({
             variant="search"
             type="search"
             className="list-options-members-search-input"
-            placeholder="Buscar usuarios..."
+            placeholder={l.searchUsers}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            aria-label="Buscar usuarios para añadir"
+            aria-label={l.searchUsersAria}
           />
         </div>
         {search.trim() && (
           <div className="list-options-members-suggestions">
             {searchResultUsers.length === 0 ? (
-              <p className="list-options-members-suggestions-empty">No hay usuarios que coincidan.</p>
+              <p className="list-options-members-suggestions-empty">{l.noUsers}</p>
             ) : (
               searchResultUsers.slice(0, 5).map((user) => {
                 const alreadyMember = memberIds.has(user.id);
@@ -172,9 +218,9 @@ export function ListOptionsMembersBlock({
                     </span>
                   </div>
                   {alreadyMember ? (
-                    <span className="list-options-members-already-in-list" aria-live="polite">Ya está en la lista</span>
+                    <span className="list-options-members-already-in-list" aria-live="polite">{l.alreadyInList}</span>
                   ) : pendingInvite ? (
-                    <span className="list-options-members-pending-label" aria-live="polite">Invitación enviada</span>
+                    <span className="list-options-members-pending-label" aria-live="polite">{l.invitationSent}</span>
                   ) : (
                     <Button
                       variant="plain"
@@ -182,9 +228,9 @@ export function ListOptionsMembersBlock({
                       className="list-options-members-invite-btn"
                       disabled={invitingId !== null}
                       onClick={() => void onInvite(user.id)}
-                      aria-label={`Invitar a ${user.username}`}
+                      aria-label={l.inviteTo(user.username)}
                     >
-                      {invitingId === user.id ? "Enviando…" : "Invitar"}
+                      {invitingId === user.id ? l.sending : l.invite}
                     </Button>
                   )}
                 </div>
@@ -200,10 +246,10 @@ export function ListOptionsMembersBlock({
             onClick={() => {
               onCopyLink();
             }}
-            aria-label="Copiar enlace de invitación"
+            aria-label={l.copyInviteLink}
           >
             <UiIcon name="link" className="list-options-members-copy-icon" aria-hidden="true" />
-            <span>Copiar enlace</span>
+            <span>{l.copyLink}</span>
           </button>
           <button
             type="button"
@@ -211,10 +257,10 @@ export function ListOptionsMembersBlock({
             onClick={() => {
               onQuickShare?.();
             }}
-            aria-label="Compartir enlace de invitación"
+            aria-label={l.shareInviteLink}
           >
             <UiIcon name="share" className="list-options-members-copy-icon" aria-hidden="true" />
-            <span>Compartir</span>
+            <span>{l.share}</span>
           </button>
         </div>
         {!hideMemberList && isPage ? (
@@ -227,7 +273,7 @@ export function ListOptionsMembersBlock({
                 const rawAvatar = getAvatar(allUsersForDisplay, userId) ?? user?.avatar_url ?? null;
                 const avatarUrl = resolveAvatarUrl(rawAvatar);
                 const showAvatar = avatarUrl && !failedMemberAvatarIds.has(userId);
-                const displayName = getDisplayName(allUsersForDisplay, userId, isCurrentUser);
+                const displayName = getDisplayName(allUsersForDisplay, userId, isCurrentUser, l.me);
                 return (
                   <li key={userId} className="search-users-row">
                     <div className="search-users-link" style={{ cursor: "default", flex: 1 }}>
@@ -246,13 +292,13 @@ export function ListOptionsMembersBlock({
                         />
                       ) : (
                         <div className="avatar search-users-avatar-fallback" aria-hidden="true">
-                          {(displayName === "Tú" ? "T" : (user?.username ?? "?").slice(0, 2)).toUpperCase()}
+                          {(displayName === l.me ? "T" : (user?.username ?? "?").slice(0, 2)).toUpperCase()}
                         </div>
                       )}
                       <div className="search-users-copy">
                         <p className="search-users-username">{displayName}</p>
                         <p className="search-users-fullname">
-                          {isOwner ? "Admin." : "Miembro"}
+                          {isOwner ? l.admin : l.member}
                         </p>
                       </div>
                     </div>
@@ -262,9 +308,9 @@ export function ListOptionsMembersBlock({
                         type="button"
                         className="list-options-members-row-delete list-options-members-row-delete--page"
                         onClick={() => void onRemoveMember(userId)}
-                        aria-label={`Eliminar a ${displayName} de la lista`}
+                        aria-label={l.removeFromList(displayName)}
                       >
-                        Eliminar
+                        {l.remove}
                       </Button>
                     )}
                   </li>
@@ -281,7 +327,7 @@ export function ListOptionsMembersBlock({
               const rawAvatar = getAvatar(allUsersForDisplay, userId) ?? user?.avatar_url ?? null;
               const avatarUrl = resolveAvatarUrl(rawAvatar);
               const showImage = avatarUrl && !failedMemberAvatarIds.has(userId);
-              const displayName = getDisplayName(allUsersForDisplay, userId, isCurrentUser);
+              const displayName = getDisplayName(allUsersForDisplay, userId, isCurrentUser, l.me);
               return (
                 <li
                   key={userId}
@@ -310,13 +356,13 @@ export function ListOptionsMembersBlock({
                       />
                     ) : (
                       <span className="list-options-members-avatar-placeholder" aria-hidden="true">
-                        {displayName === "Tú" ? "T" : (user?.username ?? "?").slice(0, 1).toUpperCase()}
+                        {displayName === l.me ? "T" : (user?.username ?? "?").slice(0, 1).toUpperCase()}
                       </span>
                     )}
                     <div className="list-options-members-row-info">
                       <span className="list-options-members-row-name">{displayName}</span>
                       {isOwner && (
-                        <span className="list-options-members-row-role">Admin.</span>
+                        <span className="list-options-members-row-role">{l.admin}</span>
                       )}
                     </div>
                     {!isOwner && (
@@ -332,9 +378,9 @@ export function ListOptionsMembersBlock({
                         void onRemoveMember(userId);
                         setSwipedUserId(null);
                       }}
-                      aria-label={`Eliminar a ${displayName} de la lista`}
+                      aria-label={l.removeFromList(displayName)}
                     >
-                      Eliminar
+                      {l.remove}
                     </button>
                   )}
                 </li>
@@ -349,7 +395,7 @@ export function ListOptionsMembersBlock({
           role="status"
           aria-live="polite"
         >
-          Enlace copiado
+          {l.linkCopied}
         </div>
       )}
     </div>

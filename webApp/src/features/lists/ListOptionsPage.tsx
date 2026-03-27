@@ -2,9 +2,10 @@ import { Button, cn } from "../../ui/components";
 import { UiIcon } from "../../ui/iconography";
 import type { UserRow, UserListRow, ListPrivacy } from "../../types";
 import type { ListMemberRow, ListInvitationRow } from "../../data/supabaseApi";
-import { LIST_PRIVACY_OPTIONS } from "./listPrivacyOptions";
+import { getListPrivacyOptions } from "./listPrivacyOptions";
 import { ListOptionsMembersBlock } from "./ListOptionsMembersBlock";
 import { Switch } from "../../ui/components";
+import { useI18n } from "../../i18n";
 
 /**
  * Página de opciones de lista (privacidad, miembros, general).
@@ -62,15 +63,17 @@ export function ListOptionsPage({
   /** Invitaciones pendientes (para mostrar "Invitación enviada" y filtrar sugerencias). */
   invitations?: ListInvitationRow[];
 }) {
+  const { t } = useI18n();
+  const privacyOptions = getListPrivacyOptions(t);
   return (
-    <section className="list-options-page profile-users-list-view" aria-label="Opciones de lista">
+    <section className="list-options-page profile-users-list-view" aria-label={t("top.listOptions")}>
       <div className="list-options-page-content">
         {isOwner && (
           <div className="list-options-page-section list-options-privacy">
-            <h3 className="create-list-privacy-subtitle">Privacidad</h3>
+            <h3 className="create-list-privacy-subtitle">{t("lists.privacy")}</h3>
             <div className="create-list-privacy-card">
               <div className="create-list-privacy-options">
-                {LIST_PRIVACY_OPTIONS.map((opt) => (
+                {privacyOptions.map((opt) => (
                   <button
                     key={opt.value}
                     type="button"
@@ -97,14 +100,14 @@ export function ListOptionsPage({
                   className="share-list-privacy-option-switch-row create-list-privacy-option-switch-row"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <span className="share-list-privacy-option-switch-label">Permitir que los miembros inviten</span>
+                  <span className="share-list-privacy-option-switch-label">{t("lists.allowInvite")}</span>
                   <Switch
                     checked={listMembersCanInvite}
                     onClick={(e) => {
                       e.stopPropagation();
                       void onPrivacyChange(listPrivacy, listMembersCanEdit, !listMembersCanInvite);
                     }}
-                    aria-label="Permitir que los miembros inviten a otras personas al grupo"
+                    aria-label={t("lists.allowInviteAria")}
                   />
                 </div>
               )}
@@ -113,14 +116,14 @@ export function ListOptionsPage({
                   className="share-list-privacy-option-switch-row create-list-privacy-option-switch-row"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <span className="share-list-privacy-option-switch-label">Permitir editar lista</span>
+                  <span className="share-list-privacy-option-switch-label">{t("lists.allowEdit")}</span>
                   <Switch
                     checked={listMembersCanEdit}
                     onClick={(e) => {
                       e.stopPropagation();
                       void onPrivacyChange(listPrivacy, !listMembersCanEdit, listMembersCanInvite);
                     }}
-                    aria-label="Permitir que los miembros añadan o quiten cafés de la lista"
+                    aria-label={t("lists.allowEditAria")}
                   />
                 </div>
               )}
@@ -199,7 +202,7 @@ export function ListOptionsPage({
         )}
 
         <div className="list-options-page-section list-options-general">
-          <h3 className="create-list-privacy-subtitle">General</h3>
+          <h3 className="create-list-privacy-subtitle">{t("lists.general")}</h3>
           <div className="list-options-general-card">
             {isOwner ? (
               <>
@@ -209,7 +212,7 @@ export function ListOptionsPage({
                   onClick={onEditList}
                 >
                   <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">edit</span>
-                  <span>Editar lista</span>
+                  <span>{t("lists.editList")}</span>
                   <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
                 </Button>
                 <Button
@@ -218,7 +221,7 @@ export function ListOptionsPage({
                   onClick={onDeleteList}
                 >
                   <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">delete</span>
-                  <span>Eliminar lista</span>
+                  <span>{t("lists.deleteList")}</span>
                   <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">chevron_right</span>
                 </Button>
               </>
@@ -229,7 +232,7 @@ export function ListOptionsPage({
                 onClick={onLeaveList}
               >
                 <span className="ui-icon material-symbol-icon is-filled" aria-hidden="true">logout</span>
-                <span>Salir de la lista</span>
+                <span>{t("lists.leaveList")}</span>
               </Button>
             )}
           </div>

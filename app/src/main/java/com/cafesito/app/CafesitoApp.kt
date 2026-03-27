@@ -9,6 +9,7 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.cafesito.app.ui.timeline.TimelineNotificationWorker
+import com.cafesito.app.ui.theme.AppLanguageManager
 import dagger.hilt.android.HiltAndroidApp
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -20,6 +21,7 @@ class CafesitoApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        AppLanguageManager.applySavedLanguage(this)
         // GTM: si GTM_CONTAINER_ID está definido, AnalyticsHelper envía también al dataLayer.
         // Para que el contenedor procese los eventos, hay que cargarlo (p. ej. descargar desde GTM
         // y usar TagManager.getInstance(this).loadContainerPreferNonDefault(id, resId)); ver docs/ANALITICAS.md.

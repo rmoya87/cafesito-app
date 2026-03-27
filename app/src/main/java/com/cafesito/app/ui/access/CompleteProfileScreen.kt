@@ -26,6 +26,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.cafesito.app.ui.theme.CoffeeBrown
 import com.cafesito.app.ui.theme.Shapes
+import java.util.Locale
 
 @Composable
 fun CompleteProfileScreen(
@@ -36,6 +37,7 @@ fun CompleteProfileScreen(
     onSuccess: () -> Unit,
     viewModel: CompleteProfileViewModel = hiltViewModel()
 ) {
+    val isSpanish = remember { Locale.getDefault().language.startsWith("es") }
     var username by remember { mutableStateOf(initialName.replace(" ", "").lowercase()) }
     var bio by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<Uri?>(if (initialPhoto.isNotEmpty()) Uri.parse(initialPhoto) else null) }
@@ -58,7 +60,7 @@ fun CompleteProfileScreen(
             Spacer(modifier = Modifier.height(48.dp))
             
             Text(
-                text = "Casi listo", 
+                text = if (isSpanish) "Casi listo" else "Almost there",
                 style = MaterialTheme.typography.headlineMedium, 
                 fontWeight = FontWeight.Bold, 
                 color = MaterialTheme.colorScheme.primary
@@ -78,16 +80,16 @@ fun CompleteProfileScreen(
                 if (imageUri != null) {
                     AsyncImage(
                         model = imageUri,
-                        contentDescription = "Foto de perfil",
+                        contentDescription = if (isSpanish) "Foto de perfil" else "Profile photo",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
                 } else {
-                    Icon(Icons.Default.PhotoCamera, contentDescription = "Añadir foto de perfil", Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.Default.PhotoCamera, contentDescription = if (isSpanish) "Añadir foto de perfil" else "Add profile photo", Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             TextButton(onClick = { launcher.launch("image/*") }) {
-                Text("Cambiar foto", color = MaterialTheme.colorScheme.primary)
+                Text(if (isSpanish) "Cambiar foto" else "Change photo", color = MaterialTheme.colorScheme.primary)
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -96,7 +98,7 @@ fun CompleteProfileScreen(
             OutlinedTextField(
                 value = userEmail,
                 onValueChange = {},
-                label = { Text("Email de Google") },
+                label = { Text(if (isSpanish) "Email de Google" else "Google email") },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = false,
                 shape = Shapes.cardSmall,
@@ -116,7 +118,7 @@ fun CompleteProfileScreen(
                     username = it.replace(" ", "").lowercase()
                     viewModel.clearError() 
                 },
-                label = { Text("Nombre de usuario") },
+                label = { Text(if (isSpanish) "Nombre de usuario" else "Username") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = Shapes.cardSmall,
                 singleLine = true,
@@ -125,7 +127,7 @@ fun CompleteProfileScreen(
                     if (usernameError != null) {
                         Text(text = usernameError!!, color = MaterialTheme.colorScheme.error)
                     } else {
-                        Text("Sin espacios y todo en minúsculas")
+                        Text(if (isSpanish) "Sin espacios y todo en minúsculas" else "No spaces, lowercase only")
                     }
                 }
             )
@@ -135,7 +137,7 @@ fun CompleteProfileScreen(
             OutlinedTextField(
                 value = bio,
                 onValueChange = { bio = it },
-                label = { Text("Cuéntanos sobre ti") },
+                label = { Text(if (isSpanish) "Cuéntanos sobre ti" else "Tell us about yourself") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = Shapes.cardSmall,
                 minLines = 3
@@ -159,7 +161,7 @@ fun CompleteProfileScreen(
                 shape = Shapes.card,
                 enabled = username.isNotBlank() && usernameError == null
             ) {
-                Text("Finalizar Perfil", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(if (isSpanish) "Finalizar Perfil" else "Finish profile", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
         }
     }

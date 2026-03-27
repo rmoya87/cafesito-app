@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useRef } from "react";
 import { Button } from "../../ui/components";
 import { APP_TAB_TOUR_STEP_CONTENT, APP_TAB_TOUR_STEP_HOME } from "./appTabTour";
+import { useI18n } from "../../i18n";
 
 type Props = {
   stepId: string;
@@ -11,6 +12,7 @@ type Props = {
 
 /** Tour contextual por pestaña; estado sincronizado en `users_db` (paridad Android). */
 export function AppTabTourOverlay({ stepId, onDismissStep, onSkipAll, errorMessage }: Props) {
+  const { t } = useI18n();
   const titleId = useId();
   const descId = useId();
   const overlayRef = useRef<HTMLDivElement | null>(null);
@@ -114,10 +116,10 @@ export function AppTabTourOverlay({ stepId, onDismissStep, onSkipAll, errorMessa
         ) : null}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "flex-end" }}>
           <Button type="button" variant="plain" size="md" onClick={() => void onSkipAll()}>
-            Omitir todo
+            {t("tour.skipAll")}
           </Button>
           <Button ref={dismissRef} type="button" variant="primary" size="md" onClick={() => void onDismissStep()}>
-            Entendido
+            {t("tour.gotIt")}
           </Button>
         </div>
       </div>

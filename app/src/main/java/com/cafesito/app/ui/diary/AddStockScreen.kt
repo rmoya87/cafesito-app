@@ -191,7 +191,7 @@ fun AddStockScreen(
                 onBackClick = onBackClick,
                 actions = {
                     TextButton(onClick = onAddCustomClick) {
-                        Text("Crea tu café", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        Text(stringResource(id = R.string.diary_create_coffee), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
                 }
             )
@@ -217,7 +217,7 @@ fun AddStockScreen(
                     singleLine = true,
                     leadingIcon = { 
                         Box(modifier = Modifier.padding(start = 4.dp)) {
-                            Icon(Icons.Default.Search, contentDescription = "Buscar", tint = MaterialTheme.colorScheme.onSurfaceVariant) 
+                            Icon(Icons.Default.Search, contentDescription = stringResource(id = R.string.search_icon_search_cd), tint = MaterialTheme.colorScheme.onSurfaceVariant) 
                         }
                     },
                     trailingIcon = {

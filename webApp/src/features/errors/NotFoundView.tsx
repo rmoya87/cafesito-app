@@ -1,5 +1,6 @@
 import { Button } from "../../ui/components";
 import { UiIcon } from "../../ui/iconography";
+import { useI18n } from "../../i18n";
 
 export function NotFoundView({
   onGoHome,
@@ -10,8 +11,9 @@ export function NotFoundView({
   onOpenRandomCoffee: () => void;
   randomCoffeeEnabled: boolean;
 }) {
+  const { t } = useI18n();
   return (
-    <section className="not-found-view" aria-label="Pagina no encontrada">
+    <section className="not-found-view" aria-label={t("notFound.aria")}>
       <article className="not-found-card">
         <div className="not-found-illustration" aria-hidden="true">
           <span className="not-found-code">4 0 4</span>
@@ -21,17 +23,15 @@ export function NotFoundView({
             <span className="not-found-steam not-found-steam-right" />
           </span>
         </div>
-        <p className="not-found-kicker">ERROR 404</p>
-        <h1 className="not-found-title">Se nos fue el espresso por otro filtro</h1>
-        <p className="not-found-copy">
-          Esta pagina no existe o cambio de taza. Tranquilo: la cafetera sigue caliente y te podemos llevar a algo mejor.
-        </p>
+        <p className="not-found-kicker">{t("notFound.kicker")}</p>
+        <h1 className="not-found-title">{t("notFound.title")}</h1>
+        <p className="not-found-copy">{t("notFound.body")}</p>
         <div className="not-found-actions">
           <Button variant="primary" onClick={onGoHome}>
-            Volver al inicio
+            {t("notFound.goHome")}
           </Button>
           <Button variant="ghost" onClick={onOpenRandomCoffee} disabled={!randomCoffeeEnabled}>
-            Sorprendeme con un cafe
+            {t("notFound.randomCoffee")}
           </Button>
         </div>
       </article>

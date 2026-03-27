@@ -2261,7 +2261,16 @@ html.theme-light .list-options-members-copy-link .list-options-members-copy-icon
 .topbar-search-users .search-wide {
   background: var(--surface);
   color: var(--text-main);
-  border: 1px solid var(--search-border-inactive);
+  border: none;
+  box-shadow: none;
+}
+
+.topbar-search .search-wide:focus,
+.topbar-search .search-wide:focus-visible,
+.topbar-search-users .search-wide:focus,
+.topbar-search-users .search-wide:focus-visible {
+  border: none;
+  box-shadow: none;
 }
 
 
@@ -10532,6 +10541,8 @@ html.theme-dark .diary-day-header.is-today {
 .profile-topbar-options-sheet {
   width: min(560px, 100%);
   border-radius: 28px 28px 0 0;
+  max-height: min(88vh, 820px);
+  overflow-y: auto;
 }
 
 /* Modal Añadir a lista: usa estándar .sheet-header-with-action y .modal-action-btn (sheet.css) */
@@ -10719,6 +10730,39 @@ html.theme-dark .content.content-profile {
   flex: 0 1 auto;
 }
 .profile-list-row .ui-icon:last-child {
+  margin-left: auto;
+  color: var(--text-subtle);
+}
+.profile-language-card {
+  border: var(--surface-card-border);
+  border-radius: var(--surface-card-radius);
+  box-shadow: var(--surface-card-shadow);
+  background: var(--surface);
+  overflow: hidden;
+}
+.profile-language-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 14px 16px;
+  background: transparent;
+  color: var(--text-main);
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+}
+.profile-language-row-divider {
+  border-bottom: 1px solid var(--border-light);
+}
+.profile-language-row-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.profile-language-row .ui-icon:last-child {
   margin-left: auto;
   color: var(--text-subtle);
 }
@@ -19254,14 +19298,16 @@ html.theme-dark .app-range.app-range--time {
   .topbar-search-users .search-wide {
     background: var(--pure-white);
     color: var(--espresso-deep);
-    border: 1px solid #b0b0b0;
+    border: none;
+    box-shadow: none;
   }
 
   .topbar-search .search-wide:focus,
   .topbar-search .search-wide:focus-visible,
   .topbar-search-users .search-wide:focus,
   .topbar-search-users .search-wide:focus-visible {
-    border: 1px solid var(--caramel-accent);
+    border: none;
+    box-shadow: none;
   }
 
   .search-filter-list .filter-chip.search-filter-item {

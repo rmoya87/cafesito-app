@@ -9,7 +9,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.cafesito.app.R
 import com.cafesito.app.ui.components.GlassyTopBar
 import com.cafesito.app.ui.components.SwipeableFavoriteItem
 
@@ -26,7 +28,7 @@ fun FavoritosListScreen(
     Scaffold(
         topBar = {
             GlassyTopBar(
-                title = "FAVORITOS",
+                title = stringResource(id = R.string.profile_favorites_title),
                 onBackClick = onBackClick,
                 scrollBehavior = scrollBehavior
             )
@@ -44,7 +46,7 @@ fun FavoritosListScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "No hay cafés favoritos",
+                            stringResource(id = R.string.empty_favorites),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

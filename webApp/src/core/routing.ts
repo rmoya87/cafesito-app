@@ -42,7 +42,7 @@ export function parseRoute(pathname: string) {
   if (first === "profile") {
     const isListSection = second === "list" && third.length > 0;
     const listOptionsView = isListSection && fourth === "options";
-    const profileSectionFromSecond = second === "historial" || second === "followers" || second === "following" || second === "favorites" ? second : isListSection ? "list" : null;
+    const profileSectionFromSecond = second === "historial" || second === "followers" || second === "following" || second === "favorites" || second === "language" ? second : isListSection ? "list" : null;
     const profileSectionFromThird = third === "followers" || third === "following" || third === "favorites" || third === "historial" ? third : null;
     const profileSection = profileSectionFromThird ?? (isListSection ? "list" : profileSectionFromSecond);
     const profileUsername = profileSectionFromSecond && !isListSection
@@ -58,7 +58,7 @@ export function parseRoute(pathname: string) {
       searchFacetValue: null,
       profileUsername,
       coffeeSlug: null,
-      profileSection: profileSection as "historial" | "followers" | "following" | "favorites" | "list" | null,
+      profileSection: profileSection as "historial" | "followers" | "following" | "favorites" | "list" | "language" | null,
       profileListId: profileListId ?? undefined,
       listOptionsView: listOptionsView || undefined
     };
@@ -170,7 +170,7 @@ export function toCoffeeSlug(name: string, brand?: string | null, forceBrand = f
   return baseWithBrand || baseFromName || "cafe";
 }
 
-export type ProfileSection = "historial" | "followers" | "following" | "favorites" | "list" | null;
+export type ProfileSection = "historial" | "followers" | "following" | "favorites" | "list" | "language" | null;
 
 export type DiarySubView = "cafes-probados" | undefined;
 
@@ -195,6 +195,7 @@ export function buildRoute(
   if (tab === "diary") return diarySubView === "cafes-probados" ? "/diary/cafes-probados" : "/diary";
   if (tab === "profile") {
     if (profileSection === "historial") return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}/historial` : "/profile/historial";
+    if (profileSection === "language") return "/profile/language";
     if (profileSection === "favorites") return profileUsername ? `/profile/${encodeURIComponent(profileUsername)}/favorites` : "/profile/favorites";
     if (profileSection === "list" && profileListId)
       return listOptionsView ? `/profile/list/${encodeURIComponent(profileListId)}/options` : `/profile/list/${encodeURIComponent(profileListId)}`;
@@ -232,6 +233,7 @@ export function normalizePathToScreenName(path: string): string {
     if (section === "followers") return "profile/followers";
     if (section === "following") return "profile/following";
     if (section === "favorites") return "profile/favorites";
+    if (section === "language") return "profile/language";
     return "profile";
   }
   if (segments[0] === "crear-cafe") return "crear-cafe";

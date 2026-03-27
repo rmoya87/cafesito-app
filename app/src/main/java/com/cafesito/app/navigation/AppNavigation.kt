@@ -43,10 +43,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
@@ -298,15 +298,13 @@ fun AppNavigation(
         if (screenNameForAnalytics.isNotEmpty()) analyticsHelper.trackScreenView(screenNameForAnalytics)
     }
     
-    val navItems = remember {
-        listOf(
-            Triple("home", "Inicio", Icons.Filled.Home),
-            Triple("search", "Explorar", Icons.Filled.Search),
-            Triple("brewlab", "Elabora", Icons.Filled.AddCircle),
-            Triple("diary", "Diario", Icons.Filled.Book),
-            Triple("profile", "Perfil", Icons.Filled.Person)
-        )
-    }
+    val navItems = listOf(
+        Triple("home", stringResource(id = R.string.nav_home), Icons.Filled.Home),
+        Triple("search", stringResource(id = R.string.nav_search), Icons.Filled.Search),
+        Triple("brewlab", stringResource(id = R.string.nav_brewlab), Icons.Filled.AddCircle),
+        Triple("diary", stringResource(id = R.string.nav_diary), Icons.Filled.Book),
+        Triple("profile", stringResource(id = R.string.nav_profile), Icons.Filled.Person)
+    )
 
     val shouldShowBottomBar = remember(currentRoute) {
         val mainScreens = listOf("home", "search", "brewlab", "diary", "profile")
@@ -355,12 +353,12 @@ fun AppNavigation(
                                     )
                                 } else {
                                     Icon(
-                                        imageVector = if (isSelected) icon else when (label) {
-                                            "Inicio" -> Icons.Outlined.Home
-                                            "Explorar" -> Icons.Outlined.Search
-                                            "Elabora" -> Icons.Outlined.AddCircleOutline
-                                            "Diario" -> Icons.Outlined.Book
-                                            "Perfil" -> Icons.Outlined.Person
+                                        imageVector = if (isSelected) icon else when (route) {
+                                            "home" -> Icons.Outlined.Home
+                                            "search" -> Icons.Outlined.Search
+                                            "brewlab" -> Icons.Outlined.AddCircleOutline
+                                            "diary" -> Icons.Outlined.Book
+                                            "profile" -> Icons.Outlined.Person
                                             else -> icon
                                         },
                                         contentDescription = label
@@ -758,6 +756,7 @@ SearchScreen(
                         onFollowersClick = { id -> navController.navigate("profile/$id/followers") },
                         onFollowingClick = { id -> navController.navigate("profile/$id/following") },
                         onHistorialClick = { navController.navigate("historial") },
+                        onLanguageClick = { navController.navigate("profile/$userId/language") },
                         onFavoritosListClick = { navController.navigate("profile/$userId/favorites") },
                         onOpenListClick = { listId, listName ->
                             val encoded = android.net.Uri.encode(listName)
@@ -874,6 +873,15 @@ SearchScreen(
                 }
 
                 composable(
+                    route = "profile/{userId}/language",
+                    arguments = listOf(navArgument("userId") { type = NavType.IntType })
+                ) {
+                    LanguageSettingsScreen(
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+
+                composable(
                     route = "profile/{userId}/followers",
                     arguments = listOf(navArgument("userId") { type = NavType.IntType })
                 ) { backStackEntry ->
@@ -971,12 +979,12 @@ SearchScreen(
                                         )
                                     } else {
                                         Icon(
-                                            imageVector = if (isSelected) icon else when (label) {
-                                                "Inicio" -> Icons.Outlined.Home
-                                                "Explorar" -> Icons.Outlined.Search
-                                                "Elabora" -> Icons.Outlined.AddCircleOutline
-                                                "Diario" -> Icons.Outlined.Book
-                                                "Perfil" -> Icons.Outlined.Person
+                                            imageVector = if (isSelected) icon else when (route) {
+                                                "home" -> Icons.Outlined.Home
+                                                "search" -> Icons.Outlined.Search
+                                                "brewlab" -> Icons.Outlined.AddCircleOutline
+                                                "diary" -> Icons.Outlined.Book
+                                                "profile" -> Icons.Outlined.Person
                                                 else -> icon
                                             },
                                             contentDescription = label

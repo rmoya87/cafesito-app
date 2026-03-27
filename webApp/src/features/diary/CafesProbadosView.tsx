@@ -6,6 +6,7 @@ import { Button, IconButton } from "../../ui/components";
 import { getCountryCoords } from "../../core/countryCoords";
 import { getCountryFlagImageUrl } from "../../core/countryFlags";
 import type { CoffeeRow } from "../../types";
+import { useI18n } from "../../i18n";
 
 /** Separa pais_origen en tokens (coma, barra, etc.) */
 function splitOrigins(paisOrigen: string | null): string[] {
@@ -43,6 +44,7 @@ export function CafesProbadosView({
   onBack: () => void;
   onOpenCoffee: (coffeeId: string) => void;
 }) {
+  const { t } = useI18n();
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [listScrolled, setListScrolled] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
@@ -183,7 +185,7 @@ export function CafesProbadosView({
           <IconButton
             tone="topbar"
             className="cafes-probados-topbar-icon"
-            aria-label="Volver a Mi diario"
+            aria-label={`${t("common.back")} ${t("top.myDiary")}`}
             onClick={onBack}
           >
             <UiIcon name="arrow-left" className="ui-icon" />

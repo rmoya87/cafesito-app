@@ -125,7 +125,9 @@ html.theme-dark .topbar-search .search-wide,
 html.theme-dark .topbar-search-users .search-wide {
   background: var(--modal-field-bg);
   color: var(--text-main);
-  border-color: var(--border-light);
+  border: none;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 html.theme-dark .search-filter-item {
@@ -1404,7 +1406,9 @@ html.theme-light .topbar-search .search-wide,
 html.theme-light .topbar-search-users .search-wide {
   background: var(--pure-white);
   color: var(--espresso-deep);
-  border-color: #b0b0b0;
+  border: none;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 /* Post menu trigger, feed */

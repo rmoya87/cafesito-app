@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -28,6 +29,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavBackStackEntry
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.cafesito.app.R
 import com.cafesito.app.data.ProfileActivityItem
 import com.cafesito.app.data.UserReviewInfo
 import com.cafesito.app.security.runWithBiometricReauth
@@ -47,6 +49,7 @@ fun ProfileScreen(
     onFollowersClick: (Int) -> Unit,
     onFollowingClick: (Int) -> Unit,
     onHistorialClick: () -> Unit,
+    onLanguageClick: () -> Unit,
     onFavoritosListClick: (() -> Unit)? = null,
     onOpenListClick: ((String, String) -> Unit)? = null,
     onOpenUserListClick: ((Int, String) -> Unit)? = null,
@@ -60,7 +63,11 @@ fun ProfileScreen(
     val uiState by viewModel.uiState.collectAsState()
     val profileActivityItems by viewModel.profileActivityItems.collectAsState()
     val profileActivityLoading by viewModel.profileActivityLoading.collectAsState()
-    val tabs = listOf("ACTIVIDAD", "ADN", "LISTAS")
+    val tabs = listOf(
+        stringResource(id = R.string.profile_tab_activity).uppercase(),
+        stringResource(id = R.string.profile_tab_dna).uppercase(),
+        stringResource(id = R.string.profile_tab_lists).uppercase()
+    )
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
         val tab = profileBackStackEntry?.savedStateHandle?.get<Int>("profile_return_tab")
@@ -73,6 +80,12 @@ fun ProfileScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val confirmIdentityTitle = stringResource(id = R.string.profile_confirm_identity_title)
+    val confirmIdentityLogoutSubtitle = stringResource(id = R.string.profile_confirm_identity_logout_subtitle)
+    val deleteReviewTitle = stringResource(id = R.string.profile_delete_review_title)
+    val deleteReviewText = stringResource(id = R.string.profile_delete_review_text)
+    val sensitiveActionTitle = stringResource(id = R.string.profile_sensitive_action_title)
+    val sensitiveActionSubtitle = stringResource(id = R.string.profile_sensitive_action_subtitle)
     var showSettingsSheet by rememberSaveable { mutableStateOf(false) }
     var showDeleteAccountConfirm by rememberSaveable { mutableStateOf(false) }
     var deletingAccount by rememberSaveable { mutableStateOf(false) }
@@ -90,12 +103,12 @@ fun ProfileScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             GlassyTopBar(
-                title = "PERFIL",
+                title = stringResource(id = R.string.app_tab_tour_profile_title).uppercase(),
                 onBackClick = if ((uiState as? ProfileUiState.Success)?.isCurrentUser == false) onBackClick else null,
                 navigationContent = if ((uiState as? ProfileUiState.Success)?.isCurrentUser == true && onSearchUsersClick != null) {
                     {
                         IconButton(onClick = { onSearchUsersClick.invoke() }) {
-                            Icon(Icons.Default.Search, contentDescription = "Buscar usuarios", tint = MaterialTheme.colorScheme.onSurface)
+                            Icon(Icons.Default.Search, contentDescription = stringResource(id = R.string.profile_search_users), tint = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 } else null,
@@ -104,7 +117,7 @@ fun ProfileScreen(
                     val state = uiState as? ProfileUiState.Success
                     if (state?.isCurrentUser == true) {
                         IconButton(onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "settings")); showSettingsSheet = true }) {
-                            Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones", tint = MaterialTheme.colorScheme.onSurface)
+                            Icon(Icons.Default.MoreHoriz, contentDescription = stringResource(id = R.string.profile_options), tint = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
@@ -157,7 +170,7 @@ fun ProfileScreen(
 
                             if (state.isEditing) {
                                 TextButton(onClick = { launcher.launch("image/*") }) {
-                                    Text("CAMBIAR FOTO", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                                    Text(stringResource(id = R.string.profile_change_photo).uppercase(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                                 }
                             }
 
@@ -224,13 +237,13 @@ fun ProfileScreen(
                                     ) {
                                         Icon(
                                             Icons.Default.Coffee,
-                                            contentDescription = "Actividad vacía",
+                                            contentDescription = stringResource(id = R.string.profile_activity_empty),
                                             modifier = Modifier.size(48.dp),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                         )
                                         Spacer(Modifier.height(16.dp))
                                         Text(
-                                            text = if (state.isCurrentUser) "Tu actividad está vacía" else "Sin actividad reciente",
+                                            text = if (state.isCurrentUser) stringResource(id = R.string.profile_activity_empty_mine) else stringResource(id = R.string.profile_activity_empty_other),
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.SemiBold,
                                             color = MaterialTheme.colorScheme.onSurface,
@@ -238,7 +251,7 @@ fun ProfileScreen(
                                         )
                                         Spacer(Modifier.height(8.dp))
                                         Text(
-                                            text = if (state.isCurrentUser) "Sigue a otras personas para ver aquí sus reseñas, favoritos y cafés probados." else "Este usuario aún no ha publicado reseñas ni añadido cafés.",
+                                            text = if (state.isCurrentUser) stringResource(id = R.string.profile_activity_empty_hint_mine) else stringResource(id = R.string.profile_activity_empty_hint_other),
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             textAlign = TextAlign.Center
@@ -246,7 +259,7 @@ fun ProfileScreen(
                                         if (state.isCurrentUser && onExploreCafes != null) {
                                             Spacer(Modifier.height(20.dp))
                                             Button(onClick = { onExploreCafes() }) {
-                                                Text("Explorar cafés")
+                                                Text(stringResource(id = R.string.profile_explore_coffees))
                                             }
                                         }
                                     }
@@ -282,7 +295,7 @@ fun ProfileScreen(
                                             Column(Modifier.padding(24.dp)) {
                                                 SensoryRadarChart(data = state.sensoryProfile, modifier = Modifier.fillMaxWidth().height(220.dp))
                                                 Spacer(Modifier.height(16.dp))
-                                                Text("Tus gustos basados en los cafés que consumes, tienes en listas o favoritos y has reseñado.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                                                Text(stringResource(id = R.string.profile_taste_summary), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                                             }
                                         }
                                     }
@@ -332,13 +345,14 @@ fun ProfileScreen(
                     SettingsBottomSheet(
                         onDismiss = { onTrackEvent("modal_close", bundleOf("modal_id" to "settings")); showSettingsSheet = false },
                         onEditClick = { viewModel.toggleEditMode() },
+                        onLanguageClick = onLanguageClick,
                         onHistorialClick = onHistorialClick,
                         onDeleteAccountClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "delete_confirm_account")); showDeleteAccountConfirm = true },
                         onLogoutClick = {
                             runWithBiometricReauth(
                                 context = context,
-                                title = "Confirma tu identidad",
-                                subtitle = "Para cerrar sesión en Cafesito",
+                                title = confirmIdentityTitle,
+                                subtitle = confirmIdentityLogoutSubtitle,
                                 onAuthenticated = { viewModel.logout() },
                                 onFallback = { viewModel.logout() }
                             )
@@ -351,8 +365,8 @@ fun ProfileScreen(
                         onDismissRequest = {
                             if (!deletingAccount) { onTrackEvent("modal_close", bundleOf("modal_id" to "delete_confirm_account")); showDeleteAccountConfirm = false }
                         },
-                        title = "Eliminar mi cuenta y mis datos",
-                        text = "Tu cuenta quedará inactiva durante 30 días y luego se eliminará con todos tus datos. Si vuelves a iniciar sesión antes, se cancelará el proceso.",
+                        title = stringResource(id = R.string.settings_delete_account_data),
+                        text = stringResource(id = R.string.top_delete_account_text),
                         onConfirm = {
                             if (deletingAccount) return@DeleteConfirmationDialog
                             deletingAccount = true
@@ -368,13 +382,13 @@ fun ProfileScreen(
                     if (item is UserReviewInfo) {
                         DeleteConfirmationDialog(
                             onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "delete_confirm_review")); itemToDelete = null },
-                            title = "Eliminar reseña",
-                            text = "¿Estás seguro de eliminar esta reseña?",
+                            title = deleteReviewTitle,
+                            text = deleteReviewText,
                             onConfirm = {
                                 runWithBiometricReauth(
                                     context = context,
-                                    title = "Acción sensible",
-                                    subtitle = "Confirma para eliminar",
+                                    title = sensitiveActionTitle,
+                                    subtitle = sensitiveActionSubtitle,
                                     onAuthenticated = {
                                         viewModel.deleteReview(item.coffeeDetails.coffee.id)
                                         onTrackEvent("modal_close", bundleOf("modal_id" to "delete_confirm_review"))

@@ -1,7 +1,7 @@
 # Registro de desarrollo e incidencias
 
 **Propósito:** Documentar cambios, correcciones y decisiones recientes para tenerlos en cuenta en próximos desarrollos o incidencias.  
-**Última actualización:** 2026-03-26 (§25 búsqueda unificada Web/Android)
+**Última actualización:** 2026-03-26 (§26 selector de idioma Web/Android)
 
 ---
 
@@ -47,6 +47,7 @@ Consultar este documento antes de tocar ramas, deploy, TypeScript/CI o flujos ya
 23. [Onboarding «primer valor» — estado en servidor, Android y WebApp (24 mar 2026)](#23-onboarding-primer-valor--estado-en-servidor-android-y-webapp-24-mar-2026)
 24. [Web: landing, legales, login SPA — rutas, CSS y SEO (25 mar 2026)](#24-web-landing-legales-login-spa--rutas-css-y-seo-25-mar-2026)
 25. [Búsqueda unificada Web/Android — normalización y pantallas impactadas (26 mar 2026)](#25-búsqueda-unificada-webandroid--normalización-y-pantallas-impactadas-26-mar-2026)
+26. [Selector de idioma en perfil — WebApp y Android (26 mar 2026)](#26-selector-de-idioma-en-perfil--webapp-y-android-26-mar-2026)
 
 ---
 
@@ -837,6 +838,40 @@ Misma semántica Web y Android para quién ve listas en el modal y cuándo el ic
 **Alcance adicional:** ajuste en WebApp para que el campo de `Selecciona café` responda como buscador de catálogo (misma semántica que Search) y corrección de cabecera de Notificaciones en PWA para que el contenido no quede pisado.
 
 **Fuente de verdad:** `webApp/docs/SEARCH_NORMALIZATION_WEBAPP_ANDROID.md` (reglas, mapa de archivos, checklist de regresión y antipatrones).
+
+---
+
+## 26. Selector de idioma en perfil — WebApp y Android (26 mar 2026)
+
+**Objetivo:** añadir una opción `Idioma` en perfil (entre `Editar perfil` y `Eliminar mi cuenta y mis datos`) en ambas plataformas, con página dedicada y soporte para `Sistema + es/en/fr/pt/de`.
+
+**Regla funcional aplicada:**
+
+- La primera opción es siempre `Sistema`.
+- Si el idioma del sistema no está soportado por la app, se aplica **inglés** por defecto.
+
+### 26.1 WebApp
+
+- Se amplía i18n para guardar preferencia de idioma como `system | locale`.
+- Nueva pantalla de idioma en perfil y nueva sección/ruta:
+  - `profileSection = "language"`
+  - `/profile/language`
+- Se añade acción en opciones de perfil (`TopBar`) entre editar y eliminar.
+- Archivos clave: `webApp/src/i18n/index.tsx`, `webApp/src/i18n/messages.ts`, `webApp/src/features/profile/ProfileLanguageView.tsx`, `webApp/src/features/topbar/TopBar.tsx`, `webApp/src/app/AppContainer.tsx`, `webApp/src/core/routing.ts`.
+
+### 26.2 Android
+
+- Se crea `AppLanguageManager` para persistencia y aplicación de idioma con `AppCompatDelegate`.
+- Se aplica idioma guardado al iniciar app (`CafesitoApp.onCreate()`).
+- Nueva pantalla de idioma y nueva ruta:
+  - `profile/{userId}/language`
+- Se añade opción `Idioma` en `SettingsBottomSheet` entre editar y eliminar.
+- Archivos clave: `app/src/main/java/com/cafesito/app/ui/theme/AppLanguageManager.kt`, `app/src/main/java/com/cafesito/app/ui/profile/LanguageSettingsScreen.kt`, `app/src/main/java/com/cafesito/app/navigation/AppNavigation.kt`, `app/src/main/java/com/cafesito/app/ui/profile/ProfileScreen.kt`, `app/src/main/java/com/cafesito/app/ui/components/TimelineComponents.kt`, `app/src/main/java/com/cafesito/app/CafesitoApp.kt`.
+
+### 26.3 Recursos y documentación
+
+- Nuevas cadenas de idioma en `values`, `values-en`, `values-fr`, `values-pt`, `values-de`.
+- Fuente de verdad técnica: `docs/I18N_IDIOMA_WEBAPP_ANDROID.md`.
 
 ---
 

@@ -85,6 +85,15 @@ function removeJsonLd(doc: Document, id: string): void {
   if (el) el.remove();
 }
 
+function upsertJsonLd(doc: Document, id: string, payload: Record<string, unknown>): void {
+  removeJsonLd(doc, id);
+  const script = doc.createElement("script");
+  script.id = id;
+  script.type = "application/ld+json";
+  script.textContent = JSON.stringify(payload);
+  doc.head.appendChild(script);
+}
+
 function setOgImageMeta(doc: Document, url: string) {
   setOrCreateMeta(doc, "meta", "property", "og:image", url);
   setOrCreateMeta(doc, "meta", "property", "og:image:width", OG_IMAGE_WIDTH);
@@ -144,6 +153,7 @@ export function useCoffeeSeoMeta(
       setOrCreateMeta(doc, "meta", "name", "twitter:description", descTruncated);
       setOrCreateMeta(doc, "meta", "name", "robots", ROBOTS_INDEX_FOLLOW);
       removeJsonLd(doc, "coffee-product-ld");
+      removeJsonLd(doc, "coffee-detail-page-ld");
       removeJsonLd(doc, "search-page-ld");
       const webPage = {
         "@context": "https://schema.org",
@@ -184,6 +194,7 @@ export function useCoffeeSeoMeta(
       setOrCreateMeta(doc, "meta", "name", "twitter:title", DEFAULT_TITLE);
       setOrCreateMeta(doc, "meta", "name", "twitter:description", DEFAULT_DESCRIPTION);
       removeJsonLd(doc, "coffee-product-ld");
+      removeJsonLd(doc, "coffee-detail-page-ld");
       removeJsonLd(doc, "search-page-ld");
       return;
     }
@@ -220,34 +231,52 @@ export function useCoffeeSeoMeta(
     if (detailCoffee) {
       const avgRating = options?.avgRating ?? 0;
       const reviewCount = options?.reviewCount ?? 0;
-      const product: Record<string, unknown> = {
-        "@context": "https://schema.org",
-        "@type": "Product",
-        "@id": `${canonicalHref}#product`,
-        name: detailCoffee.nombre,
-        description: description,
-        ...(detailCoffee.marca ? { brand: { "@type": "Brand", name: detailCoffee.marca } } : {}),
-        ...(imageUrl ? { image: imageUrl } : {}),
-        ...(detailCoffee.pais_origen ? { countryOfOrigin: { "@type": "Country", name: detailCoffee.pais_origen } } : {})
-      };
-      if (reviewCount > 0 && avgRating > 0) {
-        (product as Record<string, unknown>).aggregateRating = {
-          "@type": "AggregateRating",
-          ratingValue: avgRating,
-          reviewCount,
-          bestRating: 5,
-          worstRating: 1
+      const hasAggregateRating = reviewCount > 0 && avgRating > 0;
+
+      if (hasAggregateRating) {
+        const product: Record<string, unknown> = {
+          "@context": "https://schema.org",
+          "@type": "Product",
+          "@id": `${canonicalHref}#product`,
+          name: detailCoffee.nombre,
+          description: description,
+          ...(detailCoffee.marca ? { brand: { "@type": "Brand", name: detailCoffee.marca } } : {}),
+          ...(imageUrl ? { image: imageUrl } : {}),
+          ...(detailCoffee.pais_origen ? { countryOfOrigin: { "@type": "Country", name: detailCoffee.pais_origen } } : {}),
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: avgRating,
+            reviewCount,
+            bestRating: 5,
+            worstRating: 1
+          }
         };
+        removeJsonLd(doc, "coffee-detail-page-ld");
+        upsertJsonLd(doc, "coffee-product-ld", product);
+        return () => removeJsonLd(doc, "coffee-product-ld");
       }
+
+      // Si no hay datos de oferta/reviews/rating, evitamos Product para no invalidar rich results.
+      const coffeeWebPage: Record<string, unknown> = {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "@id": `${canonicalHref}#webpage`,
+        name: title,
+        description,
+        url: canonicalHref,
+        isPartOf: { "@type": "WebSite", name: SITE_NAME, url: siteUrl },
+        about: {
+          "@type": "Thing",
+          name: detailCoffee.nombre,
+          ...(detailCoffee.marca ? { brand: detailCoffee.marca } : {})
+        }
+      };
       removeJsonLd(doc, "coffee-product-ld");
-      const script = doc.createElement("script");
-      script.id = "coffee-product-ld";
-      script.type = "application/ld+json";
-      script.textContent = JSON.stringify(product);
-      doc.head.appendChild(script);
-      return () => removeJsonLd(doc, "coffee-product-ld");
+      upsertJsonLd(doc, "coffee-detail-page-ld", coffeeWebPage);
+      return () => removeJsonLd(doc, "coffee-detail-page-ld");
     }
 
     removeJsonLd(doc, "coffee-product-ld");
+    removeJsonLd(doc, "coffee-detail-page-ld");
   }, [detailCoffee, options?.avgRating, options?.reviewCount, pathnameOverride]);
 }

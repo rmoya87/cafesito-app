@@ -16,12 +16,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.cafesito.shared.domain.SuggestedUserInfo
+import com.cafesito.app.R
 import com.cafesito.app.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -53,7 +55,7 @@ fun UserSuggestionCarousel(
                 .padding(vertical = 12.dp)
         ) {
             Text(
-                text = "Personas que podrías seguir",
+                text = stringResource(id = R.string.home_people_you_might_follow),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -119,7 +121,7 @@ fun UserSuggestionCard(
         ) {
             AsyncImage(
                 model = user.avatarUrl,
-                contentDescription = "Avatar de ${user.username}",
+                contentDescription = stringResource(id = R.string.notifications_avatar),
                 modifier = Modifier.size(70.dp).clip(CircleShape),
                 contentScale = ContentScale.Crop
             )
@@ -134,7 +136,7 @@ fun UserSuggestionCard(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "${info.followersCount} seguidores · ${info.followingCount} siguiendo",
+                    text = stringResource(id = R.string.profile_follow_stats, info.followersCount, info.followingCount),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -152,7 +154,7 @@ fun UserSuggestionCard(
                     ),
                     shape = Shapes.cardSmall
                 ) {
-                    Text("Siguiendo", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
+                    Text(stringResource(id = R.string.notifications_following), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
                 }
             } else {
                 Button(
@@ -165,7 +167,7 @@ fun UserSuggestionCard(
                     ),
                     shape = Shapes.cardSmall
                 ) {
-                    Text("Seguir", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
+                    Text(stringResource(id = R.string.notifications_follow), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
                 }
             }
         }

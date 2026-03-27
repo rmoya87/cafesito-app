@@ -104,6 +104,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -132,6 +133,12 @@ import java.util.Locale
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
+private const val FILTER_ORIGIN = "origin"
+private const val FILTER_ROAST = "roast"
+private const val FILTER_SPECIALTY = "specialty"
+private const val FILTER_FORMAT = "format"
+private const val FILTER_RATING = "rating"
+
 @Composable
 private fun SearchTopBar(
     query: String,
@@ -140,12 +147,16 @@ private fun SearchTopBar(
     interactionSource: MutableInteractionSource,
     filterCounts: Map<String, Int>,
     availableFilters: List<String>,
+    filterLabel: (String) -> String,
     onFilterClick: (String) -> Unit,
     onBarcodeClick: () -> Unit,
     scrollBehavior: TopAppBarScrollBehavior,
     isLoading: Boolean
 ) {
-    val animatedWords = remember { listOf("marca", "café") }
+    val animatedWords = listOf(
+        stringResource(id = R.string.search_hint_brand),
+        stringResource(id = R.string.search_hint_coffee)
+    )
     var targetWord by remember { mutableStateOf(animatedWords[0]) }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
@@ -199,7 +210,7 @@ private fun SearchTopBar(
                                 interactionSource = interactionSource,
                                 leadingIcon = { 
                                     Box(modifier = Modifier.padding(start = Spacing.space1)) {
-                                        Icon(Icons.Default.Search, contentDescription = "Buscar", tint = MaterialTheme.colorScheme.onSurfaceVariant) 
+                                        Icon(Icons.Default.Search, contentDescription = stringResource(id = R.string.search_icon_search_cd), tint = MaterialTheme.colorScheme.onSurfaceVariant) 
                                     }
                                 },
                                 trailingIcon = {
@@ -215,7 +226,7 @@ private fun SearchTopBar(
                                 },
                                 placeholder = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("Busca ", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(stringResource(id = R.string.search_placeholder_prefix), color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         AnimatedContent(
                                             targetState = targetWord,
                                             transitionSpec = {
@@ -255,7 +266,7 @@ private fun SearchTopBar(
                         onClick = onCancel,
                         contentPadding = PaddingValues(start = Spacing.space3, end = 0.dp)
                     ) {
-                        Text("Cancelar", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text(stringResource(id = R.string.search_cancel), color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
                 }
             }
@@ -263,6 +274,7 @@ private fun SearchTopBar(
             FilterChipsRow(
                 availableFilters = availableFilters,
                 filterCounts = filterCounts, 
+                filterLabel = filterLabel,
                 onFilterClick = onFilterClick,
                 isLoading = isLoading
             )
@@ -299,6 +311,7 @@ fun BarcodeActionIcon(
 private fun FilterChipsRow(
     availableFilters: List<String>,
     filterCounts: Map<String, Int>,
+    filterLabel: (String) -> String,
     onFilterClick: (String) -> Unit,
     isLoading: Boolean
 ) {
@@ -326,7 +339,7 @@ private fun FilterChipsRow(
                         modifier = Modifier.padding(horizontal = Spacing.space3, vertical = Spacing.space2),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = filter, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp)
+                        Text(text = filterLabel(filter), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp)
                         if (count > 0) {
                             Spacer(Modifier.width(Spacing.space2))
                             Box(
@@ -378,6 +391,11 @@ fun SearchScreen(
     val focusManager = LocalFocusManager.current
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
+    val originFilterLabel = stringResource(id = R.string.search_filter_origin)
+    val roastFilterLabel = stringResource(id = R.string.search_filter_roast)
+    val specialtyFilterLabel = stringResource(id = R.string.search_filter_specialty)
+    val formatFilterLabel = stringResource(id = R.string.search_filter_format)
+    val ratingFilterLabel = stringResource(id = R.string.search_filter_rating)
 
     val actualScrollBehavior = scrollBehavior ?: TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
@@ -394,11 +412,11 @@ fun SearchScreen(
 
     val currentFilterCounts = remember(selectedOrigins, selectedRoasts, selectedSpecialties, selectedFormats, minRating) {
         mapOf(
-            "País" to selectedOrigins.size,
-            "Tueste" to selectedRoasts.size,
-            "Especialidad" to selectedSpecialties.size,
-            "Formato" to selectedFormats.size,
-            "Nota" to if (minRating > 0) 1 else 0
+            FILTER_ORIGIN to selectedOrigins.size,
+            FILTER_ROAST to selectedRoasts.size,
+            FILTER_SPECIALTY to selectedSpecialties.size,
+            FILTER_FORMAT to selectedFormats.size,
+            FILTER_RATING to if (minRating > 0) 1 else 0
         )
     }
 
@@ -413,11 +431,11 @@ fun SearchScreen(
 
     val availableFilters = remember(filterOptions, currentFilterCounts) {
         listOfNotNull(
-            if (filterOptions.origins.isNotEmpty() || (currentFilterCounts["País"] ?: 0) > 0) "País" else null,
-            if (filterOptions.specialties.isNotEmpty() || (currentFilterCounts["Especialidad"] ?: 0) > 0) "Especialidad" else null,
-            if (filterOptions.roasts.isNotEmpty() || (currentFilterCounts["Tueste"] ?: 0) > 0) "Tueste" else null,
-            if (filterOptions.formats.isNotEmpty() || (currentFilterCounts["Formato"] ?: 0) > 0) "Formato" else null,
-            "Nota"
+            if (filterOptions.origins.isNotEmpty() || (currentFilterCounts[FILTER_ORIGIN] ?: 0) > 0) FILTER_ORIGIN else null,
+            if (filterOptions.specialties.isNotEmpty() || (currentFilterCounts[FILTER_SPECIALTY] ?: 0) > 0) FILTER_SPECIALTY else null,
+            if (filterOptions.roasts.isNotEmpty() || (currentFilterCounts[FILTER_ROAST] ?: 0) > 0) FILTER_ROAST else null,
+            if (filterOptions.formats.isNotEmpty() || (currentFilterCounts[FILTER_FORMAT] ?: 0) > 0) FILTER_FORMAT else null,
+            FILTER_RATING
         )
     }
 
@@ -437,6 +455,16 @@ fun SearchScreen(
                 interactionSource = interactionSource,
                 filterCounts = currentFilterCounts,
                 availableFilters = availableFilters,
+                filterLabel = { filterType ->
+                    when (filterType) {
+                        FILTER_ORIGIN -> originFilterLabel
+                        FILTER_ROAST -> roastFilterLabel
+                        FILTER_SPECIALTY -> specialtyFilterLabel
+                        FILTER_FORMAT -> formatFilterLabel
+                        FILTER_RATING -> ratingFilterLabel
+                        else -> filterType
+                    }
+                },
                 onFilterClick = { type ->
                     onTrackEvent("modal_open", bundleOf("modal_id" to "search_filter"))
                     activeFilterType = type
@@ -547,7 +575,7 @@ fun SearchScreen(
                         .heightIn(max = screenHeight * 0.85f)
                 ) {
                     val currentActiveType = activeFilterType
-                    if (currentActiveType == "Nota") {
+                    if (currentActiveType == FILTER_RATING) {
                         RatingFilterContent(
                             currentRating = minRating,
                             onRatingChange = { viewModel.setMinRating(it) }
@@ -555,25 +583,25 @@ fun SearchScreen(
                     } else {
                         FilterSelectionContent(
                             options = when(currentActiveType) {
-                                "País" -> filterOptions.origins
-                                "Tueste" -> filterOptions.roasts
-                                "Especialidad" -> filterOptions.specialties
-                                "Formato" -> filterOptions.formats
+                                FILTER_ORIGIN -> filterOptions.origins
+                                FILTER_ROAST -> filterOptions.roasts
+                                FILTER_SPECIALTY -> filterOptions.specialties
+                                FILTER_FORMAT -> filterOptions.formats
                                 else -> emptyList()
                             },
                             selectedValues = when(currentActiveType) {
-                                "País" -> selectedOrigins
-                                "Tueste" -> selectedRoasts
-                                "Especialidad" -> selectedSpecialties
-                                "Formato" -> selectedFormats
+                                FILTER_ORIGIN -> selectedOrigins
+                                FILTER_ROAST -> selectedRoasts
+                                FILTER_SPECIALTY -> selectedSpecialties
+                                FILTER_FORMAT -> selectedFormats
                                 else -> emptySet()
                             },
                             onOptionToggle = { option ->
                                 when(currentActiveType) {
-                                    "País" -> viewModel.toggleOrigin(option)
-                                    "Tueste" -> viewModel.toggleRoast(option)
-                                    "Especialidad" -> viewModel.toggleSpecialty(option)
-                                    "Formato" -> viewModel.toggleFormat(option)
+                                    FILTER_ORIGIN -> viewModel.toggleOrigin(option)
+                                    FILTER_ROAST -> viewModel.toggleRoast(option)
+                                    FILTER_SPECIALTY -> viewModel.toggleSpecialty(option)
+                                    FILTER_FORMAT -> viewModel.toggleFormat(option)
                                 }
                             },
                             onClearAll = { viewModel.clearFilters() }
@@ -596,6 +624,8 @@ private fun RatingFilterContent(
     currentRating: Float,
     onRatingChange: (Float) -> Unit
 ) {
+    val anyRatingLabel = stringResource(id = R.string.search_rating_any)
+    val ratingLabel = stringResource(id = R.string.search_filter_rating)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -605,13 +635,13 @@ private fun RatingFilterContent(
         Row(verticalAlignment = Alignment.CenterVertically) {
             val displayRating = (5f - currentRating).toInt()
             Text(
-                text = if (displayRating == 0) "Cualquier nota" else "Nota: $displayRating+",
+                text = if (displayRating == 0) anyRatingLabel else "$ratingLabel: $displayRating+",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface)
             if (displayRating > 0) {
                 Spacer(Modifier.width(Spacing.space1))
-                Icon(Icons.Default.Star, contentDescription = "Valoración", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Star, contentDescription = stringResource(id = R.string.search_rating_cd), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
             }
         }
         Spacer(Modifier.height(Spacing.space4))
@@ -632,8 +662,8 @@ private fun RatingFilterContent(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("5 Estrellas", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Todas", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(id = R.string.search_rating_max), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(id = R.string.search_rating_all), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Spacer(Modifier.height(Spacing.space4))
     }
@@ -652,7 +682,7 @@ private fun FilterSelectionContent(
             horizontalArrangement = Arrangement.End
         ) {
             TextButton(onClick = onClearAll) {
-                Text("Limpiar filtros", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(id = R.string.search_clear_filters), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
             }
         }
         LazyColumn(
@@ -718,15 +748,15 @@ private fun RecentSearches(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = Spacing.space4)
         ) {
-            Icon(Icons.Default.History, contentDescription = "Recientes", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Default.History, contentDescription = stringResource(id = R.string.search_recent_cd), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.width(Spacing.space2))
-            Text("Búsquedas recientes", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+            Text(stringResource(id = R.string.search_recent_title), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
             Spacer(Modifier.weight(1f))
             IconButton(
                 onClick = onClearRecent,
                 modifier = Modifier.minimumInteractiveComponentSize()
             ) {
-                Icon(Icons.Default.Clear, contentDescription = "Limpiar", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
+                Icon(Icons.Default.Clear, contentDescription = stringResource(id = R.string.search_clear_recent_cd), tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
             }
         }
         LazyRow(
@@ -751,11 +781,11 @@ private fun RecentSearches(
 @Composable
 private fun EmptySearchResults(modifier: Modifier = Modifier) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(Icons.Default.Coffee, contentDescription = "Sin resultados", modifier = Modifier.size(Dimens.iconSizeEmpty), tint = MaterialTheme.colorScheme.outline)
+        Icon(Icons.Default.Coffee, contentDescription = stringResource(id = R.string.search_empty_cd), modifier = Modifier.size(Dimens.iconSizeEmpty), tint = MaterialTheme.colorScheme.outline)
         Spacer(Modifier.height(Spacing.space4))
-        Text("No encontramos ese aroma...", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-        Text("Prueba con otros términos o filtros.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(id = R.string.search_empty_title), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+        Text(stringResource(id = R.string.search_empty_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.space2))
-        Text("Desliza hacia abajo para actualizar la lista desde el servidor.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+        Text(stringResource(id = R.string.search_empty_refresh), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
     }
 }

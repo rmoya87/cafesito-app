@@ -2,6 +2,7 @@ import { type PointerEvent as ReactPointerEvent, useRef, useState } from "react"
 import { UiIcon } from "../../ui/iconography";
 import { Button } from "../../ui/components";
 import type { UserRow } from "../../types";
+import { useI18n } from "../../i18n";
 
 export type TimelineNotificationItem = {
   id: string;
@@ -44,6 +45,7 @@ export function NotificationRow({
   onAcceptListInvite?: (invitationId: string) => void;
   onDeclineListInvite?: (invitationId: string) => void;
 }) {
+  const { t } = useI18n();
   const [offsetX, setOffsetX] = useState(0);
   const [swipeActive, setSwipeActive] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
@@ -204,7 +206,7 @@ export function NotificationRow({
                 onToggleFollow(item.userId);
               }}
             >
-              {isFollowing ? "SIGUIENDO" : "SEGUIR"}
+              {isFollowing ? t("notifications.following") : t("notifications.follow")}
             </Button>
           ) : null}
           {item.type === "comment" ? (
@@ -216,11 +218,11 @@ export function NotificationRow({
                 onReply();
               }}
             >
-              RESPONDER
+              {t("notifications.reply")}
             </Button>
           ) : null}
           {item.type === "list_invite" && item.invitationId ? (
-            <span className="notifications-action notifications-list-invite-actions" role="group" aria-label="Invitación a lista">
+            <span className="notifications-action notifications-list-invite-actions" role="group" aria-label={t("notifications.inviteGroup")}>
               <Button
                 variant="plain"
                 className="notifications-action"
@@ -228,9 +230,9 @@ export function NotificationRow({
                   event.stopPropagation();
                   onDeclineListInvite?.(item.invitationId!);
                 }}
-                aria-label="Rechazar invitación a la lista"
+                aria-label={t("notifications.declineInvite")}
               >
-                Rechazar
+                {t("notifications.declineInvite")}
               </Button>
               <Button
                 variant="primary"
@@ -239,9 +241,9 @@ export function NotificationRow({
                   event.stopPropagation();
                   onAcceptListInvite?.(item.invitationId!);
                 }}
-                aria-label="Añadir lista a mis listas"
+                aria-label={t("notifications.addList")}
               >
-                Añadir
+                {t("notifications.addList")}
               </Button>
             </span>
           ) : null}

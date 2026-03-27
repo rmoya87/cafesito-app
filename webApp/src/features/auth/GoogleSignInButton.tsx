@@ -4,6 +4,7 @@
  * Al hacer clic dispara el flujo OAuth (redirect a Google).
  */
 import type { ButtonHTMLAttributes } from "react";
+import { useI18n } from "../../i18n";
 
 function GoogleGLogo({ className }: { className?: string }) {
   return (
@@ -43,23 +44,25 @@ export interface GoogleSignInButtonProps extends ButtonHTMLAttributes<HTMLButton
 }
 
 export function GoogleSignInButton({
-  label = "Registrarse con Google",
+  label,
   loading = false,
   disabled,
   className = "",
   ...props
 }: GoogleSignInButtonProps) {
+  const { t } = useI18n();
+  const resolvedLabel = label ?? t("login.signUpGoogle");
   return (
     <button
       type="button"
       className={`google-signin-button-x ${className}`.trim()}
       disabled={disabled ?? loading}
-      aria-label={label}
+      aria-label={resolvedLabel}
       {...props}
     >
       <GoogleGLogo className="google-signin-button-x__logo" />
       <span className="google-signin-button-x__label">
-        {loading ? "Conectando..." : label}
+        {loading ? t("google.connecting") : resolvedLabel}
       </span>
     </button>
   );

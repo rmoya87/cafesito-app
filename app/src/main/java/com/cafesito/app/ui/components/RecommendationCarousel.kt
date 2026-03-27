@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -32,6 +33,7 @@ import coil.compose.AsyncImage
 import coil.imageLoader
 import coil.request.ImageRequest
 import com.cafesito.app.data.CoffeeWithDetails
+import com.cafesito.app.R
 import com.cafesito.app.ui.theme.*
 import kotlinx.coroutines.launch
 
@@ -62,7 +64,7 @@ fun RecommendationCarousel(
 
     Column(modifier = modifier.fillMaxWidth().padding(vertical = 16.dp)) {
         Text(
-            text = "Cafés recomendados",
+            text = stringResource(id = R.string.home_recommended_coffees),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
@@ -79,7 +81,7 @@ fun RecommendationCarousel(
             ) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
-                        text = "Añade favoritos o reseñas para ver recomendaciones.",
+                        text = stringResource(id = R.string.home_recommended_empty),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(16.dp)
@@ -132,7 +134,7 @@ private fun RecommendationCard3x3(
                     if (!item.coffee.imageUrl.isNullOrBlank()) {
                         AsyncImage(
                             model = item.coffee.imageUrl,
-                            contentDescription = item.coffee.nombre.ifBlank { "Café" },
+                            contentDescription = item.coffee.nombre.ifBlank { stringResource(id = R.string.home_coffee_fallback) },
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(Shapes.small),
@@ -146,7 +148,7 @@ private fun RecommendationCard3x3(
                                 .background(MaterialTheme.colorScheme.surfaceVariant),
                             contentAlignment = androidx.compose.ui.Alignment.Center
                         ) {
-                            Icon(Icons.Default.Coffee, contentDescription = "Café", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Icon(Icons.Default.Coffee, contentDescription = stringResource(id = R.string.home_coffee_fallback), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     Spacer(Modifier.width(12.dp))
@@ -157,7 +159,7 @@ private fun RecommendationCard3x3(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = item.coffee.nombre.ifBlank { "Café" },
+                            text = item.coffee.nombre.ifBlank { stringResource(id = R.string.home_coffee_fallback) },
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             maxLines = 2,
@@ -165,7 +167,7 @@ private fun RecommendationCard3x3(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = item.coffee.marca.ifBlank { "Café" },
+                            text = item.coffee.marca.ifBlank { stringResource(id = R.string.home_coffee_fallback) },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,

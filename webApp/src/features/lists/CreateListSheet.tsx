@@ -2,7 +2,8 @@ import { useState } from "react";
 import { cn, Input, SheetCard, SheetHandle, Switch } from "../../ui/components";
 import { UiIcon } from "../../ui/iconography";
 import type { ListPrivacy } from "../../types";
-import { LIST_PRIVACY_OPTIONS } from "./listPrivacyOptions";
+import { getListPrivacyOptions } from "./listPrivacyOptions";
+import { useI18n } from "../../i18n";
 
 export function CreateListSheet({
   onDismiss,
@@ -11,11 +12,14 @@ export function CreateListSheet({
   onDismiss: () => void;
   onCreate: (name: string, privacy: ListPrivacy, membersCanEdit?: boolean) => void | Promise<void>;
 }) {
+  const { t } = useI18n();
   const [name, setName] = useState("");
   const [privacy, setPrivacy] = useState<ListPrivacy>("private");
   const [membersCanEdit, setMembersCanEdit] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const privacyOptions = getListPrivacyOptions(t);
 
   const handleCreate = async () => {
     if (!name.trim()) return;
@@ -30,7 +34,7 @@ export function CreateListSheet({
       await (typeof (result as Promise<unknown>)?.then === "function" ? result : Promise.resolve());
       onDismiss();
     } catch (err) {
-      setError((err as Error)?.message ?? "Error al crear la lista");
+      setError((err as Error)?.message ?? t("lists.errorCreate"));
     } finally {
       setCreating(false);
     }
@@ -41,33 +45,33 @@ export function CreateListSheet({
       <SheetHandle aria-hidden="true" />
       <header className="sheet-header diary-edit-entry-header create-list-sheet-header">
         <span className="diary-edit-entry-header-spacer" aria-hidden="true" />
-        <strong className="sheet-title">Nueva lista</strong>
+        <strong className="sheet-title">{t("lists.newList")}</strong>
         <button
           type="button"
           className="diary-edit-entry-header-action is-save create-list-sheet-submit"
           disabled={!name.trim() || creating}
           onClick={() => void handleCreate()}
         >
-          {creating ? "Creando…" : "Crear lista"}
+          {creating ? t("lists.creating") : t("lists.createList")}
         </button>
       </header>
       <div className="sheet-body create-list-sheet-body">
         <label className="diary-edit-entry-metric-field is-caffeine create-list-field">
-          <span>Nombre de la lista</span>
+          <span>{t("lists.listName")}</span>
           <div className="diary-edit-entry-metric-value">
             <Input
               type="text"
               className="diary-edit-entry-metric-input create-list-name-input"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ej: Para probar"
+              placeholder={t("lists.listNamePlaceholder")}
             />
           </div>
         </label>
-        <h3 className="create-list-privacy-subtitle">Privacidad</h3>
+        <h3 className="create-list-privacy-subtitle">{t("lists.privacy")}</h3>
         <div className="create-list-privacy-card">
           <div className="create-list-privacy-options">
-            {LIST_PRIVACY_OPTIONS.map((opt) => (
+            {privacyOptions.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
@@ -94,14 +98,14 @@ export function CreateListSheet({
               className="share-list-privacy-option-switch-row create-list-privacy-option-switch-row"
               onClick={(e) => e.stopPropagation()}
             >
-              <span className="share-list-privacy-option-switch-label">Permitir editar lista</span>
+              <span className="share-list-privacy-option-switch-label">{t("lists.allowEdit")}</span>
               <Switch
                 checked={membersCanEdit}
                 onClick={(e) => {
                   e.stopPropagation();
                   setMembersCanEdit((prev) => !prev);
                 }}
-                aria-label="Permitir que los miembros añadan o quiten cafés de la lista"
+                aria-label={t("lists.allowEditAria")}
               />
             </div>
           )}

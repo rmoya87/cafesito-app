@@ -6,6 +6,7 @@ import { normalizeLookupText } from "../../core/text";
 import type { CoffeeRow, PantryItemRow } from "../../types";
 import { UiIcon } from "../../ui/iconography";
 import { Button, Input, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
+import { useI18n } from "../../i18n";
 
 export type BrewSelectCoffeePantryRow = {
   item: PantryItemRow;
@@ -47,6 +48,7 @@ export function BrewSelectCoffeePage({
   showBarcodeButton?: boolean;
   onBarcodeClick?: () => void;
 }) {
+  const { t, locale } = useI18n();
   const [coffeeSearchQuery, setCoffeeSearchQuery] = useState("");
   const [coffeeSearchFocus, setCoffeeSearchFocus] = useState(false);
   const [pantryOptionsCoffeeId, setPantryOptionsCoffeeId] = useState<string | null>(null);
@@ -123,14 +125,54 @@ export function BrewSelectCoffeePage({
     parsedStockRemaining <= parsedStockTotal;
   const stockValidationMessage =
     !Number.isFinite(parsedStockTotal) || !Number.isFinite(parsedStockRemaining)
-      ? "Introduce valores válidos."
+      ? t("timeline.invalidValues")
       : parsedStockTotal < 1
-        ? "El total debe ser mayor que 0."
+        ? t("timeline.totalGreaterThanZero")
         : parsedStockRemaining < 0
-          ? "El restante no puede ser negativo."
+          ? t("timeline.remainingNonNegative")
           : parsedStockRemaining > parsedStockTotal
-            ? "El restante no puede superar el total."
+            ? t("timeline.remainingNoMoreThanTotal")
             : "";
+  const l = useMemo(
+    () => ({
+      pantry: t("timeline.yourPantry"),
+      options: t("timeline.options"),
+      addToPantry: t("timeline.addCoffeeToPantry"),
+      prev: t("timeline.prev"),
+      next: t("timeline.next"),
+      searchCoffee: t("diary.searchCoffeeBrand"),
+      scanBarcode: t("diary.scanBarcode"),
+      suggestions: t("diary.suggestions"),
+      suggestionsAria: t("diary.suggestions"),
+      pantryOptions: t("timeline.pantryOptions"),
+      organize: t("timeline.organize"),
+      editStock: t("timeline.editStock"),
+      coffeeFinished: t("timeline.coffeeFinished"),
+      general: t("top.general"),
+      removeFromPantry: t("timeline.deleteFromPantry"),
+      markFinishedTitle: t("timeline.finishedCoffeeTitle"),
+      markFinishedText: t("timeline.finishedCoffeeText"),
+      confirm: t("timeline.confirm"),
+      saving: t("timeline.savingUpper"),
+      deletePantryTitle: t("timeline.deletingFromPantryTitle"),
+      deletePantryText: t("timeline.deletingFromPantryText"),
+      deleting: t("timeline.deleting"),
+      delete: t("top.delete"),
+      editStockTitle: t("timeline.editStockTitle"),
+      totalCoffee: t("timeline.totalCoffeeGrams"),
+      remainingCoffee: t("timeline.remainingCoffeeGrams"),
+      saveStock: t("timeline.saveUpper"),
+      stockCurrent:
+        locale === "es"
+          ? "Stock actual {remaining}/{total} g. Quedarían {after} g tras esta elaboración"
+          : "Current stock {remaining}/{total} g. After this brew: {after} g",
+      stockLabel:
+        locale === "es"
+          ? "Stock {remaining} de {total} gramos. Tras esta elaboración quedarían {after} g"
+          : "Stock {remaining} of {total} grams. After this brew: {after} g"
+    }),
+    [locale, t]
+  );
 
   const hasPantryOptions =
     onUpdatePantryStock != null || onRemovePantryItem != null || onMarkPantryCoffeeFinished != null;
@@ -149,8 +191,8 @@ export function BrewSelectCoffeePage({
   return (
     <div className="brew-select-coffee-page">
       <div className="brew-select-coffee-page-content">
-        <section className="home-despensa suggestion-strip brew-select-coffee-despensa" aria-label="Tu despensa">
-          <p className="section-title">TU DESPENSA</p>
+        <section className="home-despensa suggestion-strip brew-select-coffee-despensa" aria-label={l.pantry}>
+          <p className="section-title">{l.pantry}</p>
           <div className="home-carousel-with-nav">
             <div ref={despensaScrollRef} className="home-despensa-scroll">
               <div className="brew-pantry-row">
@@ -185,7 +227,7 @@ export function BrewSelectCoffeePage({
                             variant="plain"
                             type="button"
                             className="diary-pantry-options"
-                            aria-label="Opciones"
+                            aria-label={l.options}
                             onClick={(e) => {
                               e.stopPropagation();
                               setPantryOptionsCoffeeId(row.item.id);
@@ -198,8 +240,20 @@ export function BrewSelectCoffeePage({
                       <div className="brew-pantry-body">
                         <strong>{row.coffee.nombre}</strong>
                         <small
-                          title={gramsForBrew > 0 ? `Stock actual ${Math.round(row.remaining)}/${Math.round(row.total)} g. Quedarían ${Math.round(remainingAfterBrew)} g tras esta elaboración` : undefined}
-                          aria-label={`Stock ${Math.round(row.remaining)} de ${Math.round(row.total)} gramos${gramsForBrew > 0 ? `. Tras esta elaboración quedarían ${Math.round(remainingAfterBrew)} g` : ""}`}
+                          title={
+                            gramsForBrew > 0
+                              ? l.stockCurrent
+                                  .replace("{remaining}", String(Math.round(row.remaining)))
+                                  .replace("{total}", String(Math.round(row.total)))
+                                  .replace("{after}", String(Math.round(remainingAfterBrew)))
+                              : undefined
+                          }
+                          aria-label={
+                            l.stockLabel
+                              .replace("{remaining}", String(Math.round(row.remaining)))
+                              .replace("{total}", String(Math.round(row.total)))
+                              .replace("{after}", String(Math.round(remainingAfterBrew)))
+                          }
                         >
                           {Math.round(row.remaining)}/{Math.round(row.total)}g
                         </small>
@@ -215,7 +269,7 @@ export function BrewSelectCoffeePage({
                     variant="plain"
                     type="button"
                     className="brew-pantry-add-card"
-                    aria-label="Añadir café a despensa"
+                    aria-label={l.addToPantry}
                     onClick={() => { sendEvent("button_click", { button_id: "brew_add_to_pantry" }); onAddToPantry(); }}
                   >
                     <span className="brew-pantry-add-main" aria-hidden="true">
@@ -233,7 +287,7 @@ export function BrewSelectCoffeePage({
                 <button
                   type="button"
                   className="home-carousel-nav-btn home-carousel-nav-prev"
-                  aria-label="Anterior"
+                  aria-label={l.prev}
                   onClick={() => scrollCarousel("prev")}
                 >
                   <UiIcon name="arrow-left" className="ui-icon" />
@@ -241,7 +295,7 @@ export function BrewSelectCoffeePage({
                 <button
                   type="button"
                   className="home-carousel-nav-btn home-carousel-nav-next"
-                  aria-label="Siguiente"
+                  aria-label={l.next}
                   onClick={() => scrollCarousel("next")}
                 >
                   <UiIcon name="arrow-right" className="ui-icon" />
@@ -259,19 +313,19 @@ export function BrewSelectCoffeePage({
               variant="search"
               type="search"
               className="search-coffee-input"
-              placeholder="Busca un café o marca"
+              placeholder={l.searchCoffee}
               value={coffeeSearchQuery}
               onFocus={() => setCoffeeSearchFocus(true)}
               onBlur={() => setCoffeeSearchFocus(false)}
               onChange={(event) => setCoffeeSearchQuery(event.target.value)}
-              aria-label="Buscar café o marca"
+              aria-label={l.searchCoffee}
             />
             {showBarcodeButton && onBarcodeClick ? (
               <Button
                 variant="plain"
                 type="button"
                 className="search-coffee-trailing-button"
-                aria-label="Escanear código de barras"
+                aria-label={l.scanBarcode}
                 onClick={() => onBarcodeClick()}
               >
                 <UiIcon name="barcode" className="ui-icon" />
@@ -291,14 +345,14 @@ export function BrewSelectCoffeePage({
             aria-hidden={!showSearchCancel}
             tabIndex={showSearchCancel ? 0 : -1}
           >
-            Cancelar
+            {t("common.cancel")}
           </Button>
         </div>
 
         {/* Sugerencias + Crear mi café */}
         <section className="diary-coffee-select-section brew-select-coffee-suggestions">
           <div className="diary-coffee-select-section-head">
-            <h3 className="diary-coffee-select-section-title">SUGERENCIAS</h3>
+            <h3 className="diary-coffee-select-section-title">{l.suggestions}</h3>
             {onCreateCoffee ? (
               <Button
                 variant="plain"
@@ -307,11 +361,11 @@ export function BrewSelectCoffeePage({
                 onClick={() => { sendEvent("button_click", { button_id: "brew_create_coffee" }); onCreateCoffee(); }}
               >
                 <UiIcon name="add" className="ui-icon" />
-                <span>Crear mi café</span>
+                <span>{t("diary.createMyCoffee")}</span>
               </Button>
             ) : null}
           </div>
-          <ul className="diary-coffee-select-list" role="listbox" aria-label="Sugerencias de café">
+          <ul className="diary-coffee-select-list" role="listbox" aria-label={l.suggestionsAria}>
             {filteredSuggestions.map((coffee) => (
               <li key={coffee.id}>
                 <Button
@@ -328,7 +382,7 @@ export function BrewSelectCoffeePage({
                   )}
                   <div className="diary-coffee-select-item-copy">
                     <strong>{coffee.nombre}</strong>
-                    <span>{(coffee.marca || "CAFÉ").toUpperCase()}</span>
+                    <span>{(coffee.marca || t("search.brandFallback")).toUpperCase()}</span>
                   </div>
                 </Button>
               </li>
@@ -343,7 +397,7 @@ export function BrewSelectCoffeePage({
             <SheetOverlay
               role="dialog"
               aria-modal="true"
-              aria-label="Opciones despensa"
+              aria-label={l.pantryOptions}
               onDismiss={() => setPantryOptionsCoffeeId(null)}
               onClick={() => setPantryOptionsCoffeeId(null)}
             >
@@ -354,7 +408,7 @@ export function BrewSelectCoffeePage({
                 <SheetHandle aria-hidden="true" />
                 <div className="diary-sheet-list list-options-general-wrap">
                   <div className="list-options-page-section">
-                    <h3 className="create-list-privacy-subtitle">Organiza</h3>
+                    <h3 className="create-list-privacy-subtitle">{l.organize}</h3>
                     <div className="list-options-general-card">
                       {onUpdatePantryStock ? (
                         <Button
@@ -373,7 +427,7 @@ export function BrewSelectCoffeePage({
                           <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">
                             edit
                           </span>
-                          <span>Editar stock</span>
+                          <span>{l.editStock}</span>
                           <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">
                             chevron_right
                           </span>
@@ -392,7 +446,7 @@ export function BrewSelectCoffeePage({
                           <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">
                             check_circle
                           </span>
-                          <span>Café terminado</span>
+                          <span>{l.coffeeFinished}</span>
                           <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">
                             chevron_right
                           </span>
@@ -401,7 +455,7 @@ export function BrewSelectCoffeePage({
                     </div>
                   </div>
                   <div className="list-options-page-section list-options-section-spaced">
-                    <h3 className="create-list-privacy-subtitle">General</h3>
+                    <h3 className="create-list-privacy-subtitle">{l.general}</h3>
                     <div className="list-options-general-card">
                       {onRemovePantryItem ? (
                         <Button
@@ -417,7 +471,7 @@ export function BrewSelectCoffeePage({
                           <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">
                             delete
                           </span>
-                          <span>Eliminar de la despensa</span>
+                          <span>{l.removeFromPantry}</span>
                           <span className="ui-icon material-symbol-icon is-filled diary-sheet-action-fill-icon" aria-hidden="true">
                             chevron_right
                           </span>
@@ -438,16 +492,16 @@ export function BrewSelectCoffeePage({
             <SheetOverlay
               role="dialog"
               aria-modal="true"
-              aria-label="Café terminado"
+              aria-label={l.markFinishedTitle}
               onDismiss={() => setPantryFinishedConfirmCoffeeId(null)}
               onClick={() => setPantryFinishedConfirmCoffeeId(null)}
             >
               <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(e) => e.stopPropagation()}>
                 <SheetHandle aria-hidden="true" />
                 <div className="diary-delete-confirm-body">
-                  <h2 className="diary-delete-confirm-title">Café terminado</h2>
+                  <h2 className="diary-delete-confirm-title">{l.markFinishedTitle}</h2>
                   <p className="diary-delete-confirm-text">
-                    ¿Marcar este café como terminado? Se quitará de tu despensa y se guardará en Historial.
+                    {l.markFinishedText}
                   </p>
                   <div className="diary-delete-confirm-actions">
                     <Button
@@ -457,7 +511,7 @@ export function BrewSelectCoffeePage({
                       onClick={() => setPantryFinishedConfirmCoffeeId(null)}
                       disabled={markingFinished}
                     >
-                      Cancelar
+                      {t("common.cancel")}
                     </Button>
                     <Button
                       variant="plain"
@@ -475,7 +529,7 @@ export function BrewSelectCoffeePage({
                         }
                       }}
                     >
-                      {markingFinished ? "Guardando..." : "Confirmar"}
+                      {markingFinished ? l.saving : l.confirm}
                     </Button>
                   </div>
                 </div>
@@ -491,16 +545,16 @@ export function BrewSelectCoffeePage({
             <SheetOverlay
               role="dialog"
               aria-modal="true"
-              aria-label="Eliminar de la despensa"
+              aria-label={l.deletePantryTitle}
               onDismiss={() => setPantryDeleteConfirmCoffeeId(null)}
               onClick={() => setPantryDeleteConfirmCoffeeId(null)}
             >
               <SheetCard className="diary-sheet diary-sheet-delete-confirm" onClick={(e) => e.stopPropagation()}>
                 <SheetHandle aria-hidden="true" />
                 <div className="diary-delete-confirm-body">
-                  <h2 className="diary-delete-confirm-title">Eliminar de la despensa</h2>
+                  <h2 className="diary-delete-confirm-title">{l.deletePantryTitle}</h2>
                   <p className="diary-delete-confirm-text">
-                    ¿Estás seguro de eliminar este café? Se borrará tu stock actual.
+                    {l.deletePantryText}
                   </p>
                   <div className="diary-delete-confirm-actions">
                     <Button
@@ -510,7 +564,7 @@ export function BrewSelectCoffeePage({
                       onClick={() => setPantryDeleteConfirmCoffeeId(null)}
                       disabled={removingStock}
                     >
-                      Cancelar
+                      {t("common.cancel")}
                     </Button>
                     <Button
                       variant="plain"
@@ -528,7 +582,7 @@ export function BrewSelectCoffeePage({
                         }
                       }}
                     >
-                      {removingStock ? "Eliminando..." : "Eliminar"}
+                      {removingStock ? l.deleting : l.delete}
                     </Button>
                   </div>
                 </div>
@@ -544,18 +598,18 @@ export function BrewSelectCoffeePage({
             <SheetOverlay
               role="dialog"
               aria-modal="true"
-              aria-label="Editar stock"
+              aria-label={l.editStockTitle}
               onDismiss={() => setStockEditCoffeeId(null)}
               onClick={() => setStockEditCoffeeId(null)}
             >
               <SheetCard className="diary-sheet diary-stock-edit-sheet" onClick={(event) => event.stopPropagation()}>
                 <SheetHandle aria-hidden="true" />
                 <header className="sheet-header diary-stock-edit-header">
-                  <strong className="sheet-title">Editar Stock</strong>
+                  <strong className="sheet-title">{l.editStockTitle}</strong>
                 </header>
                 <div className="diary-sheet-form diary-stock-edit-form">
                   <label className="diary-stock-edit-field">
-                    <span>Cantidad de café total (g)</span>
+                    <span>{l.totalCoffee}</span>
                     <Input
                       className="diary-stock-edit-value search-wide"
                       type="text"
@@ -601,7 +655,7 @@ export function BrewSelectCoffeePage({
                     />
                   </label>
                   <label className="diary-stock-edit-field">
-                    <span>Cantidad de café restante (g)</span>
+                    <span>{l.remainingCoffee}</span>
                     <Input
                       className="diary-stock-edit-value search-wide"
                       type="text"
@@ -647,7 +701,7 @@ export function BrewSelectCoffeePage({
                       onClick={() => setStockEditCoffeeId(null)}
                       disabled={savingStock}
                     >
-                      CANCELAR
+                      {t("timeline.cancelUpper")}
                     </Button>
                     <Button
                       variant="plain"
@@ -665,7 +719,7 @@ export function BrewSelectCoffeePage({
                         }
                       }}
                     >
-                      {savingStock ? "GUARDANDO..." : "GUARDAR"}
+                      {savingStock ? t("timeline.savingUpper") : t("timeline.saveUpper")}
                     </Button>
                   </div>
                 </div>

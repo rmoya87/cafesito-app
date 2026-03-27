@@ -54,6 +54,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -105,14 +106,6 @@ private fun formatRelativeTime(timestampMillis: Long): String {
     }
 }
 
-/** Textos de actividad en segunda persona (usuario logueado) vs tercera (otros). Igual que webapp ACTIVITY_LABEL_SECOND. */
-private fun activityLabel(isOwn: Boolean, type: String): String = when (type) {
-    "review" -> if (isOwn) "opinaste sobre un café" else "opinó sobre un café"
-    "diary" -> if (isOwn) "probaste por primera vez" else "probó por primera vez"
-    "favorite" -> if (isOwn) "añadiste a tu lista" else "añadió a su lista"
-    else -> if (isOwn) "añadiste a tu lista" else "añadió a su lista"
-}
-
 // --- PROFILE COMPONENTS ---
 
 @Composable
@@ -138,7 +131,7 @@ fun ProfileAdn(
                     )
                     Spacer(Modifier.height(Spacing.space2))
                     Text(
-                        "Pulsa para descubrir tus preferencias",
+                        stringResource(id = R.string.profile_taste_discover),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -147,7 +140,7 @@ fun ProfileAdn(
         }
         item {
             Text(
-                text = "Tu ADN se elabora con los cafés que consumes, tienes en listas o favoritos y has reseñado.",
+                text = stringResource(id = R.string.profile_taste_summary),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center,
@@ -197,7 +190,7 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
                 .padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space6)
         ) {
             Text(
-                text = "ANÁLISIS DE PREFERENCIAS",
+                text = stringResource(id = R.string.profile_preferences_analysis_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -216,9 +209,9 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
 
                 Text(
                     text = if (secondaryName != null && second.second > 3f) {
-                        "Tu paladar es una combinación experta de $primaryName y $secondaryName."
+                        stringResource(id = R.string.profile_palate_combo, primaryName, secondaryName)
                     } else {
-                        "Tu paladar destaca principalmente por preferir notas de $primaryName."
+                        stringResource(id = R.string.profile_palate_primary, primaryName)
                     },
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -253,13 +246,13 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
                 ) {
                     Column(Modifier.padding(20.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.AutoAwesome, contentDescription = "Recomendación", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.AutoAwesome, contentDescription = stringResource(id = R.string.brew_recommendation), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(Spacing.space2))
-                            Text("RECOMENDACIÓN IDEAL", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
+                            Text(stringResource(id = R.string.profile_ideal_recommendation).uppercase(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
                         }
                         Spacer(Modifier.height(Spacing.space3))
-                        Text(text = "Deberías probar: $idealType", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
-                        Text(text = "Orígenes sugeridos: $idealOrigin", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(text = stringResource(id = R.string.profile_should_try, idealType), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+                        Text(text = stringResource(id = R.string.profile_suggested_origins, idealOrigin), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -272,7 +265,7 @@ fun SensoryDetailBottomSheet(profile: Map<String, Float>, onDismiss: () -> Unit)
                     .height(54.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = Shapes.shapeXl
-            ) { Text("CONTINUAR EXPLORANDO", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onPrimary) }
+            ) { Text(stringResource(id = R.string.profile_continue_exploring).uppercase(), fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onPrimary) }
         }
     }
 }
@@ -294,7 +287,11 @@ fun ProfileActivityCard(
         is ProfileActivityItem.AddedToList -> "favorite"
     }
     val isOwn = activeUserId != null && item.userId == activeUserId
-    val displayLabel = activityLabel(isOwn, type)
+    val displayLabel = when (type) {
+        "review" -> if (isOwn) stringResource(id = R.string.profile_activity_review_own) else stringResource(id = R.string.profile_activity_review_other)
+        "diary" -> if (isOwn) stringResource(id = R.string.profile_activity_first_own) else stringResource(id = R.string.profile_activity_first_other)
+        else -> if (isOwn) stringResource(id = R.string.profile_activity_list_own) else stringResource(id = R.string.profile_activity_list_other)
+    }
 
     val coffeeId: String
     val coffeeName: String
@@ -308,9 +305,9 @@ fun ProfileActivityCard(
     when (item) {
         is ProfileActivityItem.Review -> {
             coffeeId = item.reviewInfo.coffeeDetails.coffee.id
-            coffeeName = item.reviewInfo.coffeeDetails.coffee.nombre.ifBlank { "Un café" }
+            coffeeName = item.reviewInfo.coffeeDetails.coffee.nombre.ifBlank { stringResource(id = R.string.home_coffee_fallback) }
             coffeeImageUrl = item.reviewInfo.coffeeDetails.coffee.imageUrl
-            coffeeBrand = item.reviewInfo.coffeeDetails.coffee.marca.ifBlank { "Marca" }
+            coffeeBrand = item.reviewInfo.coffeeDetails.coffee.marca.ifBlank { stringResource(id = R.string.detail_brand_fallback) }
             listId = null
             listName = null
             rating = item.reviewInfo.review.rating
@@ -319,9 +316,9 @@ fun ProfileActivityCard(
         }
         is ProfileActivityItem.FirstTimeCoffee -> {
             coffeeId = item.coffeeId
-            coffeeName = item.coffeeName.ifBlank { "Un café" }
+            coffeeName = item.coffeeName.ifBlank { stringResource(id = R.string.home_coffee_fallback) }
             coffeeImageUrl = item.coffeeImageUrl
-            coffeeBrand = item.coffeeBrand.ifBlank { "Marca" }
+            coffeeBrand = item.coffeeBrand.ifBlank { stringResource(id = R.string.detail_brand_fallback) }
             listId = null
             listName = null
             rating = null
@@ -330,9 +327,9 @@ fun ProfileActivityCard(
         }
         is ProfileActivityItem.AddedToList -> {
             coffeeId = item.coffeeId
-            coffeeName = item.coffeeName.ifBlank { "Un café" }
+            coffeeName = item.coffeeName.ifBlank { stringResource(id = R.string.home_coffee_fallback) }
             coffeeImageUrl = item.coffeeImageUrl
-            coffeeBrand = item.coffeeBrand.ifBlank { "Marca" }
+            coffeeBrand = item.coffeeBrand.ifBlank { stringResource(id = R.string.detail_brand_fallback) }
             listId = item.listId
             listName = item.listName
             rating = null
@@ -553,8 +550,8 @@ fun ProfileStatsRow(
             .padding(horizontal = Spacing.space4),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        StatItem("Seguidores", followers.toString(), onFollowersClick)
-        StatItem("Siguiendo", following.toString(), onFollowingClick)
+        StatItem(stringResource(id = R.string.profile_followers_label), followers.toString(), onFollowersClick)
+        StatItem(stringResource(id = R.string.profile_following_label), following.toString(), onFollowingClick)
     }
 }
 
@@ -588,9 +585,9 @@ fun ListRowCreateList(onClick: () -> Unit) {
             modifier = Modifier.padding(Spacing.space4).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.Add, contentDescription = "Crear lista nueva", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(Spacing.space6))
+            Icon(Icons.Default.Add, contentDescription = stringResource(id = R.string.profile_create_list), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(Spacing.space6))
             Spacer(Modifier.width(Spacing.space4))
-            Text("Crea una lista nueva", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+            Text(stringResource(id = R.string.profile_create_list), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
@@ -603,10 +600,10 @@ fun ListRowFavoritos(onClick: () -> Unit) {
             modifier = Modifier.padding(Spacing.space4).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.Favorite, contentDescription = "Favoritos", tint = ElectricRed, modifier = Modifier.size(Spacing.space6))
+            Icon(Icons.Default.Favorite, contentDescription = stringResource(id = R.string.profile_favorites_title), tint = ElectricRed, modifier = Modifier.size(Spacing.space6))
             Spacer(Modifier.width(Spacing.space4))
-            Text("Favoritos", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
-            Icon(Icons.Default.ChevronRight, contentDescription = "Abrir Favoritos", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(id = R.string.profile_favorites_title).lowercase().replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+            Icon(Icons.Default.ChevronRight, contentDescription = stringResource(id = R.string.common_open), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -621,23 +618,16 @@ fun ListRowCustomList(name: String, onClick: () -> Unit) {
         ) {
             Icon(
                 painter = rememberListAltSvgPainter(),
-                contentDescription = "Lista",
+                contentDescription = stringResource(id = R.string.profile_list_default_name),
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(Spacing.space6)
             )
             Spacer(Modifier.width(Spacing.space4))
             Text(name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
-            Icon(Icons.Default.ChevronRight, contentDescription = "Abrir lista", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Default.ChevronRight, contentDescription = stringResource(id = R.string.common_open), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
-
-/** Opciones de privacidad (igual que WebApp): valor, etiqueta y descripción. */
-private val LIST_PRIVACY_OPTIONS = listOf(
-    Triple("public", "Pública", "Cualquier persona puede suscribirse. Visible en actividad."),
-    Triple("invitation", "Por invitación", "Solo quienes invites podrán ver la lista. No visible en actividad."),
-    Triple("private", "Privada", "Solo tú. No visible en actividad.")
-)
 
 /** Modal para crear/editar lista: título centrado, nombre, privacidad (3 opciones) y "Permitir editar lista". Paridad con WebApp. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -672,6 +662,11 @@ fun CreateListBottomSheet(
     )
     val isEditMode = listIdForEdit != null
     val canSave = name.trim().isNotEmpty()
+    val listPrivacyOptions = listOf(
+        Triple("public", stringResource(id = R.string.list_privacy_public), stringResource(id = R.string.list_privacy_public_desc)),
+        Triple("invitation", stringResource(id = R.string.list_privacy_invitation), stringResource(id = R.string.list_privacy_invitation_desc)),
+        Triple("private", stringResource(id = R.string.list_privacy_private), stringResource(id = R.string.list_privacy_private_desc))
+    )
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -684,7 +679,7 @@ fun CreateListBottomSheet(
         Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space2).navigationBarsPadding()) {
             Box(Modifier.fillMaxWidth()) {
                 Text(
-                    if (isEditMode) "Editar lista" else "Nueva lista",
+                    if (isEditMode) stringResource(id = R.string.list_edit) else stringResource(id = R.string.profile_new_list),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -700,14 +695,14 @@ fun CreateListBottomSheet(
                     enabled = canSave,
                     modifier = Modifier.align(Alignment.CenterEnd)
                 ) {
-                    Text(if (isEditMode) "Guardar" else "Crear lista", fontWeight = FontWeight.SemiBold)
+                    Text(if (isEditMode) stringResource(id = R.string.brew_save) else stringResource(id = R.string.profile_create_list), fontWeight = FontWeight.SemiBold)
                 }
             }
             Spacer(Modifier.height(Spacing.space6))
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Nombre de la lista") },
+                label = { Text(stringResource(id = R.string.profile_list_name)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 textStyle = editFieldTextStyle,
@@ -716,7 +711,7 @@ fun CreateListBottomSheet(
             )
             Spacer(Modifier.height(Spacing.space4))
             Text(
-                "Privacidad",
+                stringResource(id = R.string.list_privacy_section),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -726,7 +721,7 @@ fun CreateListBottomSheet(
                 shape = MaterialTheme.shapes.medium
             ) {
                 Column(Modifier.padding(12.dp)) {
-                    LIST_PRIVACY_OPTIONS.forEach { (value, label, desc) ->
+                    listPrivacyOptions.forEach { (value, label, desc) ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -750,7 +745,7 @@ fun CreateListBottomSheet(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Permitir editar lista", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                            Text(stringResource(id = R.string.list_allow_members_edit), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                             Switch(
                                 checked = membersCanEdit,
                                 onCheckedChange = { membersCanEdit = it },
@@ -793,7 +788,7 @@ private fun AddToListOptionRow(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f)
             )
-            Icon(Icons.Default.ChevronRight, contentDescription = "Abrir lista", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Default.ChevronRight, contentDescription = stringResource(id = R.string.common_open), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -832,7 +827,7 @@ private fun AddToListCheckboxRow(
         ) {
             Icon(
                 imageVector = if (checked) Icons.Default.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
-                contentDescription = if (checked) "Seleccionado" else "No seleccionado",
+                contentDescription = if (checked) stringResource(id = R.string.profile_selected) else stringResource(id = R.string.profile_not_selected),
                 tint = if (!enabled) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 else if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(24.dp)
@@ -895,7 +890,7 @@ fun AddToListBottomSheet(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    "Añadir a lista",
+                    stringResource(id = R.string.profile_add_to_list),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -918,7 +913,7 @@ fun AddToListBottomSheet(
                     )
                 ) {
                     Text(
-                        if (saving) "Guardando…" else "Aplicar",
+                        if (saving) stringResource(id = R.string.profile_saving) else stringResource(id = R.string.common_apply),
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1
                     )
@@ -929,12 +924,12 @@ fun AddToListBottomSheet(
                 icon = {
                     Icon(
                         painter = rememberListAltAddSvgPainter(),
-                        contentDescription = "Crear lista nueva",
+                        contentDescription = stringResource(id = R.string.profile_create_list),
                         modifier = Modifier.size(Spacing.space6),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 },
-                label = "Crear una lista nueva",
+                label = stringResource(id = R.string.profile_create_new_list),
                 onClick = onCreateListRequest
             )
             userLists.forEach { list ->
@@ -951,12 +946,12 @@ fun AddToListBottomSheet(
                     icon = {
                         Icon(
                             painter = rememberListAltSvgPainter(),
-                            contentDescription = "Lista",
+                            contentDescription = stringResource(id = R.string.profile_list_default_name),
                             modifier = Modifier.size(Spacing.space6),
                             tint = if (canEdit) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
-                    label = list.name + if (!canEdit && inList) " (solo lectura)" else ""
+                label = list.name + if (!canEdit && inList) " (${stringResource(id = R.string.profile_read_only)})" else ""
                 )
             }
             Spacer(Modifier.height(Spacing.space2))
@@ -966,9 +961,9 @@ fun AddToListBottomSheet(
                     selectedIds = if (ADD_TO_LIST_FAVORITES_ID in selectedIds) selectedIds - ADD_TO_LIST_FAVORITES_ID else selectedIds + ADD_TO_LIST_FAVORITES_ID
                 },
                 icon = {
-                    Icon(Icons.Default.Favorite, contentDescription = "Favoritos", modifier = Modifier.size(Spacing.space6), tint = ElectricRed)
+                    Icon(Icons.Default.Favorite, contentDescription = stringResource(id = R.string.profile_favorites_title), modifier = Modifier.size(Spacing.space6), tint = ElectricRed)
                 },
-                label = "Favoritos"
+                label = stringResource(id = R.string.profile_favorites_title).lowercase().replaceFirstChar { it.uppercase() }
             )
             Spacer(Modifier.height(Spacing.space6))
         }
@@ -995,22 +990,22 @@ fun ListOptionsBottomSheet(
     ) {
         Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space2).navigationBarsPadding()) {
             AddToListOptionRow(
-                icon = { Icon(Icons.Default.Edit, contentDescription = "Editar lista", modifier = Modifier.size(Spacing.space6), tint = MaterialTheme.colorScheme.onSurface) },
-                label = "Editar lista",
+                icon = { Icon(Icons.Default.Edit, contentDescription = stringResource(id = R.string.list_edit), modifier = Modifier.size(Spacing.space6), tint = MaterialTheme.colorScheme.onSurface) },
+                label = stringResource(id = R.string.list_edit),
                 onClick = { onDismiss(); onEditList() }
             )
             if (onShareList != null) {
                 Spacer(Modifier.height(Spacing.space2))
                 AddToListOptionRow(
-                    icon = { Icon(Icons.Default.Share, contentDescription = "Compartir lista", modifier = Modifier.size(Spacing.space6), tint = MaterialTheme.colorScheme.onSurface) },
-                    label = "Compartir lista",
+                    icon = { Icon(Icons.Default.Share, contentDescription = stringResource(id = R.string.list_share), modifier = Modifier.size(Spacing.space6), tint = MaterialTheme.colorScheme.onSurface) },
+                    label = stringResource(id = R.string.list_share),
                     onClick = { onDismiss(); onShareList() }
                 )
             }
             Spacer(Modifier.height(Spacing.space2))
             AddToListOptionRow(
-                icon = { Icon(Icons.Default.Delete, contentDescription = "Eliminar lista", modifier = Modifier.size(Spacing.space6), tint = MaterialTheme.colorScheme.onSurface) },
-                label = "Eliminar lista",
+                icon = { Icon(Icons.Default.Delete, contentDescription = stringResource(id = R.string.list_delete), modifier = Modifier.size(Spacing.space6), tint = MaterialTheme.colorScheme.onSurface) },
+                label = stringResource(id = R.string.list_delete),
                 onClick = { onDismiss(); onDeleteList() }
             )
             Spacer(Modifier.height(Spacing.space6))
@@ -1039,14 +1034,14 @@ fun ShareListBottomSheet(
     ) {
         Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = Spacing.space2).navigationBarsPadding()) {
             Text(
-                "Invitar a la lista",
+                stringResource(id = R.string.list_invite_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = Spacing.space3)
             )
             if (users.isEmpty()) {
-                Text("Cargando usuarios…", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(id = R.string.profile_loading_users), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.space2), modifier = Modifier.heightIn(max = 320.dp)) {
                     items(users, key = { it.id }) { user ->
@@ -1056,7 +1051,7 @@ fun ShareListBottomSheet(
                         ) {
                             AsyncImage(
                                 model = user.avatarUrl,
-                                contentDescription = "Avatar de @${user.username}",
+                                contentDescription = stringResource(id = R.string.profile_avatar_of, user.username),
                                 modifier = Modifier.size(Spacing.space6 * 2f).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
                             )
                             Spacer(Modifier.width(Spacing.space3))
@@ -1070,7 +1065,7 @@ fun ShareListBottomSheet(
                                 shape = Shapes.cardSmall,
                                 contentPadding = PaddingValues(horizontal = Spacing.space3)
                             ) {
-                                Text("Invitar", fontWeight = FontWeight.Medium, fontSize = 12.sp)
+                                Text(stringResource(id = R.string.list_invite_action), fontWeight = FontWeight.Medium, fontSize = 12.sp)
                             }
                         }
                     }
@@ -1107,7 +1102,7 @@ fun ListDeleteConfirmBottomSheet(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                "Eliminar lista",
+                stringResource(id = R.string.list_delete),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -1116,7 +1111,7 @@ fun ListDeleteConfirmBottomSheet(
             )
             Spacer(Modifier.height(Spacing.space2))
             Text(
-                "¿Eliminar la lista \"$listName\"? Se quitarán todos los cafés de la lista.",
+                stringResource(id = R.string.profile_delete_list_message, listName),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
                 style = MaterialTheme.typography.bodyMedium,
@@ -1136,7 +1131,7 @@ fun ListDeleteConfirmBottomSheet(
                         contentColor = cancelColor
                     )
                 ) {
-                    Text("CANCELAR", fontWeight = FontWeight.Medium)
+                    Text(stringResource(id = R.string.search_cancel).uppercase(), fontWeight = FontWeight.Medium)
                 }
                 Button(
                     onClick = { onConfirm(); onDismiss() },
@@ -1144,7 +1139,7 @@ fun ListDeleteConfirmBottomSheet(
                     colors = ButtonDefaults.buttonColors(containerColor = deleteContainer, contentColor = deleteContent),
                     shape = Shapes.pillFull
                 ) {
-                    Text("ELIMINAR", fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(id = R.string.list_delete).uppercase(), fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -1382,7 +1377,11 @@ fun FollowButton(isFollowing: Boolean, onClick: () -> Unit) {
         shape = Shapes.pill,
         border = if (isFollowing) followingBorder else null
     ) {
-        Text(if (isFollowing) "SIGUIENDO" else "SEGUIR", fontWeight = FontWeight.Medium, letterSpacing = 1.sp)
+        Text(
+            if (isFollowing) stringResource(id = R.string.profile_following_label).uppercase() else stringResource(id = R.string.notifications_follow).uppercase(),
+            fontWeight = FontWeight.Medium,
+            letterSpacing = 1.sp
+        )
     }
 }
 
@@ -1423,7 +1422,7 @@ fun EditProfileFields(
         OutlinedTextField(
             value = username,
             onValueChange = { onUsernameChange(it.take(40)) },
-            label = { Text("Usuario") },
+            label = { Text(stringResource(id = R.string.profile_edit_username)) },
             modifier = Modifier.fillMaxWidth(),
             shape = Shapes.small,
             isError = usernameError != null, supportingText = { if (usernameError != null) Text(usernameError) },
@@ -1435,7 +1434,7 @@ fun EditProfileFields(
         OutlinedTextField(
             value = fullName,
             onValueChange = { onFullNameChange(it.take(120)) },
-            label = { Text("Nombre") },
+            label = { Text(stringResource(id = R.string.profile_edit_name)) },
             modifier = Modifier.fillMaxWidth(),
             shape = Shapes.small,
             singleLine = true,
@@ -1446,7 +1445,7 @@ fun EditProfileFields(
         OutlinedTextField(
             value = bio,
             onValueChange = { onBioChange(it.take(500)) },
-            label = { Text("Bio") },
+            label = { Text(stringResource(id = R.string.profile_edit_bio)) },
             modifier = Modifier.fillMaxWidth(),
             shape = Shapes.small,
             minLines = 3,
@@ -1465,6 +1464,6 @@ fun EditProfileFields(
                 contentColor = saveTextColor
             ),
             shape = Shapes.shapeXl
-        ) { Text("GUARDAR", fontWeight = FontWeight.SemiBold, color = saveTextColor) }
+        ) { Text(stringResource(id = R.string.brew_save).uppercase(), fontWeight = FontWeight.SemiBold, color = saveTextColor) }
     }
 }

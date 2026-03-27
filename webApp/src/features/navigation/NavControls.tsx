@@ -3,6 +3,15 @@ import type { TabId } from "../../types";
 import { NAV_ITEMS } from "../../config/navigation";
 import { UiIcon } from "../../ui/iconography";
 import { Button } from "../../ui/components";
+import { useI18n } from "../../i18n";
+
+function tabLabel(tab: TabId, t: ReturnType<typeof useI18n>["t"]): string {
+  if (tab === "home") return t("nav.home");
+  if (tab === "search") return t("nav.search");
+  if (tab === "brewlab") return t("nav.brewlab");
+  if (tab === "diary") return t("nav.diary");
+  return t("nav.profile");
+}
 
 function NavGlyph({
   item,
@@ -49,10 +58,12 @@ export function BottomNav({
   onNavClick: (tab: TabId) => void;
   avatarUrl?: string | null;
 }) {
+  const { t } = useI18n();
   return (
-    <nav className="nav nav-mobile" aria-label="Navegacion principal">
+    <nav className="nav nav-mobile" aria-label={t("nav.main")}>
       {NAV_ITEMS.map((item) => {
         const isActive = activeTab === item.id;
+        const label = tabLabel(item.id, t);
         return (
           <Button
             key={item.id}
@@ -62,7 +73,7 @@ export function BottomNav({
             aria-current={isActive ? "page" : undefined}
           >
             <NavGlyph item={item} isActive={isActive} avatarUrl={avatarUrl} />
-            <span className="nav-label">{item.label}</span>
+            <span className="nav-label">{label}</span>
           </Button>
         );
       })}
@@ -79,11 +90,13 @@ export function DesktopNavRail({
   onNavClick: (tab: TabId) => void;
   avatarUrl?: string | null;
 }) {
+  const { t } = useI18n();
   return (
-    <aside className="nav-rail" aria-label="Navegacion principal">
+    <aside className="nav-rail" aria-label={t("nav.main")}>
       <nav className="nav nav-desktop">
         {NAV_ITEMS.map((item) => {
           const isActive = activeTab === item.id;
+          const label = tabLabel(item.id, t);
           return (
             <Button
               key={item.id}
@@ -91,8 +104,8 @@ export function DesktopNavRail({
               className={`nav-item ${isActive ? "is-active" : ""}`}
               onClick={() => onNavClick(item.id)}
               aria-current={isActive ? "page" : undefined}
-              aria-label={item.label}
-              title={item.label}
+              aria-label={label}
+              title={label}
             >
               <NavGlyph item={item} isActive={isActive} avatarUrl={avatarUrl} />
             </Button>

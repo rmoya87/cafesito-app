@@ -53,8 +53,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.cafesito.app.R
 import com.cafesito.app.data.ListMemberRow
 import com.cafesito.app.data.UserEntity
 import com.cafesito.app.ui.components.CreateListBottomSheet
@@ -64,12 +66,6 @@ import android.os.Bundle
 import androidx.core.os.bundleOf
 import com.cafesito.app.ui.theme.Spacing
 import com.cafesito.app.ui.utils.containsSearchQuery
-
-private val PRIVACY_OPTIONS = listOf(
-    "public" to ("Pública" to "Cualquier persona puede suscribirse."),
-    "invitation" to ("Por invitación" to "Solo quienes invites podrán ver la lista."),
-    "private" to ("Privada" to "Solo tú.")
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,6 +94,11 @@ fun ListOptionsScreen(
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showLeaveConfirm by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+    val privacyOptions = listOf(
+        "public" to (stringResource(id = R.string.list_privacy_public) to stringResource(id = R.string.list_privacy_public_desc)),
+        "invitation" to (stringResource(id = R.string.list_privacy_invitation) to stringResource(id = R.string.list_privacy_invitation_desc)),
+        "private" to (stringResource(id = R.string.list_privacy_private) to stringResource(id = R.string.list_privacy_private_desc))
+    )
 
     if (showEditSheet) {
         CreateListBottomSheet(
@@ -117,7 +118,7 @@ fun ListOptionsScreen(
     }
     if (showDeleteConfirm) {
         ListDeleteConfirmBottomSheet(
-            listName = list?.name ?: "Lista",
+            listName = list?.name ?: stringResource(id = R.string.profile_list_default_name),
             onDismiss = { onTrackEvent("modal_close", bundleOf("modal_id" to "delete_confirm_list")); showDeleteConfirm = false },
             onConfirm = {
                 viewModel.deleteList()
@@ -130,24 +131,24 @@ fun ListOptionsScreen(
     if (showLeaveConfirm) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { onTrackEvent("modal_close", bundleOf("modal_id" to "leave_list_confirm")); showLeaveConfirm = false },
-            title = { Text("Abandonar lista") },
-            text = { Text("¿Salir de esta lista? Dejarás de verla en tus listas.") },
+            title = { Text(stringResource(id = R.string.list_leave_title)) },
+            text = { Text(stringResource(id = R.string.list_leave_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.leaveList()
                     onTrackEvent("modal_close", bundleOf("modal_id" to "leave_list_confirm"))
                     showLeaveConfirm = false
                     onLeftList()
-                }) { Text("Abandonar", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(id = R.string.list_leave_confirm), color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { onTrackEvent("modal_close", bundleOf("modal_id" to "leave_list_confirm")); showLeaveConfirm = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { onTrackEvent("modal_close", bundleOf("modal_id" to "leave_list_confirm")); showLeaveConfirm = false }) { Text(stringResource(id = R.string.search_cancel)) } }
         )
     }
 
     Scaffold(
         topBar = {
             GlassyTopBar(
-                title = "Opciones",
+                title = stringResource(id = R.string.profile_options),
                 onBackClick = onBackClick
             )
         },
@@ -166,7 +167,7 @@ fun ListOptionsScreen(
                 if (isOwner && list != null) {
                     item {
                         Text(
-                            "Privacidad",
+                            stringResource(id = R.string.list_privacy_section),
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -177,7 +178,7 @@ fun ListOptionsScreen(
                             shape = MaterialTheme.shapes.medium
                         ) {
                             Column(Modifier.padding(12.dp)) {
-                                PRIVACY_OPTIONS.forEach { option ->
+                                privacyOptions.forEach { option ->
                                     val privacyValue = option.first
                                     val label = option.second.first
                                     val desc = option.second.second
@@ -205,7 +206,7 @@ fun ListOptionsScreen(
                                         modifier = Modifier.fillMaxWidth(),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text("Permitir que los miembros inviten", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                        Text(stringResource(id = R.string.list_allow_members_invite), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                                         Switch(
                                             checked = listMembersCanInvite,
                                             onCheckedChange = { viewModel.updatePrivacy(listPrivacy, listMembersCanEdit, it) },
@@ -222,7 +223,7 @@ fun ListOptionsScreen(
                                         modifier = Modifier.fillMaxWidth(),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text("Permitir editar lista", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                        Text(stringResource(id = R.string.list_allow_members_edit), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                                         Switch(
                                             checked = listMembersCanEdit,
                                             onCheckedChange = { viewModel.updatePrivacy(listPrivacy, it, listMembersCanInvite) },
@@ -239,7 +240,7 @@ fun ListOptionsScreen(
 
                     item {
                         Text(
-                            "Miembros",
+                            stringResource(id = R.string.list_members_section),
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -254,7 +255,7 @@ fun ListOptionsScreen(
                                     value = searchQuery,
                                     onValueChange = { searchQuery = it },
                                     modifier = Modifier.fillMaxWidth(),
-                                    placeholder = { Text("Buscar usuarios...") },
+                                    placeholder = { Text(stringResource(id = R.string.profile_search_users_placeholder)) },
                                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                                     singleLine = true,
                                     shape = RoundedCornerShape(percent = 50)
@@ -303,25 +304,25 @@ fun ListOptionsScreen(
                                             Text("@${user.username}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                                             when {
                                                 alreadyMember -> Text(
-                                                    "Ya está en la lista",
+                                                    stringResource(id = R.string.list_member_already),
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                                 pendingInvite -> Text(
-                                                    "Invitación enviada",
+                                                    stringResource(id = R.string.list_invitation_sent),
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                                 else -> TextButton(
                                                     onClick = { viewModel.inviteUser(user.id) },
                                                     enabled = invitingId != user.id
-                                                ) { Text("Invitar") }
+                                                ) { Text(stringResource(id = R.string.list_invite_action)) }
                                             }
                                         }
                                     }
                                     if (searchResultUsers.isEmpty()) {
                                         Text(
-                                            "No hay usuarios que coincidan.",
+                                            stringResource(id = R.string.profile_no_users_found),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.padding(vertical = 8.dp)
@@ -345,7 +346,7 @@ fun ListOptionsScreen(
                                             contentColor = if (isSystemInDarkTheme()) Color.White else Color.Black
                                         )
                                     ) {
-                                        Text("Compartir lista")
+                                        Text(stringResource(id = R.string.list_share))
                                     }
                                 }
                                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
@@ -389,7 +390,7 @@ fun ListOptionsScreen(
                                                 style = MaterialTheme.typography.bodyMedium
                                             )
                                             Text(
-                                                if (isOwnerRow) "Admin." else "Miembro",
+                                                if (isOwnerRow) stringResource(id = R.string.list_member_role_admin) else stringResource(id = R.string.list_member_role_member),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -403,7 +404,7 @@ fun ListOptionsScreen(
                                                     contentColor = if (isDark) Color.Black else Color.White
                                                 )
                                             ) {
-                                                Text("Eliminar")
+                                                Text(stringResource(id = R.string.notifications_delete))
                                             }
                                         }
                                     }
@@ -417,7 +418,7 @@ fun ListOptionsScreen(
                 if (!isOwner && listForMember != null && listPrivacy == "public") {
                     item {
                         Text(
-                            "Miembros",
+                            stringResource(id = R.string.list_members_section),
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -432,7 +433,7 @@ fun ListOptionsScreen(
                                     value = searchQuery,
                                     onValueChange = { searchQuery = it },
                                     modifier = Modifier.fillMaxWidth(),
-                                    placeholder = { Text("Buscar usuarios...") },
+                                    placeholder = { Text(stringResource(id = R.string.profile_search_users_placeholder)) },
                                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                                     singleLine = true,
                                     shape = RoundedCornerShape(percent = 50)
@@ -481,25 +482,25 @@ fun ListOptionsScreen(
                                             Text("@${user.username}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                                             when {
                                                 alreadyMember -> Text(
-                                                    "Ya está en la lista",
+                                                    stringResource(id = R.string.list_member_already),
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                                 pendingInvite -> Text(
-                                                    "Invitación enviada",
+                                                    stringResource(id = R.string.list_invitation_sent),
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                                 else -> TextButton(
                                                     onClick = { viewModel.inviteUser(user.id) },
                                                     enabled = invitingId != user.id
-                                                ) { Text("Invitar") }
+                                                ) { Text(stringResource(id = R.string.list_invite_action)) }
                                             }
                                         }
                                     }
                                     if (searchResultUsers.isEmpty()) {
                                         Text(
-                                            "No hay usuarios que coincidan.",
+                                            stringResource(id = R.string.profile_no_users_found),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.padding(vertical = 8.dp)
@@ -523,7 +524,7 @@ fun ListOptionsScreen(
                                             contentColor = if (isSystemInDarkTheme()) Color.White else Color.Black
                                         )
                                     ) {
-                                        Text("Compartir lista")
+                                        Text(stringResource(id = R.string.list_share))
                                     }
                                 }
                                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
@@ -564,7 +565,7 @@ fun ListOptionsScreen(
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(displayName, style = MaterialTheme.typography.bodyMedium)
                                             Text(
-                                                if (isOwnerRow) "Admin." else "Miembro",
+                                                if (isOwnerRow) stringResource(id = R.string.list_member_role_admin) else stringResource(id = R.string.list_member_role_member),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -580,7 +581,7 @@ fun ListOptionsScreen(
                 if (!isOwner && listForInvitation != null && listPrivacy == "invitation" && listForInvitation.membersCanInvite == true) {
                     item {
                         Text(
-                            "Miembros",
+                            stringResource(id = R.string.list_members_section),
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -595,7 +596,7 @@ fun ListOptionsScreen(
                                     value = searchQuery,
                                     onValueChange = { searchQuery = it },
                                     modifier = Modifier.fillMaxWidth(),
-                                    placeholder = { Text("Buscar usuarios...") },
+                                    placeholder = { Text(stringResource(id = R.string.profile_search_users_placeholder)) },
                                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                                     singleLine = true,
                                     shape = RoundedCornerShape(percent = 50)
@@ -644,25 +645,25 @@ fun ListOptionsScreen(
                                             Text("@${user.username}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                                             when {
                                                 alreadyMember -> Text(
-                                                    "Ya está en la lista",
+                                                    stringResource(id = R.string.list_member_already),
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                                 pendingInvite -> Text(
-                                                    "Invitación enviada",
+                                                    stringResource(id = R.string.list_invitation_sent),
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                                 else -> TextButton(
                                                     onClick = { viewModel.inviteUser(user.id) },
                                                     enabled = invitingId != user.id
-                                                ) { Text("Invitar") }
+                                                ) { Text(stringResource(id = R.string.list_invite_action)) }
                                             }
                                         }
                                     }
                                     if (searchResultUsersInv.isEmpty()) {
                                         Text(
-                                            "No hay usuarios que coincidan.",
+                                            stringResource(id = R.string.profile_no_users_found),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.padding(vertical = 8.dp)
@@ -686,7 +687,7 @@ fun ListOptionsScreen(
                                             contentColor = if (isSystemInDarkTheme()) Color.White else Color.Black
                                         )
                                     ) {
-                                        Text("Compartir lista")
+                                        Text(stringResource(id = R.string.list_share))
                                     }
                                 }
                                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
@@ -727,7 +728,7 @@ fun ListOptionsScreen(
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(displayNameInv, style = MaterialTheme.typography.bodyMedium)
                                             Text(
-                                                if (isOwnerRow) "Admin." else "Miembro",
+                                                if (isOwnerRow) stringResource(id = R.string.list_member_role_admin) else stringResource(id = R.string.list_member_role_member),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -741,7 +742,7 @@ fun ListOptionsScreen(
 
                 item {
                     Text(
-                        "General",
+                        stringResource(id = R.string.settings_general),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -754,9 +755,9 @@ fun ListOptionsScreen(
                     ) {
                         Column {
                             if (isOwner) {
-                                OptionRowInCard(icon = Icons.Default.Edit, label = "Editar lista", onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "list_edit")); showEditSheet = true })
+                                OptionRowInCard(icon = Icons.Default.Edit, label = stringResource(id = R.string.list_edit), onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "list_edit")); showEditSheet = true })
                                 HorizontalDivider(Modifier.padding(horizontal = 16.dp))
-                                OptionRowInCard(icon = Icons.Default.Delete, label = "Eliminar lista", onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "delete_confirm_list")); showDeleteConfirm = true })
+                                OptionRowInCard(icon = Icons.Default.Delete, label = stringResource(id = R.string.list_delete), onClick = { onTrackEvent("modal_open", bundleOf("modal_id" to "delete_confirm_list")); showDeleteConfirm = true })
                             } else {
                                 Row(
                                     modifier = Modifier
@@ -768,7 +769,7 @@ fun ListOptionsScreen(
                                 ) {
                                     Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
                                     Spacer(Modifier.width(Spacing.space3))
-                                    Text("Salir de la lista", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                                    Text(stringResource(id = R.string.list_leave), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
                                 }
                             }
                         }

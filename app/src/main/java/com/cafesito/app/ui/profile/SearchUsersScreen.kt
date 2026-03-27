@@ -20,11 +20,13 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.cafesito.app.R
 import com.cafesito.app.ui.theme.Shapes
 import com.cafesito.app.ui.utils.containsSearchQuery
 import com.cafesito.shared.domain.SuggestedUserInfo
@@ -72,7 +74,7 @@ fun SearchUsersScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(id = R.string.join_list_back))
                     }
                     
                     BasicTextField(
@@ -91,8 +93,8 @@ fun SearchUsersScreen(
                                 singleLine = true,
                                 visualTransformation = VisualTransformation.None,
                                 interactionSource = interactionSource,
-                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar usuarios", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                placeholder = { Text("Buscar usuarios...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(id = R.string.profile_search_users), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                placeholder = { Text(stringResource(id = R.string.profile_search_users_placeholder), color = MaterialTheme.colorScheme.onSurfaceVariant) },
                                 contentPadding = PaddingValues(0.dp),
                                 container = {
                                     OutlinedTextFieldDefaults.Container(
@@ -124,7 +126,7 @@ fun SearchUsersScreen(
                             },
                             contentPadding = PaddingValues(start = 12.dp, end = 4.dp)
                         ) {
-                            Text("Cancelar", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(stringResource(id = R.string.search_cancel), color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
                     }
                 }
@@ -154,7 +156,7 @@ fun SearchUsersScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = if (searchQuery.isEmpty()) "Busca amigos para seguir" else "No se encontraron usuarios",
+                                text = if (searchQuery.isEmpty()) stringResource(id = R.string.profile_search_users_empty) else stringResource(id = R.string.profile_no_users_found),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }

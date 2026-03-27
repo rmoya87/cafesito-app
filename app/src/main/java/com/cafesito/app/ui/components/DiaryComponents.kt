@@ -65,6 +65,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -128,9 +129,9 @@ fun CaffeinePremiumCard(analytics: DiaryAnalytics) {
             Row(modifier = Modifier.fillMaxWidth().padding(Spacing.space6)) {
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("CAFEÍNA ESTIMADA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp)
+                        Text(stringResource(id = R.string.diary_estimated_caffeine).uppercase(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp)
                         IconButton(onClick = { showInfo = true }, modifier = Modifier.size(Spacing.space6)) {
-                            Icon(Icons.Outlined.Info, contentDescription = "Información", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Outlined.Info, contentDescription = stringResource(id = R.string.common_info), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
                         }
                     }
                     Text(
@@ -143,7 +144,7 @@ fun CaffeinePremiumCard(analytics: DiaryAnalytics) {
                 }
 
                 Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-                    Text("HIDRATACIÓN", style = MaterialTheme.typography.labelLarge, color = WaterBlue, fontSize = 10.sp)
+                    Text(stringResource(id = R.string.diary_hydration).uppercase(), style = MaterialTheme.typography.labelLarge, color = WaterBlue, fontSize = 10.sp)
                     Text(
                         text = "${analytics.totalWaterMl} ml",
                         style = MaterialTheme.typography.headlineSmall,
@@ -205,10 +206,10 @@ fun MetricBoxPremium(label: String, value: String, icon: ImageVector, modifier: 
 fun DiaryHabitCard(stats: DiaryHabitStats) {
     PremiumCard(modifier = Modifier.padding(horizontal = Spacing.space4, vertical = Spacing.space1)) {
         Column(Modifier.padding(horizontal = Spacing.space5, vertical = Spacing.space4)) {
-            DiaryStatsRow("Tazas", stats.avgCups, showTopDivider = false)
-            DiaryStatsRow("Tamaño tazas", stats.mostSize)
-            DiaryStatsRow("Método", stats.mostMethod)
-            DiaryStatsRow("Día cafetero", stats.busiestDay)
+            DiaryStatsRow(stringResource(id = R.string.diary_stat_cups), stats.avgCups, showTopDivider = false)
+            DiaryStatsRow(stringResource(id = R.string.diary_stat_cup_size), stats.mostSize)
+            DiaryStatsRow(stringResource(id = R.string.diary_stat_method), stats.mostMethod)
+            DiaryStatsRow(stringResource(id = R.string.diary_stat_best_day), stats.busiestDay)
         }
     }
 }
@@ -217,11 +218,21 @@ fun DiaryHabitCard(stats: DiaryHabitStats) {
 fun DiaryConsumptionCard(stats: DiaryConsumptionStats) {
     PremiumCard(modifier = Modifier.padding(horizontal = Spacing.space4, vertical = Spacing.space1)) {
         Column(Modifier.padding(horizontal = Spacing.space5, vertical = Spacing.space4)) {
-            DiaryStatsRow("Momento", "Mañana ${stats.momentPctMorning}% · Tarde ${stats.momentPctAfternoon}% · Noche ${stats.momentPctEvening}%", showTopDivider = false, valueBelowTitle = true)
-            DiaryStatsRow("Cafeína", "${stats.avgCaffeine} mg")
-            DiaryStatsRow("Dosis por café", "${stats.avgDose} g")
-            DiaryStatsRow("Formato", stats.mostFormat)
-            DiaryStatsRow("Previsión despensa", stats.pantryDaysLeft?.let { "~$it días" } ?: "—")
+            DiaryStatsRow(
+                stringResource(id = R.string.diary_stat_moment),
+                stringResource(
+                    id = R.string.diary_stat_moment_value,
+                    stats.momentPctMorning,
+                    stats.momentPctAfternoon,
+                    stats.momentPctEvening
+                ),
+                showTopDivider = false,
+                valueBelowTitle = true
+            )
+            DiaryStatsRow(stringResource(id = R.string.diary_stat_caffeine), "${stats.avgCaffeine} mg")
+            DiaryStatsRow(stringResource(id = R.string.diary_stat_dose), "${stats.avgDose} g")
+            DiaryStatsRow(stringResource(id = R.string.diary_stat_format), stats.mostFormat)
+            DiaryStatsRow(stringResource(id = R.string.diary_stat_pantry_forecast), stats.pantryDaysLeft?.let { "~$it ${stringResource(id = R.string.common_days)}" } ?: "—")
         }
     }
 }
@@ -317,7 +328,7 @@ private fun originFavoriteRow(countryName: String) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Origen favorito",
+                text = stringResource(id = R.string.diary_favorite_origin),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -365,7 +376,7 @@ fun DiaryBaristaCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Cafés probados",
+                    text = stringResource(id = R.string.diary_coffees_tried),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -377,10 +388,10 @@ fun DiaryBaristaCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(Modifier.width(Spacing.space1))
-                    Icon(Icons.Default.ChevronRight, contentDescription = "Ver más", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.ChevronRight, contentDescription = stringResource(id = R.string.diary_view_more), tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
                 }
             }
-            DiaryStatsRow("Tostadores probados", "${stats.distinctRoasters}")
+            DiaryStatsRow(stringResource(id = R.string.diary_roasters_tried), "${stats.distinctRoasters}")
             originFavoriteRow(stats.favoriteOrigin)
         }
     }
@@ -392,7 +403,7 @@ fun BaristaCoffeesListSheet(
     coffees: List<TriedCoffeeItem>,
     onDismiss: () -> Unit
 ) {
-    val dateFormat = remember { SimpleDateFormat("d MMM yyyy", Locale.forLanguageTag("es-ES")) }
+    val dateFormat = remember { SimpleDateFormat("d MMM yyyy", Locale.getDefault()) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = CafesitoModalSheetDefaults.containerColor(),
@@ -402,7 +413,7 @@ fun BaristaCoffeesListSheet(
     ) {
         Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
             Text(
-                text = "Cafés probados",
+                text = stringResource(id = R.string.diary_coffees_tried),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -433,7 +444,7 @@ fun BaristaCoffeesListSheet(
                                     .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.Coffee, contentDescription = "Café", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Icon(Icons.Default.Coffee, contentDescription = stringResource(id = R.string.diary_add_coffee), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                         Spacer(Modifier.width(Spacing.space3))
@@ -447,7 +458,7 @@ fun BaristaCoffeesListSheet(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = "Primera vez: ${dateFormat.format(Date(item.firstTriedMs))}",
+                                text = stringResource(id = R.string.diary_first_time_pattern, dateFormat.format(Date(item.firstTriedMs))),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -497,7 +508,7 @@ fun PantryPremiumCard(
                             .clickable { onOptionsClick(item.pantryItem.id) },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.MoreHoriz, contentDescription = "Opciones", tint = optionsIconTint, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.MoreHoriz, contentDescription = stringResource(id = R.string.timeline_options), tint = optionsIconTint, modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -559,7 +570,7 @@ fun ErrorStateMessage(message: String, onRetry: () -> Unit) {
             textAlign = TextAlign.Center
         )
         OutlinedButton(onClick = onRetry) {
-            Text("Reintentar")
+            Text(stringResource(id = R.string.common_retry))
         }
     }
 }
@@ -610,16 +621,16 @@ fun AddEntryBottomSheet(
     ) {
         Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
             Text(
-text = "NUEVO REGISTRO",
+text = stringResource(id = R.string.diary_new_entry).uppercase(),
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.space4),
                 textAlign = TextAlign.Center
             )
-            ModalMenuOption(title = "Agua", iconPainter = painterResource(id = R.drawable.agua), color = quickActionIconColor, onClick = onAddWater)
-            ModalMenuOption(title = "Café", icon = Icons.Default.Coffee, color = quickActionIconColor, onClick = onAddCoffee)
+            ModalMenuOption(title = stringResource(id = R.string.diary_add_water), iconPainter = painterResource(id = R.drawable.agua), color = quickActionIconColor, onClick = onAddWater)
+            ModalMenuOption(title = stringResource(id = R.string.diary_add_coffee), icon = Icons.Default.Coffee, color = quickActionIconColor, onClick = onAddCoffee)
             ModalMenuOption(
-                title = "Añadir a Despensa",
+                title = stringResource(id = R.string.diary_add_to_pantry),
                 iconPainter = painterResource(id = R.drawable.shelves_24),
                 color = quickActionIconColor,
                 onClick = onAddPantry
@@ -698,7 +709,7 @@ fun DiaryDatePickerSheet(
             ) {
                 Spacer(Modifier.weight(1f))
                 Text(
-                    text = "Selecciona",
+                    text = stringResource(id = R.string.diary_add_select),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -708,7 +719,7 @@ fun DiaryDatePickerSheet(
                         onClick = onGoToToday,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
-                        Text("Ir a hoy")
+                        Text(stringResource(id = R.string.diary_go_today))
                     }
                 }
             }
@@ -743,7 +754,15 @@ fun DiaryDatePickerSheet(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
-                            listOf("L", "M", "X", "J", "V", "S", "D").forEach { label ->
+                            listOf(
+                                stringResource(id = R.string.diary_weekday_mon_short),
+                                stringResource(id = R.string.diary_weekday_tue_short),
+                                stringResource(id = R.string.diary_weekday_wed_short),
+                                stringResource(id = R.string.diary_weekday_thu_short),
+                                stringResource(id = R.string.diary_weekday_fri_short),
+                                stringResource(id = R.string.diary_weekday_sat_short),
+                                stringResource(id = R.string.diary_weekday_sun_short)
+                            ).forEach { label ->
                                 Text(
                                     text = label,
                                     style = MaterialTheme.typography.labelSmall,
@@ -874,7 +893,7 @@ fun EntryOption(title: String, icon: ImageVector, color: Color, onClick: () -> U
             Spacer(Modifier.width(Spacing.space4))
             Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.weight(1f))
-            Icon(Icons.Default.ChevronRight, contentDescription = "Abrir", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Default.ChevronRight, contentDescription = stringResource(id = R.string.common_open), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -1103,7 +1122,7 @@ fun ChartPremiumSection(analytics: DiaryAnalytics) {
                     val isCurrent = index == currentSlotIndex
                     val showHoy = isCurrent && (analytics.period != DiaryPeriod.SEMANA || analytics.isCurrentWeek)
                     Text(
-                        text = if (showHoy) "${entry.label} - Hoy" else entry.label,
+                        text = if (showHoy) "${entry.label} - ${stringResource(id = R.string.diary_today)}" else entry.label,
                         fontSize = 10.sp,
                         color = if (isCurrent) currentDayColor else axisLabelGray,
                         fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.Normal,
@@ -1137,7 +1156,7 @@ fun PeriodBottomSheet(
     ) {
         Column(Modifier.padding(top = 8.dp, start = Spacing.space6, end = Spacing.space6, bottom = 40.dp)) {
             Text(
-                text = "SELECCIONAR PERIODO",
+                text = stringResource(id = R.string.diary_select_period).uppercase(),
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.space4),
@@ -1146,9 +1165,9 @@ fun PeriodBottomSheet(
             DiaryPeriod.values().forEach { period ->
                 val isSelected = period == selectedPeriod
                 val label = when (period) {
-                    DiaryPeriod.HOY -> "HOY"
-                    DiaryPeriod.SEMANA -> "SEMANA"
-                    DiaryPeriod.MES -> "MES"
+                    DiaryPeriod.HOY -> stringResource(id = R.string.diary_period_today)
+                    DiaryPeriod.SEMANA -> stringResource(id = R.string.diary_period_week)
+                    DiaryPeriod.MES -> stringResource(id = R.string.diary_period_month)
                 }
                 Surface(
                     onClick = { onPeriodSelected(period); onDismiss() },
@@ -1184,7 +1203,7 @@ fun PeriodBottomSheet(
                     horizontalArrangement = Arrangement.Center
                 ) {
                     IconButton(onClick = onPrevMonth) {
-                        Icon(Icons.Default.ChevronLeft, contentDescription = "Mes anterior")
+                        Icon(Icons.Default.ChevronLeft, contentDescription = stringResource(id = R.string.diary_prev_month))
                     }
                     Text(
                         text = monthLabel,
@@ -1195,7 +1214,7 @@ fun PeriodBottomSheet(
                     )
                     if (canGoNextMonth) {
                         IconButton(onClick = onNextMonth) {
-                            Icon(Icons.Default.ChevronRight, contentDescription = "Mes siguiente")
+                            Icon(Icons.Default.ChevronRight, contentDescription = stringResource(id = R.string.diary_next_month))
                         }
                     } else {
                         Spacer(Modifier.size(48.dp))

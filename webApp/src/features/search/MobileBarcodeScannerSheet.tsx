@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, SheetCard, SheetHandle, SheetHeader, SheetOverlay } from "../../ui/components";
+import { useI18n } from "../../i18n";
 
 export function MobileBarcodeScannerSheet({
   open,
@@ -10,6 +11,7 @@ export function MobileBarcodeScannerSheet({
   onClose: () => void;
   onDetected: (value: string) => void;
 }) {
+  const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const quaggaRef = useRef<typeof import("@ericblade/quagga2").default | null>(null);
   const closedRef = useRef(false);
@@ -61,11 +63,11 @@ export function MobileBarcodeScannerSheet({
           window.location.hostname === "127.0.0.1" ||
           window.location.hostname === "::1";
         if (!window.isSecureContext && !isLocalhost) {
-          setErrorMessage("La cámara en web requiere HTTPS.");
+          setErrorMessage(t("scanner.httpsRequired"));
           return;
         }
         if (!window.navigator.mediaDevices?.getUserMedia) {
-          setErrorMessage("Este navegador no permite acceso a cámara.");
+          setErrorMessage(t("scanner.browserNoCamera"));
           return;
         }
 
@@ -115,14 +117,14 @@ export function MobileBarcodeScannerSheet({
             if (err) {
               const msg = err?.message ?? String(err);
               if (/notallowed|permission|denied/i.test(msg)) {
-                setErrorMessage("No tenemos permiso para usar la cámara. Revísalo en el navegador.");
+                setErrorMessage(t("scanner.permissionDenied"));
                 return;
               }
               if (/notfound|overconstrained|constraints|no devices/i.test(msg)) {
-                setErrorMessage("No encontramos una cámara compatible en este dispositivo.");
+                setErrorMessage(t("scanner.noCompatibleCamera"));
                 return;
               }
-              setErrorMessage("No pudimos abrir la cámara. Cierra otras apps que la estén usando y vuelve a intentar.");
+              setErrorMessage(t("scanner.openFailed"));
               return;
             }
             // Dar tiempo al stream de video a entregar frames antes de empezar a decodificar
@@ -141,11 +143,11 @@ export function MobileBarcodeScannerSheet({
         if (cancelled) return;
         const message = e instanceof Error ? e.message : String(e ?? "");
         if (/notallowed|permission|denied/i.test(message)) {
-          setErrorMessage("No tenemos permiso para usar la cámara. Revísalo en el navegador.");
+          setErrorMessage(t("scanner.permissionDenied"));
         } else if (/notfound|overconstrained|constraints/i.test(message)) {
-          setErrorMessage("No encontramos una cámara compatible en este dispositivo.");
+          setErrorMessage(t("scanner.noCompatibleCamera"));
         } else {
-          setErrorMessage("No pudimos abrir la cámara. Cierra otras apps que la estén usando y vuelve a intentar.");
+          setErrorMessage(t("scanner.openFailed"));
         }
       }
     };
@@ -184,7 +186,7 @@ export function MobileBarcodeScannerSheet({
         quaggaRef.current = null;
       }
     };
-  }, [open, handleDetected]);
+  }, [open, handleDetected, t]);
 
   if (!open) return null;
 
@@ -193,16 +195,16 @@ export function MobileBarcodeScannerSheet({
       className="barcode-scanner-overlay"
       role="dialog"
       aria-modal="true"
-      aria-label="Escanear codigo"
+      aria-label={t("scanner.aria")}
       onDismiss={onClose}
       onClick={onClose}
     >
       <SheetCard className="barcode-scanner-sheet" onClick={(event) => event.stopPropagation()}>
         <SheetHandle aria-hidden="true" />
         <SheetHeader>
-          <strong className="sheet-title barcode-scanner-title">ESCANEAR CODIGO</strong>
+          <strong className="sheet-title barcode-scanner-title">{t("scanner.title")}</strong>
           <Button variant="ghost" className="barcode-scanner-close" onClick={onClose}>
-            Cerrar
+            {t("common.close")}
           </Button>
         </SheetHeader>
         <div className="barcode-scanner-body">
@@ -212,7 +214,7 @@ export function MobileBarcodeScannerSheet({
             <div className="barcode-scanner-video-wrap">
               <div ref={containerRef} className="barcode-scanner-video barcode-scanner-quagga-viewport" />
               <div className="barcode-scanner-frame" aria-hidden="true" />
-              <p className="barcode-scanner-hint">Coloca el código de barras dentro del recuadro</p>
+              <p className="barcode-scanner-hint">{t("scanner.hint")}</p>
             </div>
           )}
         </div>

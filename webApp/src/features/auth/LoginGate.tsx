@@ -8,6 +8,7 @@ import { UiIcon } from "../../ui/iconography";
 import { Button, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
 import { CookieConsentBanner } from "../consent/CookieConsentBanner";
 import { GoogleSignInButton } from "./GoogleSignInButton";
+import { useI18n } from "../../i18n";
 
 export function LoginGate({
   loading,
@@ -22,12 +23,19 @@ export function LoginGate({
   onGoogleLogin?: () => void;
   onGoogleCredential?: (idToken: string) => void;
 }) {
+  const { t } = useI18n();
   const [showMobileSheet, setShowMobileSheet] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const assetBase = useMemo(() => getAppAssetBase(), []);
   const googleClientId = useMemo(() => getGoogleClientId(), []);
   const loginVideoSrc = assetBase + "login_bg.mp4";
   const logoSrc = assetBase + "logo.png";
+  const isLocalDevLoginEnabled =
+    import.meta.env.DEV &&
+    typeof window !== "undefined" &&
+    window.location.hostname !== "cafesitoapp.com";
+  const DEV_LOCAL_EMAIL_KEY = "cafesito_dev_session_email";
+  const DEV_LOCAL_USER_ID_KEY = "cafesito_dev_internal_user_id";
 
   // Móvil: evitar que se pueda arrastrar la página de login hacia arriba/abajo
   useEffect(() => {
@@ -69,23 +77,41 @@ export function LoginGate({
   const renderAuthContent = () => (
     <>
       <p className="login-sheet-description">
-        Únete a la comunidad del café para descubrir, elaborar y compartir tu pasión.
+        {t("login.joinCommunity")}
       </p>
       <div className="login-google-button-container">
         <GoogleSignInButton
-          label="Registrarse con Google"
+          label={t("login.signUpGoogle")}
           loading={loading}
           disabled={!onGoogleLogin}
           onClick={onGoogleLogin ?? undefined}
         />
+        {isLocalDevLoginEnabled ? (
+          <Button
+            variant="ghost"
+            className="login-dev-button"
+            type="button"
+            onClick={() => {
+              try {
+                window.localStorage.setItem(DEV_LOCAL_EMAIL_KEY, "dev-local-1924119502@cafesito.local");
+                window.localStorage.setItem(DEV_LOCAL_USER_ID_KEY, "1924119502");
+              } catch {
+                // ignore localStorage failures in private mode
+              }
+              window.location.href = "/home";
+            }}
+          >
+            Entrar como usuario local (1924119502)
+          </Button>
+        ) : null}
       </div>
       <p className="login-sheet-terms">
-        Al continuar, aceptas nuestra{" "}
-        <a href={assetBase + "legal/privacidad.html"} target="_blank" rel="noopener noreferrer" className="login-legal-link">Política de Privacidad</a>
+        {t("login.termsPrefix")}{" "}
+        <a href={assetBase + "legal/privacidad.html"} target="_blank" rel="noopener noreferrer" className="login-legal-link">{t("login.privacy")}</a>
         , las{" "}
-        <a href={assetBase + "legal/condiciones.html"} target="_blank" rel="noopener noreferrer" className="login-legal-link">Condiciones del Servicio</a>
+        <a href={assetBase + "legal/condiciones.html"} target="_blank" rel="noopener noreferrer" className="login-legal-link">{t("login.terms")}</a>
         {" "}y{" "}
-        <a href={assetBase + "legal/eliminacion-cuenta.html"} target="_blank" rel="noopener noreferrer" className="login-legal-link">Eliminación de datos</a>.
+        <a href={assetBase + "legal/eliminacion-cuenta.html"} target="_blank" rel="noopener noreferrer" className="login-legal-link">{t("login.dataDeletion")}</a>.
       </p>
       {message ? <p className="login-hint">{message}</p> : null}
       {errorMessage ? <p className="login-error">{errorMessage}</p> : null}
@@ -93,7 +119,7 @@ export function LoginGate({
   );
 
   return (
-    <main className="login-gate" aria-label="Inicio de sesión">
+    <main className="login-gate" aria-label={t("login.mainAria")}>
       <section className="login-shell">
         <section className="login-left-pane">
           <video
@@ -109,19 +135,19 @@ export function LoginGate({
           <div className="login-background-layer" />
           <div className="login-content">
             <header className="login-hero">
-              <p className="login-overline">BIENVENIDO A</p>
+              <p className="login-overline">{t("login.welcome")}</p>
               <h1 className="login-brand">CAFESITO</h1>
-              <p className="login-subtitle">La comunidad para los amantes del café.</p>
+              <p className="login-subtitle">{t("login.subtitle")}</p>
             </header>
 
-            <section className="login-feature-list" aria-label="Beneficios">
+            <section className="login-feature-list" aria-label={t("login.benefits")}>
               <article className="login-feature-row">
                 <span className="login-feature-icon" aria-hidden="true">
                   <UiIcon name="checklist" className="ui-icon" />
                 </span>
                 <div className="login-feature-copy">
-                  <p className="login-feature-title">Gestiona</p>
-                  <p className="login-feature-desc">Organiza tu café en casa y ten control total de tu despensa.</p>
+                  <p className="login-feature-title">{t("login.manageTitle")}</p>
+                  <p className="login-feature-desc">{t("login.manageDesc")}</p>
                 </div>
               </article>
               <article className="login-feature-row">
@@ -129,8 +155,8 @@ export function LoginGate({
                   <UiIcon name="explore-filled" className="ui-icon" />
                 </span>
                 <div className="login-feature-copy">
-                  <p className="login-feature-title">Explora</p>
-                  <p className="login-feature-desc">Descubre cafés, tostadores y perfiles que encajan contigo.</p>
+                  <p className="login-feature-title">{t("login.exploreTitle")}</p>
+                  <p className="login-feature-desc">{t("login.exploreDesc")}</p>
                 </div>
               </article>
               <article className="login-feature-row">
@@ -138,8 +164,8 @@ export function LoginGate({
                   <UiIcon name="coffee-filled" className="ui-icon" />
                 </span>
                 <div className="login-feature-copy">
-                  <p className="login-feature-title">Elabora</p>
-                  <p className="login-feature-desc">Convierte cada preparación en una experiencia de barista en casa.</p>
+                  <p className="login-feature-title">{t("login.brewTitle")}</p>
+                  <p className="login-feature-desc">{t("login.brewDesc")}</p>
                 </div>
               </article>
               <article className="login-feature-row">
@@ -147,20 +173,20 @@ export function LoginGate({
                   <UiIcon name="auto_graph" className="ui-icon" />
                 </span>
                 <div className="login-feature-copy">
-                  <p className="login-feature-title">Registra</p>
-                  <p className="login-feature-desc">Guarda tus catas y descubre cómo evoluciona tu paladar.</p>
+                  <p className="login-feature-title">{t("login.trackTitle")}</p>
+                  <p className="login-feature-desc">{t("login.trackDesc")}</p>
                 </div>
               </article>
             </section>
 
             <Button variant="primary" className="login-start-button action-button--primary" onClick={() => { sendEvent("modal_open", { modal_id: "login_sheet" }); setShowMobileSheet(true); }}>
-              EMPEZAR AHORA
+              {t("login.startNow")}
             </Button>
           </div>
         </section>
 
-        <section className="login-desktop-auth" aria-label="Acceso desktop">
-          <img src={logoSrc} alt="Logo Cafesito" className="login-desktop-logo" loading="eager" decoding="async" />
+        <section className="login-desktop-auth" aria-label={t("login.desktopAccess")}>
+          <img src={logoSrc} alt={t("login.logoAlt")} className="login-desktop-logo" loading="eager" decoding="async" />
           <div className="login-desktop-auth-content">{renderAuthContent()}</div>
         </section>
       </section>
@@ -173,7 +199,7 @@ export function LoginGate({
               <button
                 type="button"
                 className="login-sheet-close"
-                aria-label="Cerrar"
+                aria-label={t("common.close")}
                 onClick={() => {
                   sendEvent("modal_close", { modal_id: "login_sheet" });
                   setShowMobileSheet(false);

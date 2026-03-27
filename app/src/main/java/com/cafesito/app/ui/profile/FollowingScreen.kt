@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -27,6 +28,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.cafesito.app.ui.theme.*
+import com.cafesito.app.R
 import com.cafesito.app.ui.utils.containsSearchQuery
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,7 +71,7 @@ fun FollowingScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(id = R.string.join_list_back))
                     }
                     
                     BasicTextField(
@@ -88,8 +90,8 @@ fun FollowingScreen(
                                 singleLine = true,
                                 visualTransformation = VisualTransformation.None,
                                 interactionSource = interactionSource,
-                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar", tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                placeholder = { Text("Buscar en seguidos...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(id = R.string.search_icon_search_cd), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                placeholder = { Text(stringResource(id = R.string.profile_search_following_placeholder), color = MaterialTheme.colorScheme.onSurfaceVariant) },
                                 contentPadding = PaddingValues(0.dp),
                                 container = {
                                     OutlinedTextFieldDefaults.Container(
@@ -121,7 +123,7 @@ fun FollowingScreen(
                             },
                             contentPadding = PaddingValues(start = 12.dp, end = 4.dp)
                         ) {
-                            Text("Cancelar", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(stringResource(id = R.string.search_cancel), color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
                     }
                 }
@@ -151,7 +153,7 @@ fun FollowingScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = if (currentQuery.isEmpty()) "No sigue a nadie todavía" else "No se encontraron resultados",
+                                text = if (currentQuery.isEmpty()) stringResource(id = R.string.profile_not_following_anyone) else stringResource(id = R.string.profile_no_results),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 style = MaterialTheme.typography.bodyMedium
                             )

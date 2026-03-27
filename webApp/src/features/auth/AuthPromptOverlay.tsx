@@ -3,6 +3,7 @@ import { getGoogleClientId, showGoogleOneTap } from "../../core/googleGsi";
 import { IconButton, SheetCard, SheetHandle, SheetOverlay } from "../../ui/components";
 import { UiIcon } from "../../ui/iconography";
 import { GoogleSignInButton } from "./GoogleSignInButton";
+import { useI18n } from "../../i18n";
 
 export function AuthPromptOverlay({
   open,
@@ -19,6 +20,7 @@ export function AuthPromptOverlay({
   onGoogleLogin: () => void;
   onGoogleCredential?: (idToken: string) => void;
 }) {
+  const { t } = useI18n();
   const googleClientId = useMemo(() => getGoogleClientId(), []);
 
   // One Tap en el overlay: sugiere "Continuar como [email]" si hay sesión en Google (solo con red para evitar ERR_NAME_NOT_RESOLVED)
@@ -31,7 +33,7 @@ export function AuthPromptOverlay({
   if (!open) return null;
 
   return (
-    <SheetOverlay className="auth-prompt-overlay" role="dialog" aria-modal="true" aria-label="Acceso" onDismiss={onClose} onClick={onClose}>
+    <SheetOverlay className="auth-prompt-overlay" role="dialog" aria-modal="true" aria-label={t("auth.access")} onDismiss={onClose} onClick={onClose}>
       <SheetCard className="auth-prompt-card" onClick={(event) => event.stopPropagation()}>
         <SheetHandle aria-hidden="true" />
         <div className="auth-prompt-head">
@@ -39,16 +41,16 @@ export function AuthPromptOverlay({
           <div className="auth-prompt-avatar" aria-hidden="true">
             <img src="/logo.png" alt="" loading="lazy" decoding="async" />
           </div>
-          <IconButton className="auth-prompt-close" aria-label="Cerrar" onClick={onClose}>
+          <IconButton className="auth-prompt-close" aria-label={t("common.close")} onClick={onClose}>
             <UiIcon name="close" className="ui-icon" />
           </IconButton>
         </div>
         <p className="auth-prompt-copy">
-          Únete a la comunidad del café para descubrir, elaborar y compartir tu pasión.
+          {t("login.joinCommunity")}
         </p>
         <div className="auth-prompt-google-slot">
           <GoogleSignInButton
-            label="Registrarse con Google"
+            label={t("login.signUpGoogle")}
             loading={authBusy}
             onClick={onGoogleLogin}
           />

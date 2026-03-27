@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cafesito.app.R
 import com.cafesito.app.brewlab.BrewLabTimerService
 import com.cafesito.app.data.*
 import com.cafesito.shared.domain.brew.BrewCaffeineInput
@@ -618,13 +619,13 @@ class BrewLabViewModel @Inject constructor(
     fun onTasteFeedback(taste: String) {
         _selectedTaste.value = taste
         _dialInRecommendation.value = when (taste) {
-            "Amargo" -> "Sobre-extracción: muele más grueso o baja la temperatura 2°C para reducir el amargor."
-            "Ácido" -> "Sub-extracción: muele más fino o vierte más lento para aumentar el contacto con el agua."
-            "Equilibrado" -> "¡Perfil perfecto! Has logrado un equilibrio ideal entre dulzor, acidez y cuerpo."
-            "Salado" -> "Muy sub-extraído: muele mucho más fino. Indica que el agua no ha extraído los azúcares."
-            "Acuoso" -> "Poca intensidad: usa un ratio de café más alto o intenta una molienda un punto más fina."
-            "Aspero" -> "Astringencia: evita remover en exceso y asegúrate de que el filtro esté bien lavado."
-            "Dulce" -> "¡Extraordinario! Has resaltado los azúcares naturales del grano. Mantén estos ajustes."
+            "Amargo" -> appContext.getString(R.string.brew_taste_reco_bitter)
+            "Ácido" -> appContext.getString(R.string.brew_taste_reco_acidic)
+            "Equilibrado" -> appContext.getString(R.string.brew_taste_reco_balanced)
+            "Salado" -> appContext.getString(R.string.brew_taste_reco_salty)
+            "Acuoso" -> appContext.getString(R.string.brew_taste_reco_watery)
+            "Aspero" -> appContext.getString(R.string.brew_taste_reco_rough)
+            "Dulce" -> appContext.getString(R.string.brew_taste_reco_sweet)
             else -> null
         }
     }

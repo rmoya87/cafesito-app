@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { CoffeeRow, FinishedCoffeeRow } from "../../types";
 import { Button } from "../../ui/components";
 import { UiIcon } from "../../ui/iconography";
+import { useI18n } from "../../i18n";
 
 export function HistorialView({
   finishedCoffees,
@@ -14,6 +15,7 @@ export function HistorialView({
   onBack: () => void;
   onOpenCoffee: (coffeeId: string) => void;
 }) {
+  const { t, locale } = useI18n();
   const sortedWithCoffee = useMemo(() => {
     const byId = new Map<string, CoffeeRow>();
     coffeeCatalog.forEach((c) => byId.set(c.id, c));
@@ -26,7 +28,7 @@ export function HistorialView({
   const groupedByDate = useMemo(() => {
     const groups = new Map<string, { row: FinishedCoffeeRow; coffee: CoffeeRow }[]>();
     sortedWithCoffee.forEach((entry) => {
-      const key = new Date(entry.row.finished_at).toLocaleDateString("es-ES", {
+      const key = new Date(entry.row.finished_at).toLocaleDateString(locale, {
         day: "numeric",
         month: "long",
         year: "numeric"
@@ -44,17 +46,17 @@ export function HistorialView({
 
   if (sortedWithCoffee.length === 0) {
     return (
-      <section className="historial-view historial-view-empty" aria-label="Historial de cafés terminados">
-        <p className="historial-empty-text">No hay cafés terminados</p>
+      <section className="historial-view historial-view-empty" aria-label={t("top.history")}>
+        <p className="historial-empty-text">{t("top.history")}</p>
         <Button variant="plain" type="button" className="historial-back" onClick={onBack}>
-          Volver
+          {t("common.back")}
         </Button>
       </section>
     );
   }
 
   return (
-    <section className="historial-view" aria-label="Historial de cafés terminados">
+    <section className="historial-view" aria-label={t("top.history")}>
       {groupedByDate.map(([dateLabel, entries]) => (
         <div key={dateLabel} className="historial-section">
           <h2 className="historial-section-title">{dateLabel}</h2>

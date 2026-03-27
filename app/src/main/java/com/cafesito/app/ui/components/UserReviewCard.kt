@@ -17,6 +17,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import androidx.compose.ui.res.stringResource
+import com.cafesito.app.R
 import com.cafesito.app.data.UserReviewInfo
 import com.cafesito.app.ui.utils.formatRelativeTime
 import com.cafesito.app.ui.theme.*
@@ -49,7 +51,7 @@ fun UserReviewCard(
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(
-                            text = info.authorName ?: "Barista",
+                            text = info.authorName ?: stringResource(id = R.string.diary_barista),
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface

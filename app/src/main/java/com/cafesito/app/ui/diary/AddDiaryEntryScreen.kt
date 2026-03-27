@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.text.KeyboardOptions
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.cafesito.app.R
 import com.cafesito.app.data.Coffee
 import com.cafesito.app.data.CoffeeWithDetails
 import com.cafesito.app.data.PantryItemWithDetails
@@ -124,11 +126,11 @@ fun AddDiaryEntryScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            val title = if (initialType == "WATER") "AGUA" else when (step) {
-                1 -> if (quickStart) "SELECCIÓN" else "SELECCIONA"
-                2 -> "DOSIS"
-                3 -> "TIPO"
-                else -> "TAMAÑO"
+            val title = if (initialType == "WATER") stringResource(id = R.string.diary_add_water) else when (step) {
+                1 -> if (quickStart) stringResource(id = R.string.diary_add_selection) else stringResource(id = R.string.diary_add_select)
+                2 -> stringResource(id = R.string.diary_add_dose)
+                3 -> stringResource(id = R.string.diary_add_type)
+                else -> stringResource(id = R.string.diary_add_size)
             }
             CenterAlignedTopAppBar(
                 title = {
@@ -153,7 +155,7 @@ fun AddDiaryEntryScreen(
                             }
                         }
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(id = R.string.join_list_back))
                     }
                 },
                 actions = {
@@ -165,7 +167,7 @@ fun AddDiaryEntryScreen(
                                 onBackClick()
                             }
                         }) {
-                            Text("REGISTRAR", fontWeight = FontWeight.Bold)
+                            Text(stringResource(id = R.string.diary_add_register).uppercase(), fontWeight = FontWeight.Bold)
                         }
                     } else if (step == 1) {
                         IconButton(
@@ -179,18 +181,18 @@ fun AddDiaryEntryScreen(
                                 step = 2
                             }
                         ) {
-                            Icon(Icons.Default.Bolt, contentDescription = "Registro rápido")
+                            Icon(Icons.Default.Bolt, contentDescription = stringResource(id = R.string.diary_add_quick_entry))
                         }
                     } else if (step in 2..3) {
                         IconButton(onClick = { step += 1 }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Siguiente")
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = stringResource(id = R.string.diary_next))
                         }
                     } else if (step == 4) {
                         TextButton(onClick = registerCoffee, enabled = !isSaving) {
                             if (isSaving) {
                                 CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                             } else {
-                                Text("REGISTRAR", fontWeight = FontWeight.Bold)
+                                Text(stringResource(id = R.string.diary_add_register).uppercase(), fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -306,7 +308,7 @@ fun WaterRegistrationStepPremium(
             ) {
                 Icon(
                     Icons.Default.WaterDrop,
-                    contentDescription = "Añadir agua",
+                    contentDescription = stringResource(id = R.string.diary_add_water_cd),
                     modifier = Modifier.size(80.dp),
                     tint = waterBlue
                 )
@@ -319,7 +321,7 @@ fun WaterRegistrationStepPremium(
                             input.toFloatOrNull()?.let(onMlChange)
                         }
                     },
-                    suffix = { Text("ml") },
+                    suffix = { Text(stringResource(id = R.string.diary_ml)) },
                     textStyle = LocalTextStyle.current.copy(
                         fontSize = MaterialTheme.typography.headlineLarge.fontSize,
                         fontWeight = FontWeight.Bold,
@@ -384,7 +386,7 @@ fun CoffeeSelectionStepPremium(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("TU DESPENSA", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Text(stringResource(id = R.string.diary_pantry_title), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 
             }
             Spacer(Modifier.height(16.dp))
@@ -394,7 +396,7 @@ fun CoffeeSelectionStepPremium(
                         modifier = Modifier.padding(24.dp).fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("Tu despensa está vacía", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(id = R.string.empty_diary_no_pantry), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             } else {
@@ -415,7 +417,7 @@ fun CoffeeSelectionStepPremium(
                 value = searchQuery,
                 onValueChange = onSearchQueryChange,
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Busca un café o marca") },
+                placeholder = { Text(stringResource(id = R.string.add_stock_search_placeholder)) },
                 shape = Shapes.pillFull,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -425,7 +427,7 @@ fun CoffeeSelectionStepPremium(
                 singleLine = true,
                 leadingIcon = { 
                     Box(modifier = Modifier.padding(start = 4.dp)) {
-                        Icon(Icons.Default.Search, contentDescription = "Buscar", tint = MaterialTheme.colorScheme.onSurfaceVariant) 
+                        Icon(Icons.Default.Search, contentDescription = stringResource(id = R.string.search_icon_search_cd), tint = MaterialTheme.colorScheme.onSurfaceVariant) 
                     }
                 },
                 trailingIcon = {
@@ -446,14 +448,14 @@ fun CoffeeSelectionStepPremium(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("SUGERENCIAS", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Text(stringResource(id = R.string.diary_suggestions_title), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.weight(1f))
                 TextButton(
                     onClick = onAddNotFoundClick,
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                     modifier = Modifier.height(32.dp)
                 ) {
-                    Text("Crea tu café", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(id = R.string.diary_create_coffee), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
                 }
             }
             Spacer(Modifier.height(16.dp))
@@ -489,13 +491,13 @@ fun CoffeeDoseStepPremium(
             ) {
                 Icon(
                     Icons.Default.LocalCafe,
-                    contentDescription = "Añadir café",
+                    contentDescription = stringResource(id = R.string.diary_add_coffee_cd),
                     modifier = Modifier.size(80.dp),
                     tint = coffeeColor
                 )
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    text = coffee?.nombre ?: "Registro rápido",
+                    text = coffee?.nombre ?: stringResource(id = R.string.diary_add_quick_entry),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
@@ -510,7 +512,7 @@ fun CoffeeDoseStepPremium(
                             normalized.toFloatOrNull()?.let(onDoseChange)
                         }
                     },
-                    suffix = { Text("g") },
+                    suffix = { Text(stringResource(id = R.string.diary_grams_suffix)) },
                     textStyle = LocalTextStyle.current.copy(
                         fontSize = MaterialTheme.typography.headlineLarge.fontSize,
                         fontWeight = FontWeight.Bold,
@@ -552,23 +554,23 @@ fun CoffeeTypeStepPremium(
     val context = LocalContext.current
     val prepTypes = remember {
         listOf(
-            PrepOptionUi("Espresso", "espresso"),
-            PrepOptionUi("Americano", "americano"),
-            PrepOptionUi("Capuchino", "capuchino"),
-            PrepOptionUi("Latte", "latte"),
-            PrepOptionUi("Macchiato", "macchiato"),
-            PrepOptionUi("Moca", "moca"),
-            PrepOptionUi("Vienés", "vienes"),
-            PrepOptionUi("Irlandés", "irlandes"),
-            PrepOptionUi("Frappuccino", "frappuccino"),
-            PrepOptionUi("Caramelo macchiato", "caramel_macchiato"),
-            PrepOptionUi("Corretto", "corretto"),
-            PrepOptionUi("Freddo", "freddo"),
-            PrepOptionUi("Latte macchiato", "latte_macchiato"),
-            PrepOptionUi("Leche con chocolate", "leche_con_chocolate"),
-            PrepOptionUi("Marroquí", "marroqui"),
-            PrepOptionUi("Romano", "romano"),
-            PrepOptionUi("Descafeinado", "descafeinado")
+            PrepOptionUi("Espresso", "espresso", R.string.prep_espresso),
+            PrepOptionUi("Americano", "americano", R.string.prep_americano),
+            PrepOptionUi("Capuchino", "capuchino", R.string.prep_capuchino),
+            PrepOptionUi("Latte", "latte", R.string.prep_latte),
+            PrepOptionUi("Macchiato", "macchiato", R.string.prep_macchiato),
+            PrepOptionUi("Moca", "moca", R.string.prep_moca),
+            PrepOptionUi("Vienés", "vienes", R.string.prep_vienes),
+            PrepOptionUi("Irlandés", "irlandes", R.string.prep_irlandes),
+            PrepOptionUi("Frappuccino", "frappuccino", R.string.prep_frappuccino),
+            PrepOptionUi("Caramelo macchiato", "caramel_macchiato", R.string.prep_caramel_macchiato),
+            PrepOptionUi("Corretto", "corretto", R.string.prep_corretto),
+            PrepOptionUi("Freddo", "freddo", R.string.prep_freddo),
+            PrepOptionUi("Latte macchiato", "latte_macchiato", R.string.prep_latte_macchiato),
+            PrepOptionUi("Leche con chocolate", "leche_con_chocolate", R.string.prep_leche_con_chocolate),
+            PrepOptionUi("Marroquí", "marroqui", R.string.prep_marroqui),
+            PrepOptionUi("Romano", "romano", R.string.prep_romano),
+            PrepOptionUi("Descafeinado", "descafeinado", R.string.prep_descafeinado)
         )
     }
 
@@ -580,10 +582,10 @@ fun CoffeeTypeStepPremium(
         modifier = Modifier.fillMaxSize()
     ) {
         items(prepTypes, key = { it.drawableName }) { option ->
-            val isSelected = selectedType == option.label
+                    val isSelected = selectedType == option.value
             val resId = context.resources.getIdentifier(option.drawableName, "drawable", context.packageName)
             Surface(
-                onClick = { onTypeSelected(option.label) },
+                onClick = { onTypeSelected(option.value) },
                 shape = Shapes.shapeCardMedium,
                 color = MaterialTheme.colorScheme.surface,
                 border = BorderStroke(
@@ -600,15 +602,15 @@ fun CoffeeTypeStepPremium(
                     if (resId != 0) {
                         Image(
                             painter = painterResource(resId),
-                            contentDescription = option.label,
+                        contentDescription = stringResource(id = option.labelResId),
                             modifier = Modifier.size(46.dp),
                             contentScale = ContentScale.Fit
                         )
                     } else {
-                        Icon(Icons.Default.CoffeeMaker, contentDescription = "Método de elaboración", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(40.dp))
+                        Icon(Icons.Default.CoffeeMaker, contentDescription = stringResource(id = R.string.diary_brew_method_cd), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(40.dp))
                     }
                     Spacer(Modifier.height(8.dp))
-                    Text(option.label, fontWeight = FontWeight.Bold, fontSize = 12.sp, textAlign = TextAlign.Center)
+                    Text(stringResource(id = option.labelResId), fontWeight = FontWeight.Bold, fontSize = 12.sp, textAlign = TextAlign.Center)
                 }
             }
         }
@@ -647,16 +649,16 @@ fun CoffeeSizeStepPremium(
                     if (resId != 0) {
                         Image(
                             painter = painterResource(id = resId),
-                            contentDescription = option.label,
+                            contentDescription = stringResource(id = option.labelResId),
                             modifier = Modifier.size(34.dp),
                             contentScale = ContentScale.Fit
                         )
                     } else {
-                        Icon(Icons.Default.LocalCafe, contentDescription = "Café", tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.LocalCafe, contentDescription = stringResource(id = R.string.diary_add_coffee_cd), tint = MaterialTheme.colorScheme.primary)
                     }
                     Column {
-                        Text(option.label, fontWeight = FontWeight.Bold)
-                        Text(option.rangeLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(id = option.labelResId), fontWeight = FontWeight.Bold)
+                        Text(stringResource(id = option.rangeResId), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -666,25 +668,27 @@ fun CoffeeSizeStepPremium(
 
 data class CoffeeSizeOption(
     val label: String,
+    val labelResId: Int,
     val rangeLabel: String,
+    val rangeResId: Int,
     val defaultMl: Int,
     val multiplier: Float,
     val drawableName: String
 ) {
     companion object {
         fun defaults(): List<CoffeeSizeOption> = listOf(
-            CoffeeSizeOption("Espresso", "25–30 ml", 30, 0.35f, "taza_espresso"),
-            CoffeeSizeOption("Pequeño", "150–200 ml", 180, 0.8f, "taza_pequeno"),
-            CoffeeSizeOption("Mediano", "250–300 ml", 275, 1.0f, "taza_mediano"),
-            CoffeeSizeOption("Grande", "350–400 ml", 375, 1.25f, "taza_grande"),
-            CoffeeSizeOption("Tazón XL", "450–500 ml", 475, 1.5f, "taza_xl")
+            CoffeeSizeOption("Espresso", R.string.size_espresso, "25–30 ml", R.string.size_range_espresso, 30, 0.35f, "taza_espresso"),
+            CoffeeSizeOption("Pequeño", R.string.size_small, "150–200 ml", R.string.size_range_small, 180, 0.8f, "taza_pequeno"),
+            CoffeeSizeOption("Mediano", R.string.size_medium, "250–300 ml", R.string.size_range_medium, 275, 1.0f, "taza_mediano"),
+            CoffeeSizeOption("Grande", R.string.size_large, "350–400 ml", R.string.size_range_large, 375, 1.25f, "taza_grande"),
+            CoffeeSizeOption("Tazón XL", R.string.size_xl, "450–500 ml", R.string.size_range_xl, 475, 1.5f, "taza_xl")
         )
 
         fun default(): CoffeeSizeOption = defaults()[2]
     }
 }
 
-data class PrepOptionUi(val label: String, val drawableName: String)
+data class PrepOptionUi(val value: String, val drawableName: String, val labelResId: Int)
 
 private fun calculateAverageCaffeine(type: String, grams: Int, isDecaf: Boolean): Int {
     return BrewEngine.estimateCaffeineMg(
@@ -712,7 +716,12 @@ fun PantryPremiumMiniCard(item: PantryItemWithDetails, onClick: () -> Unit) {
             )
             Column(Modifier.padding(12.dp)) {
                 Text(item.coffee.nombre, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface)
-                Text("${item.pantryItem.gramsRemaining}G REST.", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontSize = 8.sp)
+                Text(
+                    stringResource(id = R.string.diary_pantry_remaining, item.pantryItem.gramsRemaining),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 8.sp
+                )
             }
         }
     }

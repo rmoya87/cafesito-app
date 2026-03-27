@@ -4,6 +4,8 @@ import { getSupabaseClient, supabaseConfigError } from "../../supabase";
 
 const SESSION_ACTIVITY_TTL_MS = 5 * 24 * 60 * 60 * 1000; // 5 días sin acceso → cierre de sesión
 const STORAGE_KEY_LAST_ACTIVITY = "cafesito_session_last_activity";
+const DEV_LOCAL_EMAIL_KEY = "cafesito_dev_session_email";
+const DEV_LOCAL_USER_ID_KEY = "cafesito_dev_internal_user_id";
 
 function getLastActivity(): number | null {
   try {
@@ -59,6 +61,25 @@ export function useAuthSession(): UseAuthSessionResult {
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
 
   useEffect(() => {
+    const isDevLocal =
+      import.meta.env.DEV &&
+      typeof window !== "undefined" &&
+      window.location.hostname !== "cafesitoapp.com";
+    if (isDevLocal) {
+      try {
+        const devEmail = window.localStorage.getItem(DEV_LOCAL_EMAIL_KEY);
+        const devUserId = window.localStorage.getItem(DEV_LOCAL_USER_ID_KEY);
+        if (devEmail && devUserId) {
+          setSessionEmail(devEmail);
+          setAuthError(null);
+          setAuthReady(true);
+          return;
+        }
+      } catch {
+        // ignore localStorage failures
+      }
+    }
+
     if (supabaseConfigError) {
       setAuthError(supabaseConfigError);
       setAuthReady(true);

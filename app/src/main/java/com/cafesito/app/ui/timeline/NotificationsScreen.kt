@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import com.cafesito.app.ui.theme.CaramelAccent
 import com.cafesito.app.ui.theme.CaramelSoft
 import com.cafesito.app.ui.theme.ElectricRed
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.cafesito.app.R
 import com.cafesito.app.ui.components.GlassyTopBar
 import com.cafesito.app.ui.theme.ElectricRed
 import com.cafesito.app.ui.theme.Shapes
@@ -49,9 +51,7 @@ fun NotificationsScreen(
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {}
 ) {
-    val groupedNotifications = remember(notifications) {
-        groupNotificationsByRange(notifications)
-    }
+    val groupedNotifications = groupNotificationsByRange(notifications)
 
     // Marcamos todo como visto automáticamente al entrar en la pantalla
     LaunchedEffect(Unit) {
@@ -61,7 +61,7 @@ fun NotificationsScreen(
     Scaffold(
         topBar = {
             GlassyTopBar(
-                title = "Notificaciones",
+                title = stringResource(id = R.string.notifications_title),
                 onBackClick = onBackClick,
                 actions = {} 
             )
@@ -75,7 +75,7 @@ fun NotificationsScreen(
         ) {
             if (notifications.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No tienes notificaciones", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(id = R.string.notifications_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
                 LazyColumn(
@@ -127,7 +127,7 @@ fun NotificationsScreen(
                                     ) {
                                         Icon(
                                             Icons.Default.Delete,
-                                            contentDescription = "Eliminar",
+                                            contentDescription = stringResource(id = R.string.notifications_delete),
                                             tint = if (isSystemInDarkTheme()) PureBlack else PureWhite,
                                             modifier = Modifier.padding(end = 24.dp)
                                         )
@@ -163,6 +163,7 @@ private data class NotificationSection(
     val items: List<TimelineNotification>
 )
 
+@Composable
 private fun groupNotificationsByRange(notifications: List<TimelineNotification>): List<NotificationSection> {
     if (notifications.isEmpty()) return emptyList()
     val calendar = java.util.Calendar.getInstance().apply {
@@ -193,10 +194,10 @@ private fun groupNotificationsByRange(notifications: List<TimelineNotification>)
     }
 
     return listOf(
-        NotificationSection("today", "Hoy", today),
-        NotificationSection("yesterday", "Ayer", yesterday),
-        NotificationSection("last7", "Últimos 7 días", last7),
-        NotificationSection("last30", "Últimos 30 días", last30)
+        NotificationSection("today", stringResource(id = R.string.notifications_today), today),
+        NotificationSection("yesterday", stringResource(id = R.string.notifications_yesterday), yesterday),
+        NotificationSection("last7", stringResource(id = R.string.notifications_last7), last7),
+        NotificationSection("last30", stringResource(id = R.string.notifications_last30), last30)
     ).filter { it.items.isNotEmpty() }
 }
 
@@ -213,11 +214,13 @@ private fun NotificationItemRow(
     onClick: () -> Unit
 ) {
     val unreadColor = ElectricRed
+    val followStartedText = stringResource(id = R.string.notifications_follow_started)
+    val firstCoffeeText = stringResource(id = R.string.notifications_first_coffee_started, notificationUserDisplayName(notification))
     val (avatarUrl, title, subtitle) = when (notification) {
         is TimelineNotification.Follow -> Triple(
             notification.user.avatarUrl,
             "@${notification.user.username}",
-            "ha comenzado a seguirte"
+            followStartedText
         )
         is TimelineNotification.Mention -> Triple(
             notification.user.avatarUrl,
@@ -237,7 +240,7 @@ private fun NotificationItemRow(
         is TimelineNotification.FirstCoffee -> Triple(
             notification.user.avatarUrl,
             "@${notification.user.username}",
-            "${notification.user.fullName.ifBlank { notification.user.username }} ha probado un café nuevo."
+            firstCoffeeText
         )
     }
 
@@ -254,7 +257,7 @@ private fun NotificationItemRow(
             Box {
                 AsyncImage(
                     model = avatarUrl,
-                    contentDescription = "Avatar",
+                    contentDescription = stringResource(id = R.string.notifications_avatar),
                     modifier = Modifier.size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
                 )
                 if (isUnread) {
@@ -288,7 +291,7 @@ private fun NotificationItemRow(
                             ),
                             contentPadding = PaddingValues(horizontal = 12.dp)
                         ) {
-                            Text("SIGUIENDO", fontWeight = FontWeight.Medium, fontSize = 10.sp)
+                            Text(stringResource(id = R.string.notifications_following).uppercase(), fontWeight = FontWeight.Medium, fontSize = 10.sp)
                         }
                     } else {
                         Button(
@@ -301,7 +304,7 @@ private fun NotificationItemRow(
                             ),
                             contentPadding = PaddingValues(horizontal = 12.dp)
                         ) {
-                            Text("SEGUIR", fontWeight = FontWeight.Medium, fontSize = 10.sp)
+                            Text(stringResource(id = R.string.notifications_follow).uppercase(), fontWeight = FontWeight.Medium, fontSize = 10.sp)
                         }
                     }
                 }
@@ -321,7 +324,7 @@ private fun NotificationItemRow(
                         ),
                         contentPadding = PaddingValues(horizontal = 12.dp)
                     ) {
-                        Text("RESPONDER", fontWeight = FontWeight.Medium, fontSize = 10.sp)
+                        Text(stringResource(id = R.string.notifications_reply).uppercase(), fontWeight = FontWeight.Medium, fontSize = 10.sp)
                     }
                 }
 
@@ -338,7 +341,7 @@ private fun NotificationItemRow(
                             ),
                             contentPadding = PaddingValues(horizontal = 12.dp)
                         ) {
-                            Text("Rechazar", fontWeight = FontWeight.Medium, fontSize = 10.sp)
+                            Text(stringResource(id = R.string.notifications_decline), fontWeight = FontWeight.Medium, fontSize = 10.sp)
                         }
                         Button(
                             onClick = { onAcceptListInvite(notification.invitationId) },
@@ -350,11 +353,21 @@ private fun NotificationItemRow(
                             ),
                             contentPadding = PaddingValues(horizontal = 12.dp)
                         ) {
-                            Text("Añadir", fontWeight = FontWeight.Medium, fontSize = 10.sp)
+                            Text(stringResource(id = R.string.notifications_add), fontWeight = FontWeight.Medium, fontSize = 10.sp)
                         }
                     }
                 }
             }
         }
+    }
+}
+
+private fun notificationUserDisplayName(notification: TimelineNotification): String {
+    return when (notification) {
+        is TimelineNotification.Follow -> notification.user.fullName.ifBlank { notification.user.username }
+        is TimelineNotification.Mention -> notification.user.fullName.ifBlank { notification.user.username }
+        is TimelineNotification.Comment -> notification.user.fullName.ifBlank { notification.user.username }
+        is TimelineNotification.ListInvite -> notification.user.fullName.ifBlank { notification.user.username }
+        is TimelineNotification.FirstCoffee -> notification.user.fullName.ifBlank { notification.user.username }
     }
 }

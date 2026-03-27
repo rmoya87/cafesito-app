@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { useI18n } from "../i18n";
 
 /**
  * Banner fijo que se muestra cuando no hay conexión (PWA / modo nativo).
  * Solo se renderiza si el usuario está offline.
  */
 export function OfflineBanner() {
+  const { locale } = useI18n();
   const [isOnline, setIsOnline] = useState(
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
@@ -21,15 +23,16 @@ export function OfflineBanner() {
   }, []);
 
   if (isOnline) return null;
+  const label = locale === "es" ? "Sin conexión" : "Offline";
 
   return (
     <div
       className="offline-banner"
       role="status"
       aria-live="polite"
-      aria-label="Sin conexión"
+      aria-label={label}
     >
-      <span className="offline-banner-text">Sin conexión</span>
+      <span className="offline-banner-text">{label}</span>
     </div>
   );
 }
