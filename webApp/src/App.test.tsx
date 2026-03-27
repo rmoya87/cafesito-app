@@ -44,6 +44,8 @@ describe("App", () => {
     // Locale fija en tests: en CI suele resolverse a inglés y cambian aria-label de la navegación.
     try {
       window.localStorage.setItem("cafesito.locale", "es");
+      window.localStorage.setItem("cafesito.locale.user_selected", "1");
+      window.localStorage.removeItem("cafesito.locale.value");
     } catch {
       /* ignore */
     }
